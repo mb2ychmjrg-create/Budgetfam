@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="BudgetFam">
 <title>BudgetFam 🇮🇱</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   :root{
@@ -32,31 +33,37 @@
 
 #app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
 
-/* HEADER */
-.header{
-padding:14px 18px 12px;
-border-bottom:1px solid var(–divider);
-display:flex;justify-content:space-between;align-items:center;
-background:var(–bg);flex-shrink:0;
-padding-top:max(14px, env(safe-area-inset-top));
+/* AUTH SCREEN */
+.auth-screen{
+display:flex;flex-direction:column;justify-content:center;align-items:center;
+height:100%;padding:30px 24px;background:var(–bg);
 }
+.auth-logo{font-size:48px;margin-bottom:8px;}
+.auth-title{font-size:28px;font-weight:800;color:var(–text);margin-bottom:4px;font-family:‘Syne’,sans-serif;}
+.auth-sub{font-size:13px;color:var(–muted);margin-bottom:36px;text-align:center;line-height:1.5;}
+.auth-tabs{display:flex;background:var(–card);border-radius:14px;padding:4px;margin-bottom:24px;width:100%;}
+.auth-tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:var(–muted);transition:all .2s;font-family:‘DM Sans’,sans-serif;}
+.auth-tab.active{background:var(–accent);color:#fff;}
+.field-label{font-size:12px;color:var(–muted);margin-bottom:6px;display:block;width:100%;}
+.field{width:100%;padding:13px 14px;border-radius:12px;background:var(–card);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:‘DM Sans’,sans-serif;margin-bottom:14px;}
+.field:focus{border-color:var(–accent);}
+.btn-primary{width:100%;padding:14px;border-radius:14px;border:none;background:var(–accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:‘Syne’,sans-serif;transition:all .3s;margin-top:4px;}
+.btn-primary:active{opacity:.8;}
+.btn-primary.loading{opacity:.6;pointer-events:none;}
+.auth-error{background:var(–red-soft);color:var(–red);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
+.auth-success{background:var(–green-soft);color:var(–green);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
+
+/* HEADER */
+.header{padding:14px 18px 12px;border-bottom:1px solid var(–divider);display:flex;justify-content:space-between;align-items:center;background:var(–bg);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top));}
 .header-title{font-size:18px;font-weight:800;letter-spacing:-0.5px;}
 .header-sub{font-size:11px;color:var(–muted);margin-top:1px;}
-.avatar-btn{width:38px;height:38px;border-radius:12px;background:var(–accent-soft);display:flex;align-items:center;justify-content:center;font-size:18px;border:none;cursor:pointer;}
+.logout-btn{background:var(–card);border:1px solid var(–border);color:var(–muted);border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:‘DM Sans’,sans-serif;}
 
 /* CONTENT */
 .content{flex:1;overflow-y:auto;padding:14px 14px 80px;-webkit-overflow-scrolling:touch;}
 
 /* NAV */
-.nav{
-position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-width:100%;max-width:430px;
-background:var(–card);border-top:1px solid var(–border);
-display:flex;justify-content:space-around;
-padding:8px 0;
-padding-bottom:max(8px,env(safe-area-inset-bottom));
-z-index:100;
-}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(–card);border-top:1px solid var(–border);display:flex;justify-content:space-around;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 14px;border-radius:12px;transition:color .2s;color:var(–muted);}
 .nav-item.active{color:var(–accent);}
 .nav-item span:first-child{font-size:20px;}
@@ -68,12 +75,6 @@ z-index:100;
 /* HERO */
 .hero{background:linear-gradient(135deg,#1A2540,#0D1428);border:1px solid var(–accent-soft);border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
 .hero::before{content:’’;position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(–accent);border-radius:50%;opacity:.07;}
-.hero-label{font-size:11px;color:var(–muted);margin-bottom:4px;}
-.hero-amount{font-size:36px;font-weight:800;line-height:1;}
-.hero-amount span{font-size:18px;color:var(–accent);}
-.hero-row{display:flex;gap:18px;margin-top:12px;}
-.hero-stat label{font-size:11px;color:var(–muted);display:block;}
-.hero-stat b{font-size:14px;font-weight:700;}
 
 /* PROGRESS */
 .bar-wrap{background:var(–divider);border-radius:99px;overflow:hidden;}
@@ -82,421 +83,509 @@ z-index:100;
 /* TAG */
 .tag{border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;display:inline-block;}
 
-/* AI TIPS */
-.tip{display:flex;gap:9px;align-items:flex-start;border-radius:10px;padding:8px 11px;margin-bottom:7px;font-size:12px;line-height:1.5;}
-
 /* TRANSACTIONS */
 .tx{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(–divider);}
 .tx-icon{width:36px;height:36px;border-radius:10px;background:var(–divider);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-.tx-label{font-size:13px;font-weight:500;}
-.tx-sub{font-size:11px;color:var(–muted);}
-.tx-amount{font-weight:700;font-size:14px;}
 
 /* FORM */
 .toggle-row{display:flex;gap:6px;background:var(–divider);border-radius:12px;padding:4px;margin-bottom:18px;}
 .toggle-btn{flex:1;padding:10px;border-radius:9px;border:none;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s;background:transparent;color:var(–muted);}
 .toggle-btn.active-expense{background:var(–red-soft);color:var(–red);}
 .toggle-btn.active-income{background:var(–green-soft);color:var(–green);}
-.field-label{font-size:12px;color:var(–muted);margin-bottom:6px;display:block;}
-.field{width:100%;padding:12px 14px;border-radius:12px;background:var(–divider);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:‘DM Sans’,sans-serif;-webkit-appearance:none;appearance:none;margin-bottom:14px;}
+.select-field{width:100%;padding:12px 14px;border-radius:12px;background:var(–divider);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:‘DM Sans’,sans-serif;-webkit-appearance:none;margin-bottom:14px;}
 .submit-btn{width:100%;padding:14px;border-radius:14px;border:none;background:var(–accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:‘Syne’,sans-serif;transition:background .3s;}
 .submit-btn.sent{background:var(–green);}
 
-/* CHART */
-.chart-bars{display:flex;gap:5px;align-items:flex-end;height:120px;}
-.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
-.chart-bar{width:100%;border-radius:5px 5px 0 0;transition:height .8s;}
-.chart-bar-label{font-size:9px;color:var(–muted);}
-.chart-bar-val{font-size:8px;color:var(–muted);}
-
-/* GOAL */
-.goal-box{background:var(–purple-soft);border-radius:12px;padding:11px 13px;margin-top:10px;}
+/* VIEWS */
+.view{display:none;}.view.active{display:block;}
+.sec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
 
 /* STAT MINI */
 .stat-mini{flex:1;background:var(–divider);border-radius:10px;padding:9px 7px;text-align:center;}
 .stat-mini label{font-size:10px;color:var(–muted);display:block;margin-bottom:2px;}
 .stat-mini b{font-size:13px;font-weight:700;}
 
-/* LESSON */
-.lesson{background:linear-gradient(135deg,#1A1040,#0D0F14);border:1px solid var(–purple-soft);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
+/* GOAL */
+.goal-box{background:var(–purple-soft);border-radius:12px;padding:11px 13px;margin-top:10px;}
 
-/* VIEWS hidden/shown */
-.view{display:none;}.view.active{display:block;}
+/* SPINNER */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(–border);border-top-color:var(–accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;display:block;}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* SECTION TITLE */
-.sec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
+/* EMPTY STATE */
+.empty{text-align:center;padding:30px 20px;color:var(–muted);font-size:13px;}
+.empty span{font-size:32px;display:block;margin-bottom:10px;}
 </style>
 
 </head>
 <body>
 <div id="app">
 
-  <!-- HEADER -->
+  <!-- ===== AUTH SCREEN ===== -->
 
-  <div class="header">
-    <div>
-      <div class="syne header-title">BudgetFam <span>🇮🇱</span></div>
-      <div class="header-sub">Famille Cohen · Avril 2026</div>
-    </div>
-    <button class="avatar-btn">👨‍👩‍👧‍👦</button>
-  </div>
-
-  <!-- CONTENT -->
-
-  <div class="content">
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-logo">💰</div>
+    <div class="syne auth-title">BudgetFam 🇮🇱</div>
+    <div class="auth-sub">Votre conseiller financier IA<br>pour les familles israéliennes</div>
 
 ```
-<!-- ===== DASHBOARD ===== -->
-<div id="view-dashboard" class="view active">
-
-  <div class="hero fu fu1">
-    <div class="hero-label">Solde disponible — Avril 2026</div>
-    <div class="syne hero-amount">5 760 <span>₪</span></div>
-    <div class="hero-row">
-      <div class="hero-stat"><label>Revenus</label><b style="color:var(--green)">+18 500 ₪</b></div>
-      <div class="hero-stat"><label>Dépenses</label><b style="color:var(--red)">-14 760 ₪</b></div>
-      <div class="hero-stat"><label>Épargne</label><b style="color:var(--yellow)">2 000 ₪</b></div>
-    </div>
-    <div style="margin-top:14px">
-      <div class="bar-wrap" style="height:6px">
-        <div class="bar" style="width:80%;height:6px;background:var(--accent)"></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">80% du revenu utilisé</div>
-    </div>
-  </div>
-
-  <!-- AI Tips -->
-  <div class="card fu fu2">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
-      <span style="font-size:15px">🤖</span>
-      <span class="syne" style="font-weight:700;font-size:14px;color:var(--accent)">Assistant IA</span>
-    </div>
-    <div class="tip" style="background:var(--red-soft)"><span>🤖</span><span>Tu as dépassé ton budget Transport de 320 ₪. Réduis les trajets en voiture de 2x/semaine.</span></div>
-    <div class="tip" style="background:var(--green-soft)"><span>✅</span><span>Bravo ! Épargne à 100% ce mois-ci. Ton fond d'urgence sera complet en 4 mois.</span></div>
-    <div class="tip" style="background:var(--accent-soft)"><span>💡</span><span>Noam est à 35% de son objectif Switch 2. Avec 200 ₪/mois de plus, il l'atteindra en juillet.</span></div>
-    <div class="tip" style="background:var(--green-soft)"><span>📉</span><span>Alimentation : -12% vs le mois dernier. Excellente gestion des courses !</span></div>
-  </div>
-
-  <!-- Categories -->
-  <div class="card fu fu3">
-    <div class="syne sec-title">Catégories ce mois</div>
-    <div id="categories"></div>
-  </div>
-
-  <!-- Transactions -->
-  <div class="card fu fu4">
-    <div class="syne sec-title">Dernières transactions</div>
-    <div id="transactions"></div>
-  </div>
+<div class="auth-tabs" style="width:100%">
+  <button class="auth-tab active" onclick="switchTab('login')">Se connecter</button>
+  <button class="auth-tab" onclick="switchTab('signup')">Créer un compte</button>
 </div>
 
-<!-- ===== FAMILLE ===== -->
-<div id="view-family" class="view">
-  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Espace Famille 👨‍👩‍👧‍👦</div>
+<div id="auth-msg"></div>
 
-  <!-- Famille principale -->
-  <div class="card fu fu2">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div style="display:flex;gap:11px;align-items:center">
-        <div style="width:46px;height:46px;border-radius:14px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:22px">👨‍👩‍👧‍👦</div>
-        <div>
-          <div class="syne" style="font-weight:700;font-size:15px">Famille</div>
-          <span class="tag" style="background:var(--accent-soft);color:var(--accent)">Budget Famille</span>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:var(--muted)">Solde</div>
-        <div class="syne" style="font-weight:800;font-size:20px;color:var(--green)">5 760 ₪</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <div class="stat-mini"><label>Ce mois</label><b style="color:var(--red)">14 760 ₪</b></div>
-      <div class="stat-mini"><label>Épargné</label><b style="color:var(--green)">2 000 ₪</b></div>
-      <div class="stat-mini"><label>Reste</label><b style="color:var(--accent)">5 760 ₪</b></div>
-    </div>
-  </div>
+<label class="field-label">Email</label>
+<input class="field" id="auth-email" type="email" placeholder="votre@email.com">
 
-  <!-- Noam -->
-  <div class="card fu fu3">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div style="display:flex;gap:11px;align-items:center">
-        <div style="width:46px;height:46px;border-radius:14px;background:var(--purple-soft);display:flex;align-items:center;justify-content:center;font-size:22px">🧑</div>
-        <div>
-          <div class="syne" style="font-weight:700;font-size:15px">Noam (16 ans)</div>
-          <span class="tag" style="background:var(--purple-soft);color:var(--purple)">Jeune Épargnant</span>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:var(--muted)">Solde</div>
-        <div class="syne" style="font-weight:800;font-size:20px;color:var(--green)">850 ₪</div>
-      </div>
-    </div>
-    <div class="goal-box">
-      <div style="display:flex;justify-content:space-between;margin-bottom:7px">
-        <div style="font-size:13px;font-weight:500">🎮 Objectif : Nintendo Switch 2</div>
-        <div style="font-size:12px;color:var(--purple);font-weight:700">850/2400 ₪</div>
-      </div>
-      <div class="bar-wrap" style="height:10px">
-        <div class="bar" style="width:35%;height:10px;background:var(--purple)"></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:5px">35% atteint · encore 1 550 ₪</div>
-    </div>
-  </div>
+<label class="field-label">Mot de passe</label>
+<input class="field" id="auth-password" type="password" placeholder="••••••••">
 
-  <!-- Maya -->
-  <div class="card fu fu4">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div style="display:flex;gap:11px;align-items:center">
-        <div style="width:46px;height:46px;border-radius:14px;background:var(--purple-soft);display:flex;align-items:center;justify-content:center;font-size:22px">👧</div>
-        <div>
-          <div class="syne" style="font-weight:700;font-size:15px">Maya (13 ans)</div>
-          <span class="tag" style="background:var(--purple-soft);color:var(--purple)">Jeune Épargnante</span>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:var(--muted)">Solde</div>
-        <div class="syne" style="font-weight:800;font-size:20px;color:var(--green)">340 ₪</div>
-      </div>
-    </div>
-    <div class="goal-box">
-      <div style="display:flex;justify-content:space-between;margin-bottom:7px">
-        <div style="font-size:13px;font-weight:500">🎸 Objectif : Cours de guitare</div>
-        <div style="font-size:12px;color:var(--purple);font-weight:700">340/600 ₪</div>
-      </div>
-      <div class="bar-wrap" style="height:10px">
-        <div class="bar" style="width:57%;height:10px;background:var(--purple)"></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:5px">57% atteint · encore 260 ₪</div>
-    </div>
-  </div>
-
-  <!-- Lesson -->
-  <div class="lesson fu fu5">
-    <div class="syne" style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--purple)">📚 Leçon du mois — Pour les jeunes</div>
-    <div style="font-size:13px;line-height:1.7;margin-bottom:11px">
-      <strong style="color:var(--yellow)">La règle des 50/30/20</strong><br>
-      Divise chaque shekel que tu reçois en 3 parties :<br>
-      🟢 50% pour les besoins<br>
-      🟣 30% pour les envies<br>
-      💛 20% pour épargner
-    </div>
-    <div style="background:var(--purple-soft);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--purple);font-weight:500">
-      🤖 L'IA dit : Noam épargne actuellement 35% de son argent de poche. Excellent !
-    </div>
-  </div>
+<div id="signup-extra" style="display:none;width:100%">
+  <label class="field-label">Prénom</label>
+  <input class="field" id="auth-name" type="text" placeholder="Ex: David">
 </div>
 
-<!-- ===== AJOUTER ===== -->
-<div id="view-add" class="view">
-  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Ajouter une transaction</div>
-  <div class="card fu fu2">
-    <div class="toggle-row">
-      <button class="toggle-btn active-expense" id="btn-expense" onclick="setType('expense')">💸 Dépense</button>
-      <button class="toggle-btn" id="btn-income" onclick="setType('income')">💰 Revenu</button>
-    </div>
-    <label class="field-label">Description</label>
-    <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
-    <label class="field-label">Montant (₪)</label>
-    <input class="field" id="f-amount" placeholder="0.00" type="number" inputmode="decimal">
-    <label class="field-label">Catégorie</label>
-    <select class="field" id="f-cat">
-      <option>Alimentation</option><option>Logement</option><option>Transport</option>
-      <option>Loisirs</option><option>Santé</option><option>Épargne</option><option>Divers</option>
-    </select>
-    <button class="submit-btn" id="submit-btn" onclick="submitTx()">Ajouter la transaction</button>
-  </div>
-  <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
-    <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px">🤖 Conseil IA du moment</div>
-    <div style="font-size:13px;line-height:1.6">
-      Tu as encore <strong style="color:var(--yellow)">360 ₪</strong> disponibles en Alimentation ce mois-ci.
-      Pense à faire ta liste avant le supermarché pour optimiser tes achats !
-    </div>
-  </div>
-</div>
-
-<!-- ===== STATS ===== -->
-<div id="view-stats" class="view">
-  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Statistiques 📊</div>
-
-  <div class="card fu fu2">
-    <div class="syne sec-title">Dépenses sur 6 mois</div>
-    <div class="chart-bars">
-      <div class="chart-bar-wrap"><div class="chart-bar-val">12K</div><div class="chart-bar" style="height:78px;background:var(--divider)"></div><div class="chart-bar-label">Nov</div></div>
-      <div class="chart-bar-wrap"><div class="chart-bar-val">15K</div><div class="chart-bar" style="height:100px;background:var(--divider)"></div><div class="chart-bar-label">Déc</div></div>
-      <div class="chart-bar-wrap"><div class="chart-bar-val">12K</div><div class="chart-bar" style="height:77px;background:var(--divider)"></div><div class="chart-bar-label">Jan</div></div>
-      <div class="chart-bar-wrap"><div class="chart-bar-val">14K</div><div class="chart-bar" style="height:89px;background:var(--divider)"></div><div class="chart-bar-label">Fév</div></div>
-      <div class="chart-bar-wrap"><div class="chart-bar-val">14K</div><div class="chart-bar" style="height:92px;background:var(--divider)"></div><div class="chart-bar-label">Mar</div></div>
-      <div class="chart-bar-wrap"><div class="chart-bar-val">15K</div><div class="chart-bar" style="height:96px;background:linear-gradient(180deg,var(--accent),var(--accent-soft))"></div><div class="chart-bar-label" style="color:var(--accent)">Avr</div></div>
-    </div>
-  </div>
-
-  <div class="card fu fu3">
-    <div class="syne sec-title">Épargne mensuelle</div>
-    <div id="savings-bars"></div>
-    <div style="background:var(--green-soft);border-radius:10px;padding:9px 13px;margin-top:12px">
-      <div style="font-size:12px;color:var(--green);font-weight:600">Total épargné : 10 900 ₪ sur 6 mois 🎉</div>
-    </div>
-  </div>
-
-  <div class="card fu fu4">
-    <div class="syne sec-title">Répartition ce mois</div>
-    <div id="repartition"></div>
-  </div>
-</div>
+<button class="btn-primary" id="auth-btn" onclick="handleAuth()">Se connecter</button>
 ```
 
-  </div><!-- /content -->
+  </div>
 
-  <!-- NAV -->
+  <!-- ===== MAIN APP ===== -->
 
-  <nav class="nav">
-    <button class="nav-item active" onclick="showView('dashboard',this)"><span>🏠</span><span>Accueil</span></button>
-    <button class="nav-item" onclick="showView('family',this)"><span>👨‍👩‍👧‍👦</span><span>Famille</span></button>
-    <button class="nav-item" onclick="showView('add',this)"><span>➕</span><span>Ajouter</span></button>
-    <button class="nav-item" onclick="showView('stats',this)"><span>📊</span><span>Stats</span></button>
-  </nav>
+  <div id="main-app" style="display:none;flex-direction:column;height:100%">
+
+```
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="syne header-title">BudgetFam 🇮🇱</div>
+    <div class="header-sub" id="header-sub">Chargement...</div>
+  </div>
+  <button class="logout-btn" onclick="handleLogout()">Déconnexion</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div id="dashboard-content"><div class="spinner"></div></div>
+  </div>
+
+  <!-- AJOUTER -->
+  <div id="view-add" class="view">
+    <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Ajouter ➕</div>
+    <div class="card fu fu2">
+      <div class="toggle-row">
+        <button class="toggle-btn active-expense" id="btn-expense" onclick="setType('expense')">💸 Dépense</button>
+        <button class="toggle-btn" id="btn-income" onclick="setType('income')">💰 Revenu</button>
+      </div>
+      <label class="field-label">Description</label>
+      <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
+      <label class="field-label">Montant (₪)</label>
+      <input class="field" id="f-amount" placeholder="0.00" type="number" inputmode="decimal">
+      <label class="field-label">Catégorie</label>
+      <select class="select-field" id="f-cat">
+        <option>Alimentation</option><option>Logement</option><option>Transport</option>
+        <option>Loisirs</option><option>Santé</option><option>Épargne</option><option>Divers</option>
+      </select>
+      <button class="submit-btn" id="submit-btn" onclick="submitTx()">Ajouter la transaction</button>
+    </div>
+    <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
+      <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px">🤖 Conseil IA</div>
+      <div style="font-size:13px;line-height:1.6" id="ai-tip">Analyse de tes dépenses en cours...</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div id="view-stats" class="view">
+    <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Statistiques 📊</div>
+    <div id="stats-content"><div class="spinner"></div></div>
+  </div>
+
+  <!-- PROFIL -->
+  <div id="view-profile" class="view">
+    <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Mon Profil 👤</div>
+    <div id="profile-content"><div class="spinner"></div></div>
+  </div>
+
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-item active" onclick="showView('dashboard',this)"><span>🏠</span><span>Accueil</span></button>
+  <button class="nav-item" onclick="showView('add',this)"><span>➕</span><span>Ajouter</span></button>
+  <button class="nav-item" onclick="showView('stats',this)"><span>📊</span><span>Stats</span></button>
+  <button class="nav-item" onclick="showView('profile',this)"><span>👤</span><span>Profil</span></button>
+</nav>
+```
+
+  </div>
 </div>
 
 <script>
-const CATS = [
-  {name:"Logement",icon:"🏠",budget:5000,spent:5000,color:"#4F8EF7"},
-  {name:"Alimentation",icon:"🛒",budget:3000,spent:2640,color:"#2ECC8A"},
-  {name:"Transport",icon:"🚗",budget:1500,spent:1820,color:"#F7506A"},
-  {name:"Loisirs",icon:"🎮",budget:1000,spent:430,color:"#A78BFA"},
-  {name:"Santé",icon:"💊",budget:800,spent:310,color:"#F7C948"},
-  {name:"Épargne",icon:"💰",budget:2000,spent:2000,color:"#2ECC8A"},
-  {name:"Divers",icon:"📦",budget:700,spent:560,color:"#6B7280"},
-];
+// ===== SUPABASE INIT =====
+const { createClient } = supabase;
+const sb = createClient(
+  'https://nyywcxcahalxazienuav.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM'
+);
 
-const TXS = [
-  {icon:"🛒",label:"Supermarché Rami Levy",cat:"Alimentation",amount:-320,date:"13/04"},
-  {icon:"💼",label:"Virement salaire",cat:"Revenus",amount:18500,date:"01/04"},
-  {icon:"🚌",label:"Rav-Kav (transport)",cat:"Transport",amount:-230,date:"12/04"},
-  {icon:"💰",label:"Épargne mensuelle",cat:"Épargne",amount:-2000,date:"01/04"},
-  {icon:"📺",label:"Netflix",cat:"Loisirs",amount:-55,date:"10/04"},
-  {icon:"💊",label:"Pharmacie",cat:"Santé",amount:-88,date:"09/04"},
-  {icon:"⛽",label:"Essence",cat:"Transport",amount:-280,date:"08/04"},
-];
+let currentUser = null;
+let txType = 'expense';
+let allTxs = [];
 
-// Render categories
-function renderCats(){
-  const el = document.getElementById('categories');
-  el.innerHTML = CATS.map(c=>{
-    const over = c.spent > c.budget;
-    const pct = Math.min(c.spent/c.budget*100,100);
-    return `<div style="margin-bottom:13px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px;align-items:center">
-        <div style="display:flex;gap:7px;align-items:center">
-          <span style="font-size:15px">${c.icon}</span>
-          <span style="font-size:13px;font-weight:500">${c.name}</span>
-          ${over?`<span class="tag" style="background:#3A1020;color:#F7506A">Dépassé</span>`:''}
-        </div>
-        <div style="font-size:11px;color:var(--muted)">
-          <span style="color:${over?'#F7506A':'var(--text)'};font-weight:600">${c.spent.toLocaleString('fr-FR')}</span> / ${c.budget.toLocaleString('fr-FR')} ₪
-        </div>
-      </div>
-      <div class="bar-wrap" style="height:8px">
-        <div class="bar" style="width:${pct}%;height:8px;background:${over?'#F7506A':c.color}"></div>
-      </div>
-    </div>`;
-  }).join('');
+// ===== AUTH =====
+let authMode = 'login';
+
+function switchTab(mode) {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='signup')));
+  document.getElementById('signup-extra').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('auth-btn').textContent = mode === 'login' ? 'Se connecter' : 'Créer mon compte';
+  document.getElementById('auth-msg').innerHTML = '';
 }
 
-// Render transactions
-function renderTxs(list){
-  const el = document.getElementById('transactions');
-  el.innerHTML = list.map(tx=>`
-    <div class="tx">
-      <div style="display:flex;gap:10px;align-items:center">
-        <div class="tx-icon">${tx.icon}</div>
-        <div>
-          <div class="tx-label">${tx.label}</div>
-          <div class="tx-sub">${tx.date} · ${tx.cat}</div>
-        </div>
-      </div>
-      <span class="tx-amount" style="color:${tx.amount>0?'var(--green)':'var(--text)'}">
-        ${tx.amount>0?'+':''}${tx.amount.toLocaleString('fr-FR')} ₪
-      </span>
-    </div>`).join('');
+function showMsg(msg, type='error') {
+  document.getElementById('auth-msg').innerHTML = `<div class="auth-${type}">${msg}</div>`;
 }
 
-// Render savings bars
-function renderSavings(){
-  const months = ['Nov','Déc','Jan','Fév','Mar','Avr'];
-  const vals = [1500,1800,2000,2000,1600,2000];
-  document.getElementById('savings-bars').innerHTML = months.map((m,i)=>`
-    <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
-      <div style="width:26px;font-size:12px;color:var(--muted)">${m}</div>
-      <div style="flex:1">
-        <div class="bar-wrap" style="height:10px">
-          <div class="bar" style="width:${vals[i]/2500*100}%;height:10px;background:var(--green)"></div>
-        </div>
-      </div>
-      <div style="width:60px;text-align:right;font-size:12px;color:var(--green);font-weight:600">${vals[i].toLocaleString('fr-FR')} ₪</div>
-    </div>`).join('');
+async function handleAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn = document.getElementById('auth-btn');
+
+  if (!email || !password) return showMsg('Remplis tous les champs.');
+  btn.classList.add('loading');
+  btn.textContent = '...';
+
+  if (authMode === 'signup') {
+    const name = document.getElementById('auth-name').value.trim() || 'Utilisateur';
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    if (error) { showMsg(error.message); btn.classList.remove('loading'); btn.textContent = 'Créer mon compte'; return; }
+    showMsg('✅ Compte créé ! Vérifie ton email pour confirmer.', 'success');
+    btn.classList.remove('loading'); btn.textContent = 'Créer mon compte';
+  } else {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { showMsg('Email ou mot de passe incorrect.'); btn.classList.remove('loading'); btn.textContent = 'Se connecter'; return; }
+    currentUser = data.user;
+    enterApp();
+  }
 }
 
-// Render repartition
-function renderRep(){
-  document.getElementById('repartition').innerHTML = CATS.map(c=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--divider)">
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:13px">${c.icon}</span>
-        <span style="font-size:13px">${c.name}</span>
-      </div>
-      <div style="display:flex;gap:9px;align-items:center">
-        <span style="font-size:12px;color:var(--muted)">${Math.round(c.spent/14760*100)}%</span>
-        <div style="width:8px;height:8px;border-radius:50%;background:${c.color}"></div>
-      </div>
-    </div>`).join('');
+async function handleLogout() {
+  await sb.auth.signOut();
+  currentUser = null;
+  allTxs = [];
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
 }
 
-// View switching
-function showView(name, btn){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+// ===== APP ENTRY =====
+async function enterApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  document.getElementById('header-sub').textContent = name + ' · Avril 2026';
+  await ensureTables();
+  await loadDashboard();
+  loadAiTip();
+}
+
+// ===== ENSURE TABLES (create if not exist via RPC fallback) =====
+async function ensureTables() {
+  // Try inserting a dummy check — tables created via Supabase SQL editor
+  // We'll just gracefully handle missing tables
+}
+
+// ===== LOAD DASHBOARD =====
+async function loadDashboard() {
+  const el = document.getElementById('dashboard-content');
+
+  // Fetch transactions
+  const { data: txs, error } = await sb
+    .from('transactions')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error && error.code === '42P01') {
+    // Table doesn't exist yet
+    el.innerHTML = renderEmptyDashboard();
+    return;
+  }
+
+  allTxs = txs || [];
+  const income = allTxs.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const expenses = allTxs.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  const balance = income - expenses;
+  const pct = income > 0 ? Math.min(Math.round(expenses/income*100), 100) : 0;
+
+  el.innerHTML = `
+    <div class="hero fu fu1">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Solde disponible</div>
+      <div class="syne" style="font-size:36px;font-weight:800;line-height:1">${balance.toLocaleString('fr-FR')} <span style="font-size:18px;color:var(--accent)">₪</span></div>
+      <div style="display:flex;gap:18px;margin-top:12px">
+        <div><label style="font-size:11px;color:var(--muted);display:block">Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block">Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="bar-wrap" style="height:6px"><div class="bar" style="width:${pct}%;height:6px;background:var(--accent)"></div></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${pct}% du revenu utilisé</div>
+      </div>
+    </div>
+
+    <div class="card fu fu2">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
+        <span style="font-size:15px">🤖</span>
+        <span class="syne" style="font-weight:700;font-size:14px;color:var(--accent)">Assistant IA</span>
+      </div>
+      ${renderAiInsights(allTxs, balance, expenses, income)}
+    </div>
+
+    <div class="card fu fu3">
+      <div class="syne sec-title">Transactions récentes</div>
+      ${allTxs.length === 0 ? `<div class="empty"><span>📭</span>Aucune transaction encore.<br>Ajoute ta première dépense !</div>` :
+        allTxs.slice(0, 8).map(tx => `
+          <div class="tx">
+            <div style="display:flex;gap:10px;align-items:center">
+              <div class="tx-icon">${getCatIcon(tx.category)}</div>
+              <div>
+                <div style="font-size:13px;font-weight:500">${tx.label}</div>
+                <div style="font-size:11px;color:var(--muted)">${formatDate(tx.created_at)} · ${tx.category||'Divers'}</div>
+              </div>
+            </div>
+            <span style="font-weight:700;font-size:14px;color:${tx.amount>0?'var(--green)':'var(--text)'}">
+              ${tx.amount>0?'+':''}${tx.amount.toLocaleString('fr-FR')} ₪
+            </span>
+          </div>`).join('')
+      }
+    </div>
+  `;
+}
+
+function renderEmptyDashboard() {
+  return `
+    <div class="hero fu fu1">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Solde disponible</div>
+      <div class="syne" style="font-size:36px;font-weight:800;line-height:1">0 <span style="font-size:18px;color:var(--accent)">₪</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:12px">Commence par ajouter tes revenus et dépenses !</div>
+    </div>
+    <div class="card fu fu2" style="text-align:center;padding:30px">
+      <div style="font-size:40px;margin-bottom:12px">🚀</div>
+      <div class="syne" style="font-size:16px;font-weight:700;margin-bottom:8px">Bienvenue sur BudgetFam !</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Appuie sur <strong style="color:var(--accent)">➕ Ajouter</strong> pour enregistrer ta première transaction et commencer à suivre ton budget.</div>
+    </div>
+  `;
+}
+
+function renderAiInsights(txs, balance, expenses, income) {
+  if (txs.length === 0) return `<div style="font-size:12px;color:var(--muted)">Ajoute tes premières transactions pour recevoir des conseils personnalisés !</div>`;
+
+  const tips = [];
+  const savingsRate = income > 0 ? ((income - expenses) / income * 100) : 0;
+
+  if (savingsRate > 20) tips.push({ bg:'var(--green-soft)', icon:'✅', text:`Excellent ! Tu épargnes ${Math.round(savingsRate)}% de tes revenus ce mois-ci.` });
+  else if (savingsRate < 0) tips.push({ bg:'var(--red-soft)', icon:'⚠️', text:`Attention : tu as dépensé plus que tes revenus de ${Math.abs(balance).toLocaleString('fr-FR')} ₪.` });
+  else tips.push({ bg:'var(--accent-soft)', icon:'💡', text:`Tu utilises ${Math.round(expenses/income*100)}% de tes revenus. Essaie d'épargner au moins 20%.` });
+
+  const catMap = {};
+  txs.filter(t=>t.amount<0).forEach(t => { catMap[t.category] = (catMap[t.category]||0) + Math.abs(t.amount); });
+  const topCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
+  if (topCat) tips.push({ bg:'var(--yellow-soft)', icon:'📊', text:`Ta dépense principale : ${topCat[0]} (${topCat[1].toLocaleString('fr-FR')} ₪).` });
+
+  return tips.map(t => `<div style="display:flex;gap:9px;align-items:flex-start;background:${t.bg};border-radius:10px;padding:8px 11px;margin-bottom:7px;font-size:12px;line-height:1.5"><span>${t.icon}</span><span>${t.text}</span></div>`).join('');
+}
+
+// ===== STATS VIEW =====
+async function loadStats() {
+  const el = document.getElementById('stats-content');
+  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const all = txs || [];
+
+  const catMap = {};
+  all.filter(t=>t.amount<0).forEach(t => { catMap[t.category||'Divers'] = (catMap[t.category||'Divers']||0) + Math.abs(t.amount); });
+  const income = all.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const expenses = all.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const savings = income - expenses;
+
+  el.innerHTML = `
+    <div class="card fu fu1">
+      <div class="syne sec-title">Résumé global</div>
+      <div style="display:flex;gap:8px">
+        <div class="stat-mini"><label>Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Épargne</label><b style="color:${savings>=0?'var(--accent)':'var(--red)'}">${savings.toLocaleString('fr-FR')} ₪</b></div>
+      </div>
+    </div>
+
+    <div class="card fu fu2">
+      <div class="syne sec-title">Par catégorie</div>
+      ${Object.keys(catMap).length === 0 ? '<div class="empty"><span>📊</span>Aucune dépense encore.</div>' :
+        Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([cat, amt]) => {
+          const pct = expenses > 0 ? Math.round(amt/expenses*100) : 0;
+          return `<div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <div style="display:flex;gap:7px;align-items:center"><span>${getCatIcon(cat)}</span><span style="font-size:13px">${cat}</span></div>
+              <div style="font-size:12px;color:var(--muted)">${amt.toLocaleString('fr-FR')} ₪ · ${pct}%</div>
+            </div>
+            <div class="bar-wrap" style="height:8px"><div class="bar" style="width:${pct}%;height:8px;background:var(--accent)"></div></div>
+          </div>`;
+        }).join('')
+      }
+    </div>
+
+    <div class="card fu fu3">
+      <div class="syne sec-title">Nombre de transactions</div>
+      <div style="font-size:36px;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;text-align:center;padding:10px 0">${all.length}</div>
+      <div style="text-align:center;font-size:12px;color:var(--muted)">transactions enregistrées</div>
+    </div>
+  `;
+}
+
+// ===== PROFILE VIEW =====
+async function loadProfile() {
+  const el = document.getElementById('profile-content');
+  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  const { count } = await sb.from('transactions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+
+  el.innerHTML = `
+    <div class="card fu fu1" style="text-align:center">
+      <div style="width:70px;height:70px;border-radius:20px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px">👤</div>
+      <div class="syne" style="font-size:20px;font-weight:800;margin-bottom:4px">${name}</div>
+      <div style="font-size:12px;color:var(--muted)">${currentUser.email}</div>
+    </div>
+
+    <div class="card fu fu2">
+      <div class="syne sec-title">Mon activité</div>
+      <div style="display:flex;gap:8px">
+        <div class="stat-mini"><label>Transactions</label><b style="color:var(--accent)">${count||0}</b></div>
+        <div class="stat-mini"><label>Membre depuis</label><b style="color:var(--purple)">${new Date(currentUser.created_at).toLocaleDateString('fr-FR',{month:'short',year:'numeric'})}</b></div>
+      </div>
+    </div>
+
+    <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
+      <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">🚀 Bientôt disponible</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7">
+        🏦 Connexion bancaire automatique<br>
+        👨‍👩‍👧‍👦 Profils famille & enfants<br>
+        💒 Planificateur mariage israélien<br>
+        🏠 Calculateur apport immobilier<br>
+        🤖 IA conseillère avancée
+      </div>
+    </div>
+
+    <button onclick="handleLogout()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px">
+      Se déconnecter
+    </button>
+  `;
+}
+
+// ===== ADD TRANSACTION =====
+async function submitTx() {
+  const label = document.getElementById('f-label').value.trim();
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  const category = document.getElementById('f-cat').value;
+  if (!label || !amount) return;
+
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = '...'; btn.style.background = 'var(--muted)';
+
+  const { error } = await sb.from('transactions').insert({
+    user_id: currentUser.id,
+    label,
+    amount: txType === 'expense' ? -amount : amount,
+    category,
+  });
+
+  if (error) {
+    if (error.code === '42P01') {
+      btn.textContent = '⚠️ Table manquante — voir instructions';
+      btn.style.background = 'var(--red)';
+      setTimeout(() => { btn.textContent = 'Ajouter'; btn.style.background = 'var(--accent)'; }, 3000);
+      showTableInstructions();
+      return;
+    }
+    btn.textContent = 'Erreur — réessaie'; btn.style.background = 'var(--red)';
+    setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.style.background = 'var(--accent)'; }, 2000);
+    return;
+  }
+
+  document.getElementById('f-label').value = '';
+  document.getElementById('f-amount').value = '';
+  btn.textContent = '✓ Ajouté !'; btn.classList.add('sent');
+  setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.classList.remove('sent'); btn.style.background = ''; }, 2000);
+  await loadDashboard();
+  loadAiTip();
+}
+
+function showTableInstructions() {
+  const el = document.getElementById('ai-tip');
+  el.innerHTML = `<strong style="color:var(--yellow)">⚠️ Une dernière étape !</strong><br><br>
+  Va sur <strong>supabase.com</strong> → ton projet → <strong>SQL Editor</strong> → colle ce code :<br><br>
+  <code style="font-size:10px;background:var(--bg);padding:8px;border-radius:8px;display:block;margin-top:6px;line-height:1.6">
+  create table transactions (<br>
+  &nbsp;&nbsp;id uuid default gen_random_uuid() primary key,<br>
+  &nbsp;&nbsp;user_id uuid references auth.users not null,<br>
+  &nbsp;&nbsp;label text not null,<br>
+  &nbsp;&nbsp;amount numeric not null,<br>
+  &nbsp;&nbsp;category text,<br>
+  &nbsp;&nbsp;created_at timestamptz default now()<br>
+  );<br>
+  alter table transactions enable row level security;<br>
+  create policy "Users own data" on transactions<br>
+  &nbsp;&nbsp;for all using (auth.uid() = user_id);
+  </code>`;
+}
+
+function loadAiTip() {
+  const tips = [
+    "Tu as encore de la marge ce mois-ci. Pense à mettre de côté pour tes objectifs long terme !",
+    "Conseil : la règle des 50/30/20 — 50% besoins, 30% envies, 20% épargne.",
+    "Chaque shekel épargné aujourd'hui travaille pour toi demain. Continue comme ça !",
+    "Pense à vérifier tes abonnements récurrents — des économies faciles se cachent souvent là.",
+  ];
+  document.getElementById('ai-tip').textContent = tips[Math.floor(Math.random()*tips.length)];
+}
+
+// ===== HELPERS =====
+function getCatIcon(cat) {
+  const icons = { Alimentation:'🛒', Logement:'🏠', Transport:'🚗', Loisirs:'🎮', Santé:'💊', Épargne:'💰', Divers:'📦', Revenus:'💼' };
+  return icons[cat] || '💸';
+}
+function formatDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
+}
+function setType(t) {
+  txType = t;
+  document.getElementById('btn-expense').className = 'toggle-btn' + (t==='expense'?' active-expense':'');
+  document.getElementById('btn-income').className = 'toggle-btn' + (t==='income'?' active-income':'');
+}
+
+// ===== VIEW SWITCHING =====
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   btn.classList.add('active');
   document.querySelector('.content').scrollTop = 0;
-  // Re-trigger animations
-  document.querySelectorAll('#view-'+name+' .fu').forEach(el=>{
-    el.style.animation='none';
-    el.offsetHeight;
-    el.style.animation='';
-  });
+  if (name === 'stats') loadStats();
+  if (name === 'profile') loadProfile();
+  if (name === 'dashboard') loadDashboard();
 }
 
-// Type toggle for add form
-let txType = 'expense';
-function setType(t){
-  txType = t;
-  document.getElementById('btn-expense').className = 'toggle-btn'+(t==='expense'?' active-expense':'');
-  document.getElementById('btn-income').className = 'toggle-btn'+(t==='income'?' active-income':'');
-}
-
-// Submit transaction
-function submitTx(){
-  const label = document.getElementById('f-label').value.trim();
-  const amount = parseFloat(document.getElementById('f-amount').value);
-  const cat = document.getElementById('f-cat').value;
-  if(!label || !amount) return;
-  const now = new Date();
-  const date = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}`;
-  TXS.unshift({icon: txType==='expense'?'💸':'💰', label, cat, amount: txType==='expense'?-amount:amount, date});
-  document.getElementById('f-label').value='';
-  document.getElementById('f-amount').value='';
-  const btn = document.getElementById('submit-btn');
-  btn.textContent = '✓ Ajouté !';
-  btn.classList.add('sent');
-  setTimeout(()=>{btn.textContent='Ajouter la transaction';btn.classList.remove('sent');},2000);
-  renderTxs(TXS);
-}
-
-// Init
-renderCats();
-renderTxs(TXS);
-renderSavings();
-renderRep();
+// ===== INIT =====
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    enterApp();
+  }
+});
 </script>
 
 </body>
