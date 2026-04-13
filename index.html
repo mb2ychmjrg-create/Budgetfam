@@ -1,0 +1,629 @@
+import { useState, useEffect } from “react”;
+
+const COLORS = {
+bg: “#0D0F14”,
+card: “#161A23”,
+cardBorder: “#232840”,
+accent: “#4F8EF7”,
+accentSoft: “#1E2D50”,
+green: “#2ECC8A”,
+greenSoft: “#0E3028”,
+red: “#F7506A”,
+redSoft: “#3A1020”,
+yellow: “#F7C948”,
+yellowSoft: “#3A2E0A”,
+purple: “#A78BFA”,
+purpleSoft: “#1E1640”,
+text: “#E8EAF2”,
+muted: “#6B7280”,
+divider: “#1E2230”,
+};
+
+const GOOGLE_FONT = `@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');`;
+
+const css = `
+${GOOGLE_FONT}
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: ${COLORS.bg}; color: ${COLORS.text}; font-family: ‘DM Sans’, sans-serif; }
+  .syne { font-family: ‘Syne’, sans-serif; }
+
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(18px); }
+to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+0%, 100% { opacity: 1; } 50% { opacity: 0.6; }
+}
+@keyframes barGrow {
+from { width: 0; }
+}
+.fadeUp { animation: fadeUp 0.45s ease both; }
+.fadeUp-1 { animation-delay: 0.05s; }
+.fadeUp-2 { animation-delay: 0.12s; }
+.fadeUp-3 { animation-delay: 0.2s; }
+.fadeUp-4 { animation-delay: 0.28s; }
+.fadeUp-5 { animation-delay: 0.36s; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: ${COLORS.bg}; }
+::-webkit-scrollbar-thumb { background: ${COLORS.cardBorder}; border-radius: 4px; }
+`;
+
+// ––––– DATA –––––
+const initialBudget = {
+income: 18500,
+categories: [
+{ id: 1, name: “Logement”, icon: “🏠”, budget: 5000, spent: 5000, color: COLORS.accent },
+{ id: 2, name: “Alimentation”, icon: “🛒”, budget: 3000, spent: 2640, color: COLORS.green },
+{ id: 3, name: “Transport”, icon: “🚗”, budget: 1500, spent: 1820, color: COLORS.red },
+{ id: 4, name: “Loisirs”, icon: “🎮”, budget: 1000, spent: 430, color: COLORS.purple },
+{ id: 5, name: “Santé”, icon: “💊”, budget: 800, spent: 310, color: COLORS.yellow },
+{ id: 6, name: “Épargne”, icon: “💰”, budget: 2000, spent: 2000, color: COLORS.green },
+{ id: 7, name: “Divers”, icon: “📦”, budget: 700, spent: 560, color: COLORS.muted },
+],
+transactions: [
+{ id: 1, label: “Supermarché Rami Levy”, cat: “Alimentation”, amount: -320, date: “13/04”, icon: “🛒” },
+{ id: 2, label: “Virement salaire”, cat: “Revenus”, amount: 18500, date: “01/04”, icon: “💼” },
+{ id: 3, label: “Rav-Kav (transport)”, cat: “Transport”, amount: -230, date: “12/04”, icon: “🚌” },
+{ id: 4, label: “Épargne mensuelle”, cat: “Épargne”, amount: -2000, date: “01/04”, icon: “💰” },
+{ id: 5, label: “Netflix”, cat: “Loisirs”, amount: -55, date: “10/04”, icon: “📺” },
+{ id: 6, label: “Pharmacie”, cat: “Santé”, amount: -88, date: “09/04”, icon: “💊” },
+{ id: 7, label: “Essence”, cat: “Transport”, amount: -280, date: “08/04”, icon: “⛽” },
+],
+members: [
+{ id: 1, name: “Famille”, type: “family”, avatar: “👨‍👩‍👧‍👦”, balance: 5760 },
+{ id: 2, name: “Noam (16 ans)”, type: “youth”, avatar: “🧑”, balance: 850, goal: 2400, goalLabel: “Nintendo Switch 2”, goalIcon: “🎮” },
+{ id: 3, name: “Maya (13 ans)”, type: “youth”, avatar: “👧”, balance: 340, goal: 600, goalLabel: “Cours de guitare”, goalIcon: “🎸” },
+],
+};
+
+const aiTips = [
+{ icon: “🤖”, text: “Tu as dépassé ton budget Transport de 320 ₪. Je te suggère de réduire les sorties en voiture de 2x/semaine.”, type: “alert” },
+{ icon: “✅”, text: “Bravo ! Épargne à 100% ce mois-ci. À ce rythme, ton fond d’urgence sera complet en 4 mois.”, type: “success” },
+{ icon: “💡”, text: “Noam est à 35% de son objectif Switch 2. En ajoutant 200 ₪/mois, il l’atteindra en juillet.”, type: “info” },
+{ icon: “📉”, text: “Alimentation : -12% vs le mois dernier. Excellente gestion des courses !”, type: “success” },
+];
+
+// ––––– COMPONENTS –––––
+function Tag({ color, bg, children }) {
+return (
+<span style={{ background: bg, color, borderRadius: 20, padding: “2px 10px”, fontSize: 11, fontWeight: 600 }}>
+{children}
+</span>
+);
+}
+
+function ProgressBar({ value, max, color, height = 8 }) {
+const pct = Math.min((value / max) * 100, 100);
+const over = value > max;
+return (
+<div style={{ background: COLORS.divider, borderRadius: 99, height, overflow: “hidden” }}>
+<div style={{
+width: `${pct}%`, height: “100%”, borderRadius: 99,
+background: over ? COLORS.red : color,
+animation: “barGrow 0.8s cubic-bezier(.4,0,.2,1) both”,
+transition: “width 0.6s”,
+}} />
+</div>
+);
+}
+
+function Card({ children, style = {}, className = “” }) {
+return (
+<div className={className} style={{
+background: COLORS.card,
+border: `1px solid ${COLORS.cardBorder}`,
+borderRadius: 18,
+padding: “20px 22px”,
+…style,
+}}>
+{children}
+</div>
+);
+}
+
+function NavItem({ icon, label, active, onClick }) {
+return (
+<button onClick={onClick} style={{
+display: “flex”, flexDirection: “column”, alignItems: “center”, gap: 4,
+background: “none”, border: “none”, cursor: “pointer”,
+color: active ? COLORS.accent : COLORS.muted,
+padding: “8px 16px”, borderRadius: 12,
+transition: “color 0.2s”,
+}}>
+<span style={{ fontSize: 20 }}>{icon}</span>
+<span style={{ fontSize: 11, fontWeight: 500 }}>{label}</span>
+</button>
+);
+}
+
+// ===== VIEWS =====
+
+function DashboardView({ data }) {
+const totalSpent = data.categories.reduce((s, c) => s + c.spent, 0);
+const totalBudget = data.categories.reduce((s, c) => s + c.budget, 0);
+const remaining = data.income - totalSpent;
+
+return (
+<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
+{/* Hero card */}
+<Card className=“fadeUp fadeUp-1” style={{
+background: `linear-gradient(135deg, #1A2540 0%, #0D1428 100%)`,
+border: `1px solid ${COLORS.accentSoft}`,
+position: “relative”, overflow: “hidden”,
+}}>
+<div style={{
+position: “absolute”, top: -30, right: -30, width: 120, height: 120,
+background: COLORS.accent, borderRadius: “50%”, opacity: 0.07,
+}} />
+<div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4 }}>Solde disponible — Avril 2026</div>
+<div className=“syne” style={{ fontSize: 38, fontWeight: 800, color: COLORS.text, lineHeight: 1 }}>
+{remaining.toLocaleString(“fr-FR”)} <span style={{ fontSize: 20, color: COLORS.accent }}>₪</span>
+</div>
+<div style={{ display: “flex”, gap: 20, marginTop: 14 }}>
+<div>
+<div style={{ fontSize: 11, color: COLORS.muted }}>Revenus</div>
+<div style={{ color: COLORS.green, fontWeight: 600 }}>+{data.income.toLocaleString(“fr-FR”)} ₪</div>
+</div>
+<div>
+<div style={{ fontSize: 11, color: COLORS.muted }}>Dépenses</div>
+<div style={{ color: COLORS.red, fontWeight: 600 }}>-{totalSpent.toLocaleString(“fr-FR”)} ₪</div>
+</div>
+<div>
+<div style={{ fontSize: 11, color: COLORS.muted }}>Épargne</div>
+<div style={{ color: COLORS.yellow, fontWeight: 600 }}>2 000 ₪</div>
+</div>
+</div>
+<div style={{ marginTop: 14 }}>
+<ProgressBar value={totalSpent} max={data.income} color={COLORS.accent} height={6} />
+<div style={{ fontSize: 11, color: COLORS.muted, marginTop: 5 }}>
+{Math.round((totalSpent / data.income) * 100)}% du revenu utilisé
+</div>
+</div>
+</Card>
+
+```
+  {/* AI Tips */}
+  <Card className="fadeUp fadeUp-2" style={{ padding: "14px 18px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      <span style={{ fontSize: 16 }}>🤖</span>
+      <span className="syne" style={{ fontWeight: 700, fontSize: 14, color: COLORS.accent }}>Assistant IA</span>
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {aiTips.map((tip, i) => (
+        <div key={i} style={{
+          display: "flex", gap: 10, alignItems: "flex-start",
+          background: tip.type === "alert" ? COLORS.redSoft : tip.type === "success" ? COLORS.greenSoft : COLORS.accentSoft,
+          borderRadius: 10, padding: "8px 12px",
+        }}>
+          <span style={{ fontSize: 14, marginTop: 1 }}>{tip.icon}</span>
+          <span style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.5 }}>{tip.text}</span>
+        </div>
+      ))}
+    </div>
+  </Card>
+
+  {/* Categories */}
+  <Card className="fadeUp fadeUp-3">
+    <div className="syne" style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>Catégories ce mois</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {data.categories.map(cat => {
+        const over = cat.spent > cat.budget;
+        return (
+          <div key={cat.id}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ fontSize: 16 }}>{cat.icon}</span>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>{cat.name}</span>
+                {over && <Tag color={COLORS.red} bg={COLORS.redSoft}>Dépassé</Tag>}
+              </div>
+              <div style={{ fontSize: 12, color: COLORS.muted }}>
+                <span style={{ color: over ? COLORS.red : COLORS.text, fontWeight: 600 }}>{cat.spent.toLocaleString("fr-FR")}</span>
+                {" / "}{cat.budget.toLocaleString("fr-FR")} ₪
+              </div>
+            </div>
+            <ProgressBar value={cat.spent} max={cat.budget} color={cat.color} />
+          </div>
+        );
+      })}
+    </div>
+  </Card>
+
+  {/* Transactions */}
+  <Card className="fadeUp fadeUp-4">
+    <div className="syne" style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>Dernières transactions</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {data.transactions.map(tx => (
+        <div key={tx.id} style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "10px 0", borderBottom: `1px solid ${COLORS.divider}`,
+        }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, background: COLORS.divider,
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
+            }}>
+              {tx.icon}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{tx.label}</div>
+              <div style={{ fontSize: 11, color: COLORS.muted }}>{tx.date} · {tx.cat}</div>
+            </div>
+          </div>
+          <span style={{
+            fontWeight: 700, fontSize: 14,
+            color: tx.amount > 0 ? COLORS.green : COLORS.text,
+          }}>
+            {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString("fr-FR")} ₪
+          </span>
+        </div>
+      ))}
+    </div>
+  </Card>
+</div>
+```
+
+);
+}
+
+function FamilyView({ data }) {
+return (
+<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
+<div className=“syne fadeUp fadeUp-1” style={{ fontWeight: 800, fontSize: 20 }}>
+Espace Famille 👨‍👩‍👧‍👦
+</div>
+{data.members.map((m, i) => (
+<Card key={m.id} className={`fadeUp fadeUp-${i + 2}`}>
+<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “flex-start”, marginBottom: 12 }}>
+<div style={{ display: “flex”, gap: 12, alignItems: “center” }}>
+<div style={{
+width: 46, height: 46, borderRadius: 14, background: COLORS.accentSoft,
+display: “flex”, alignItems: “center”, justifyContent: “center”, fontSize: 22,
+}}>{m.avatar}</div>
+<div>
+<div className=“syne” style={{ fontWeight: 700, fontSize: 15 }}>{m.name}</div>
+<Tag color={m.type === “family” ? COLORS.accent : COLORS.purple}
+bg={m.type === “family” ? COLORS.accentSoft : COLORS.purpleSoft}>
+{m.type === “family” ? “Budget Famille” : “Jeune Épargnant”}
+</Tag>
+</div>
+</div>
+<div style={{ textAlign: “right” }}>
+<div style={{ fontSize: 11, color: COLORS.muted }}>Solde</div>
+<div className=“syne” style={{ fontWeight: 800, fontSize: 20, color: COLORS.green }}>
+{m.balance.toLocaleString(“fr-FR”)} ₪
+</div>
+</div>
+</div>
+
+```
+      {m.goal && (
+        <div style={{ background: COLORS.purpleSoft, borderRadius: 12, padding: "12px 14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>
+              {m.goalIcon} Objectif : {m.goalLabel}
+            </div>
+            <div style={{ fontSize: 12, color: COLORS.purple, fontWeight: 700 }}>
+              {m.balance}/{m.goal} ₪
+            </div>
+          </div>
+          <ProgressBar value={m.balance} max={m.goal} color={COLORS.purple} height={10} />
+          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
+            {Math.round((m.balance / m.goal) * 100)}% atteint · encore {m.goal - m.balance} ₪
+          </div>
+        </div>
+      )}
+
+      {m.type === "family" && (
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+          {[
+            { label: "Ce mois", value: "14 760 ₪", color: COLORS.red },
+            { label: "Épargné", value: "2 000 ₪", color: COLORS.green },
+            { label: "Reste", value: "5 760 ₪", color: COLORS.accent },
+          ].map((s, i) => (
+            <div key={i} style={{
+              flex: 1, background: COLORS.divider, borderRadius: 10,
+              padding: "10px 8px", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 3 }}>{s.label}</div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: s.color }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  ))}
+
+  {/* Module éducatif jeunes */}
+  <Card className="fadeUp fadeUp-5" style={{ background: `linear-gradient(135deg, #1A1040 0%, #0D0F14 100%)`, border: `1px solid ${COLORS.purpleSoft}` }}>
+    <div className="syne" style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: COLORS.purple }}>
+      📚 Leçon du mois — Pour les jeunes
+    </div>
+    <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7, marginBottom: 12 }}>
+      <strong style={{ color: COLORS.yellow }}>La règle des 50/30/20</strong><br />
+      Divise chaque shekel que tu reçois en 3 parties :<br />
+      🟢 50% pour les besoins (nourriture, transport)<br />
+      🟣 30% pour les envies (loisirs, cadeaux)<br />
+      💛 20% pour épargner (ton objectif Switch 2 !)<br />
+    </div>
+    <div style={{
+      background: COLORS.purpleSoft, borderRadius: 10, padding: "10px 14px",
+      fontSize: 12, color: COLORS.purple, fontWeight: 500,
+    }}>
+      🤖 L'IA dit : Noam épargne actuellement 35% de son argent de poche. Excellent !
+    </div>
+  </Card>
+</div>
+```
+
+);
+}
+
+function AddView({ onAdd }) {
+const [form, setForm] = useState({ label: “”, amount: “”, cat: “Alimentation”, type: “expense” });
+const [sent, setSent] = useState(false);
+
+const cats = [“Logement”, “Alimentation”, “Transport”, “Loisirs”, “Santé”, “Épargne”, “Divers”];
+
+function handleSubmit() {
+if (!form.label || !form.amount) return;
+setSent(true);
+setTimeout(() => setSent(false), 2000);
+onAdd({ …form, amount: parseFloat(form.amount) });
+setForm({ label: “”, amount: “”, cat: “Alimentation”, type: “expense” });
+}
+
+return (
+<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
+<div className=“syne fadeUp fadeUp-1” style={{ fontWeight: 800, fontSize: 20 }}>Ajouter une transaction</div>
+
+```
+  <Card className="fadeUp fadeUp-2">
+    {/* Type toggle */}
+    <div style={{ display: "flex", gap: 8, marginBottom: 20, background: COLORS.divider, borderRadius: 12, padding: 4 }}>
+      {["expense", "income"].map(t => (
+        <button key={t} onClick={() => setForm(f => ({ ...f, type: t }))} style={{
+          flex: 1, padding: "10px", borderRadius: 10, border: "none", cursor: "pointer",
+          background: form.type === t ? (t === "expense" ? COLORS.redSoft : COLORS.greenSoft) : "transparent",
+          color: form.type === t ? (t === "expense" ? COLORS.red : COLORS.green) : COLORS.muted,
+          fontWeight: 600, fontSize: 13, transition: "all 0.2s",
+        }}>
+          {t === "expense" ? "💸 Dépense" : "💰 Revenu"}
+        </button>
+      ))}
+    </div>
+
+    {[
+      { label: "Description", key: "label", placeholder: "Ex: Supermarché Rami Levy", type: "text" },
+      { label: "Montant (₪)", key: "amount", placeholder: "0.00", type: "number" },
+    ].map(field => (
+      <div key={field.key} style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>{field.label}</div>
+        <input
+          value={form[field.key]}
+          onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
+          placeholder={field.placeholder}
+          type={field.type}
+          style={{
+            width: "100%", padding: "12px 14px", borderRadius: 12,
+            background: COLORS.divider, border: `1px solid ${COLORS.cardBorder}`,
+            color: COLORS.text, fontSize: 14, outline: "none",
+          }}
+        />
+      </div>
+    ))}
+
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>Catégorie</div>
+      <select
+        value={form.cat}
+        onChange={e => setForm(f => ({ ...f, cat: e.target.value }))}
+        style={{
+          width: "100%", padding: "12px 14px", borderRadius: 12,
+          background: COLORS.divider, border: `1px solid ${COLORS.cardBorder}`,
+          color: COLORS.text, fontSize: 14, outline: "none",
+        }}
+      >
+        {cats.map(c => <option key={c} value={c}>{c}</option>)}
+      </select>
+    </div>
+
+    <button onClick={handleSubmit} style={{
+      width: "100%", padding: "14px", borderRadius: 14, border: "none",
+      background: sent ? COLORS.green : COLORS.accent,
+      color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer",
+      transition: "all 0.3s", fontFamily: "Syne, sans-serif",
+    }}>
+      {sent ? "✓ Ajouté !" : "Ajouter la transaction"}
+    </button>
+  </Card>
+
+  {/* AI insight */}
+  <Card className="fadeUp fadeUp-3" style={{ background: COLORS.accentSoft, border: `1px solid ${COLORS.accent}22` }}>
+    <div style={{ fontSize: 12, color: COLORS.accent, fontWeight: 600, marginBottom: 6 }}>🤖 Conseil IA du moment</div>
+    <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>
+      Tu as encore <strong style={{ color: COLORS.yellow }}>360 ₪</strong> disponibles en Alimentation ce mois-ci.
+      Pense à faire ta liste avant d'aller au supermarché pour optimiser tes achats !
+    </div>
+  </Card>
+</div>
+```
+
+);
+}
+
+function StatsView({ data }) {
+const months = [“Nov”, “Déc”, “Jan”, “Fév”, “Mar”, “Avr”];
+const spendingData = [12400, 15200, 11800, 13600, 14100, 14760];
+const savingData = [1500, 1800, 2000, 2000, 1600, 2000];
+const maxVal = Math.max(…spendingData);
+
+return (
+<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
+<div className=“syne fadeUp fadeUp-1” style={{ fontWeight: 800, fontSize: 20 }}>Statistiques 📊</div>
+
+```
+  <Card className="fadeUp fadeUp-2">
+    <div className="syne" style={{ fontWeight: 700, marginBottom: 16, fontSize: 14 }}>Dépenses sur 6 mois</div>
+    <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 130 }}>
+      {spendingData.map((val, i) => (
+        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: 9, color: COLORS.muted }}>{Math.round(val / 1000)}K</div>
+          <div style={{
+            width: "100%", borderRadius: "6px 6px 0 0",
+            height: `${(val / maxVal) * 100}px`,
+            background: i === 5
+              ? `linear-gradient(180deg, ${COLORS.accent}, ${COLORS.accentSoft})`
+              : COLORS.divider,
+            transition: "height 0.8s",
+          }} />
+          <div style={{ fontSize: 10, color: i === 5 ? COLORS.accent : COLORS.muted }}>{months[i]}</div>
+        </div>
+      ))}
+    </div>
+  </Card>
+
+  <Card className="fadeUp fadeUp-3">
+    <div className="syne" style={{ fontWeight: 700, marginBottom: 16, fontSize: 14 }}>Épargne mensuelle</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {months.map((m, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 28, fontSize: 12, color: COLORS.muted }}>{m}</div>
+          <div style={{ flex: 1 }}>
+            <ProgressBar value={savingData[i]} max={2500} color={COLORS.green} height={10} />
+          </div>
+          <div style={{ width: 55, textAlign: "right", fontSize: 12, color: COLORS.green, fontWeight: 600 }}>
+            {savingData[i].toLocaleString("fr-FR")} ₪
+          </div>
+        </div>
+      ))}
+    </div>
+    <div style={{ marginTop: 14, background: COLORS.greenSoft, borderRadius: 10, padding: "10px 14px" }}>
+      <div style={{ fontSize: 12, color: COLORS.green, fontWeight: 600 }}>
+        Total épargné : 10 900 ₪ sur 6 mois 🎉
+      </div>
+    </div>
+  </Card>
+
+  <Card className="fadeUp fadeUp-4">
+    <div className="syne" style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>Répartition ce mois</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {data.categories.map(cat => (
+        <div key={cat.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 14 }}>{cat.icon}</span>
+            <span style={{ fontSize: 13 }}>{cat.name}</span>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ fontSize: 12, color: COLORS.muted }}>
+              {Math.round((cat.spent / 14760) * 100)}%
+            </div>
+            <div style={{
+              width: 8, height: 8, borderRadius: "50%", background: cat.color,
+            }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  </Card>
+</div>
+```
+
+);
+}
+
+// ===== MAIN APP =====
+export default function App() {
+const [tab, setTab] = useState(“dashboard”);
+const [data, setData] = useState(initialBudget);
+
+useEffect(() => {
+const style = document.createElement(“style”);
+style.textContent = css;
+document.head.appendChild(style);
+return () => document.head.removeChild(style);
+}, []);
+
+function handleAdd(tx) {
+setData(d => ({
+…d,
+transactions: [
+{
+id: Date.now(), label: tx.label, cat: tx.cat,
+amount: tx.type === “expense” ? -tx.amount : tx.amount,
+date: new Date().toLocaleDateString(“fr-FR”, { day: “2-digit”, month: “2-digit” }),
+icon: tx.type === “expense” ? “💸” : “💰”,
+},
+…d.transactions,
+],
+}));
+}
+
+const navItems = [
+{ id: “dashboard”, icon: “🏠”, label: “Accueil” },
+{ id: “family”, icon: “👨‍👩‍👧‍👦”, label: “Famille” },
+{ id: “add”, icon: “➕”, label: “Ajouter” },
+{ id: “stats”, icon: “📊”, label: “Stats” },
+];
+
+return (
+<div style={{
+minHeight: “100vh”, background: COLORS.bg, color: COLORS.text,
+fontFamily: “‘DM Sans’, sans-serif”,
+maxWidth: 420, margin: “0 auto”,
+display: “flex”, flexDirection: “column”,
+}}>
+{/* Header */}
+<div style={{
+padding: “18px 20px 14px”,
+borderBottom: `1px solid ${COLORS.divider}`,
+display: “flex”, justifyContent: “space-between”, alignItems: “center”,
+position: “sticky”, top: 0, background: COLORS.bg, zIndex: 10,
+}}>
+<div>
+<div className=“syne” style={{ fontWeight: 800, fontSize: 18, letterSpacing: “-0.5px” }}>
+BudgetFam <span style={{ color: COLORS.accent }}>🇮🇱</span>
+</div>
+<div style={{ fontSize: 11, color: COLORS.muted }}>Famille Cohen · Avril 2026</div>
+</div>
+<div style={{
+width: 38, height: 38, borderRadius: 12, background: COLORS.accentSoft,
+display: “flex”, alignItems: “center”, justifyContent: “center”, fontSize: 18,
+}}>👨‍👩‍👧‍👦</div>
+</div>
+
+```
+  {/* Content */}
+  <div style={{ flex: 1, padding: "16px 16px 90px", overflowY: "auto" }}>
+    {tab === "dashboard" && <DashboardView data={data} />}
+    {tab === "family" && <FamilyView data={data} />}
+    {tab === "add" && <AddView onAdd={handleAdd} />}
+    {tab === "stats" && <StatsView data={data} />}
+  </div>
+
+  {/* Bottom Nav */}
+  <div style={{
+    position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+    width: "100%", maxWidth: 420,
+    background: COLORS.card,
+    borderTop: `1px solid ${COLORS.cardBorder}`,
+    display: "flex", justifyContent: "space-around",
+    padding: "8px 0 12px",
+    zIndex: 100,
+  }}>
+    {navItems.map(item => (
+      <NavItem
+        key={item.id}
+        icon={item.icon}
+        label={item.label}
+        active={tab === item.id}
+        onClick={() => setTab(item.id)}
+      />
+    ))}
+  </div>
+</div>
+```
+
+);
+}
