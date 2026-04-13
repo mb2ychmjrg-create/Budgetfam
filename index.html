@@ -1,629 +1,503 @@
-import { useState, useEffect } from “react”;
+<!DOCTYPE html>
 
-const COLORS = {
-bg: “#0D0F14”,
-card: “#161A23”,
-cardBorder: “#232840”,
-accent: “#4F8EF7”,
-accentSoft: “#1E2D50”,
-green: “#2ECC8A”,
-greenSoft: “#0E3028”,
-red: “#F7506A”,
-redSoft: “#3A1020”,
-yellow: “#F7C948”,
-yellowSoft: “#3A2E0A”,
-purple: “#A78BFA”,
-purpleSoft: “#1E1640”,
-text: “#E8EAF2”,
-muted: “#6B7280”,
-divider: “#1E2230”,
-};
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BudgetFam">
+<title>BudgetFam 🇮🇱</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --bg:#0D0F14;--card:#161A23;--border:#232840;
+    --accent:#4F8EF7;--accent-soft:#1E2D50;
+    --green:#2ECC8A;--green-soft:#0E3028;
+    --red:#F7506A;--red-soft:#3A1020;
+    --yellow:#F7C948;--yellow-soft:#3A2E0A;
+    --purple:#A78BFA;--purple-soft:#1E1640;
+    --text:#E8EAF2;--muted:#6B7280;--divider:#1E2230;
+  }
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;}
+  .syne{font-family:'Syne',sans-serif;}
+  ::-webkit-scrollbar{width:3px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 
-const GOOGLE_FONT = `@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');`;
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes barGrow{from{width:0}}
+.fu{animation:fadeUp .4s ease both;}
+.fu1{animation-delay:.04s}.fu2{animation-delay:.1s}.fu3{animation-delay:.17s}.fu4{animation-delay:.24s}.fu5{animation-delay:.31s}
 
-const css = `
-${GOOGLE_FONT}
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
 
-- { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: ${COLORS.bg}; color: ${COLORS.text}; font-family: ‘DM Sans’, sans-serif; }
-  .syne { font-family: ‘Syne’, sans-serif; }
-
-@keyframes fadeUp {
-from { opacity: 0; transform: translateY(18px); }
-to { opacity: 1; transform: translateY(0); }
+/* HEADER */
+.header{
+padding:14px 18px 12px;
+border-bottom:1px solid var(–divider);
+display:flex;justify-content:space-between;align-items:center;
+background:var(–bg);flex-shrink:0;
+padding-top:max(14px, env(safe-area-inset-top));
 }
-@keyframes pulse {
-0%, 100% { opacity: 1; } 50% { opacity: 0.6; }
+.header-title{font-size:18px;font-weight:800;letter-spacing:-0.5px;}
+.header-sub{font-size:11px;color:var(–muted);margin-top:1px;}
+.avatar-btn{width:38px;height:38px;border-radius:12px;background:var(–accent-soft);display:flex;align-items:center;justify-content:center;font-size:18px;border:none;cursor:pointer;}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:14px 14px 80px;-webkit-overflow-scrolling:touch;}
+
+/* NAV */
+.nav{
+position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+width:100%;max-width:430px;
+background:var(–card);border-top:1px solid var(–border);
+display:flex;justify-content:space-around;
+padding:8px 0;
+padding-bottom:max(8px,env(safe-area-inset-bottom));
+z-index:100;
 }
-@keyframes barGrow {
-from { width: 0; }
-}
-.fadeUp { animation: fadeUp 0.45s ease both; }
-.fadeUp-1 { animation-delay: 0.05s; }
-.fadeUp-2 { animation-delay: 0.12s; }
-.fadeUp-3 { animation-delay: 0.2s; }
-.fadeUp-4 { animation-delay: 0.28s; }
-.fadeUp-5 { animation-delay: 0.36s; }
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 14px;border-radius:12px;transition:color .2s;color:var(–muted);}
+.nav-item.active{color:var(–accent);}
+.nav-item span:first-child{font-size:20px;}
+.nav-item span:last-child{font-size:10px;font-weight:600;}
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: ${COLORS.bg}; }
-::-webkit-scrollbar-thumb { background: ${COLORS.cardBorder}; border-radius: 4px; }
-`;
+/* CARD */
+.card{background:var(–card);border:1px solid var(–border);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
 
-// ––––– DATA –––––
-const initialBudget = {
-income: 18500,
-categories: [
-{ id: 1, name: “Logement”, icon: “🏠”, budget: 5000, spent: 5000, color: COLORS.accent },
-{ id: 2, name: “Alimentation”, icon: “🛒”, budget: 3000, spent: 2640, color: COLORS.green },
-{ id: 3, name: “Transport”, icon: “🚗”, budget: 1500, spent: 1820, color: COLORS.red },
-{ id: 4, name: “Loisirs”, icon: “🎮”, budget: 1000, spent: 430, color: COLORS.purple },
-{ id: 5, name: “Santé”, icon: “💊”, budget: 800, spent: 310, color: COLORS.yellow },
-{ id: 6, name: “Épargne”, icon: “💰”, budget: 2000, spent: 2000, color: COLORS.green },
-{ id: 7, name: “Divers”, icon: “📦”, budget: 700, spent: 560, color: COLORS.muted },
-],
-transactions: [
-{ id: 1, label: “Supermarché Rami Levy”, cat: “Alimentation”, amount: -320, date: “13/04”, icon: “🛒” },
-{ id: 2, label: “Virement salaire”, cat: “Revenus”, amount: 18500, date: “01/04”, icon: “💼” },
-{ id: 3, label: “Rav-Kav (transport)”, cat: “Transport”, amount: -230, date: “12/04”, icon: “🚌” },
-{ id: 4, label: “Épargne mensuelle”, cat: “Épargne”, amount: -2000, date: “01/04”, icon: “💰” },
-{ id: 5, label: “Netflix”, cat: “Loisirs”, amount: -55, date: “10/04”, icon: “📺” },
-{ id: 6, label: “Pharmacie”, cat: “Santé”, amount: -88, date: “09/04”, icon: “💊” },
-{ id: 7, label: “Essence”, cat: “Transport”, amount: -280, date: “08/04”, icon: “⛽” },
-],
-members: [
-{ id: 1, name: “Famille”, type: “family”, avatar: “👨‍👩‍👧‍👦”, balance: 5760 },
-{ id: 2, name: “Noam (16 ans)”, type: “youth”, avatar: “🧑”, balance: 850, goal: 2400, goalLabel: “Nintendo Switch 2”, goalIcon: “🎮” },
-{ id: 3, name: “Maya (13 ans)”, type: “youth”, avatar: “👧”, balance: 340, goal: 600, goalLabel: “Cours de guitare”, goalIcon: “🎸” },
-],
-};
+/* HERO */
+.hero{background:linear-gradient(135deg,#1A2540,#0D1428);border:1px solid var(–accent-soft);border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
+.hero::before{content:’’;position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(–accent);border-radius:50%;opacity:.07;}
+.hero-label{font-size:11px;color:var(–muted);margin-bottom:4px;}
+.hero-amount{font-size:36px;font-weight:800;line-height:1;}
+.hero-amount span{font-size:18px;color:var(–accent);}
+.hero-row{display:flex;gap:18px;margin-top:12px;}
+.hero-stat label{font-size:11px;color:var(–muted);display:block;}
+.hero-stat b{font-size:14px;font-weight:700;}
 
-const aiTips = [
-{ icon: “🤖”, text: “Tu as dépassé ton budget Transport de 320 ₪. Je te suggère de réduire les sorties en voiture de 2x/semaine.”, type: “alert” },
-{ icon: “✅”, text: “Bravo ! Épargne à 100% ce mois-ci. À ce rythme, ton fond d’urgence sera complet en 4 mois.”, type: “success” },
-{ icon: “💡”, text: “Noam est à 35% de son objectif Switch 2. En ajoutant 200 ₪/mois, il l’atteindra en juillet.”, type: “info” },
-{ icon: “📉”, text: “Alimentation : -12% vs le mois dernier. Excellente gestion des courses !”, type: “success” },
-];
+/* PROGRESS */
+.bar-wrap{background:var(–divider);border-radius:99px;overflow:hidden;}
+.bar{border-radius:99px;animation:barGrow .8s cubic-bezier(.4,0,.2,1) both;transition:width .6s;}
 
-// ––––– COMPONENTS –––––
-function Tag({ color, bg, children }) {
-return (
-<span style={{ background: bg, color, borderRadius: 20, padding: “2px 10px”, fontSize: 11, fontWeight: 600 }}>
-{children}
-</span>
-);
-}
+/* TAG */
+.tag{border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;display:inline-block;}
 
-function ProgressBar({ value, max, color, height = 8 }) {
-const pct = Math.min((value / max) * 100, 100);
-const over = value > max;
-return (
-<div style={{ background: COLORS.divider, borderRadius: 99, height, overflow: “hidden” }}>
-<div style={{
-width: `${pct}%`, height: “100%”, borderRadius: 99,
-background: over ? COLORS.red : color,
-animation: “barGrow 0.8s cubic-bezier(.4,0,.2,1) both”,
-transition: “width 0.6s”,
-}} />
-</div>
-);
-}
+/* AI TIPS */
+.tip{display:flex;gap:9px;align-items:flex-start;border-radius:10px;padding:8px 11px;margin-bottom:7px;font-size:12px;line-height:1.5;}
 
-function Card({ children, style = {}, className = “” }) {
-return (
-<div className={className} style={{
-background: COLORS.card,
-border: `1px solid ${COLORS.cardBorder}`,
-borderRadius: 18,
-padding: “20px 22px”,
-…style,
-}}>
-{children}
-</div>
-);
-}
+/* TRANSACTIONS */
+.tx{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(–divider);}
+.tx-icon{width:36px;height:36px;border-radius:10px;background:var(–divider);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.tx-label{font-size:13px;font-weight:500;}
+.tx-sub{font-size:11px;color:var(–muted);}
+.tx-amount{font-weight:700;font-size:14px;}
 
-function NavItem({ icon, label, active, onClick }) {
-return (
-<button onClick={onClick} style={{
-display: “flex”, flexDirection: “column”, alignItems: “center”, gap: 4,
-background: “none”, border: “none”, cursor: “pointer”,
-color: active ? COLORS.accent : COLORS.muted,
-padding: “8px 16px”, borderRadius: 12,
-transition: “color 0.2s”,
-}}>
-<span style={{ fontSize: 20 }}>{icon}</span>
-<span style={{ fontSize: 11, fontWeight: 500 }}>{label}</span>
-</button>
-);
-}
+/* FORM */
+.toggle-row{display:flex;gap:6px;background:var(–divider);border-radius:12px;padding:4px;margin-bottom:18px;}
+.toggle-btn{flex:1;padding:10px;border-radius:9px;border:none;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s;background:transparent;color:var(–muted);}
+.toggle-btn.active-expense{background:var(–red-soft);color:var(–red);}
+.toggle-btn.active-income{background:var(–green-soft);color:var(–green);}
+.field-label{font-size:12px;color:var(–muted);margin-bottom:6px;display:block;}
+.field{width:100%;padding:12px 14px;border-radius:12px;background:var(–divider);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:‘DM Sans’,sans-serif;-webkit-appearance:none;appearance:none;margin-bottom:14px;}
+.submit-btn{width:100%;padding:14px;border-radius:14px;border:none;background:var(–accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:‘Syne’,sans-serif;transition:background .3s;}
+.submit-btn.sent{background:var(–green);}
 
-// ===== VIEWS =====
+/* CHART */
+.chart-bars{display:flex;gap:5px;align-items:flex-end;height:120px;}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.chart-bar{width:100%;border-radius:5px 5px 0 0;transition:height .8s;}
+.chart-bar-label{font-size:9px;color:var(–muted);}
+.chart-bar-val{font-size:8px;color:var(–muted);}
 
-function DashboardView({ data }) {
-const totalSpent = data.categories.reduce((s, c) => s + c.spent, 0);
-const totalBudget = data.categories.reduce((s, c) => s + c.budget, 0);
-const remaining = data.income - totalSpent;
+/* GOAL */
+.goal-box{background:var(–purple-soft);border-radius:12px;padding:11px 13px;margin-top:10px;}
 
-return (
-<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
-{/* Hero card */}
-<Card className=“fadeUp fadeUp-1” style={{
-background: `linear-gradient(135deg, #1A2540 0%, #0D1428 100%)`,
-border: `1px solid ${COLORS.accentSoft}`,
-position: “relative”, overflow: “hidden”,
-}}>
-<div style={{
-position: “absolute”, top: -30, right: -30, width: 120, height: 120,
-background: COLORS.accent, borderRadius: “50%”, opacity: 0.07,
-}} />
-<div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4 }}>Solde disponible — Avril 2026</div>
-<div className=“syne” style={{ fontSize: 38, fontWeight: 800, color: COLORS.text, lineHeight: 1 }}>
-{remaining.toLocaleString(“fr-FR”)} <span style={{ fontSize: 20, color: COLORS.accent }}>₪</span>
-</div>
-<div style={{ display: “flex”, gap: 20, marginTop: 14 }}>
-<div>
-<div style={{ fontSize: 11, color: COLORS.muted }}>Revenus</div>
-<div style={{ color: COLORS.green, fontWeight: 600 }}>+{data.income.toLocaleString(“fr-FR”)} ₪</div>
-</div>
-<div>
-<div style={{ fontSize: 11, color: COLORS.muted }}>Dépenses</div>
-<div style={{ color: COLORS.red, fontWeight: 600 }}>-{totalSpent.toLocaleString(“fr-FR”)} ₪</div>
-</div>
-<div>
-<div style={{ fontSize: 11, color: COLORS.muted }}>Épargne</div>
-<div style={{ color: COLORS.yellow, fontWeight: 600 }}>2 000 ₪</div>
-</div>
-</div>
-<div style={{ marginTop: 14 }}>
-<ProgressBar value={totalSpent} max={data.income} color={COLORS.accent} height={6} />
-<div style={{ fontSize: 11, color: COLORS.muted, marginTop: 5 }}>
-{Math.round((totalSpent / data.income) * 100)}% du revenu utilisé
-</div>
-</div>
-</Card>
+/* STAT MINI */
+.stat-mini{flex:1;background:var(–divider);border-radius:10px;padding:9px 7px;text-align:center;}
+.stat-mini label{font-size:10px;color:var(–muted);display:block;margin-bottom:2px;}
+.stat-mini b{font-size:13px;font-weight:700;}
+
+/* LESSON */
+.lesson{background:linear-gradient(135deg,#1A1040,#0D0F14);border:1px solid var(–purple-soft);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
+
+/* VIEWS hidden/shown */
+.view{display:none;}.view.active{display:block;}
+
+/* SECTION TITLE */
+.sec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
+</style>
+
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+
+  <div class="header">
+    <div>
+      <div class="syne header-title">BudgetFam <span>🇮🇱</span></div>
+      <div class="header-sub">Famille Cohen · Avril 2026</div>
+    </div>
+    <button class="avatar-btn">👨‍👩‍👧‍👦</button>
+  </div>
+
+  <!-- CONTENT -->
+
+  <div class="content">
 
 ```
-  {/* AI Tips */}
-  <Card className="fadeUp fadeUp-2" style={{ padding: "14px 18px" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-      <span style={{ fontSize: 16 }}>🤖</span>
-      <span className="syne" style={{ fontWeight: 700, fontSize: 14, color: COLORS.accent }}>Assistant IA</span>
+<!-- ===== DASHBOARD ===== -->
+<div id="view-dashboard" class="view active">
+
+  <div class="hero fu fu1">
+    <div class="hero-label">Solde disponible — Avril 2026</div>
+    <div class="syne hero-amount">5 760 <span>₪</span></div>
+    <div class="hero-row">
+      <div class="hero-stat"><label>Revenus</label><b style="color:var(--green)">+18 500 ₪</b></div>
+      <div class="hero-stat"><label>Dépenses</label><b style="color:var(--red)">-14 760 ₪</b></div>
+      <div class="hero-stat"><label>Épargne</label><b style="color:var(--yellow)">2 000 ₪</b></div>
     </div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {aiTips.map((tip, i) => (
-        <div key={i} style={{
-          display: "flex", gap: 10, alignItems: "flex-start",
-          background: tip.type === "alert" ? COLORS.redSoft : tip.type === "success" ? COLORS.greenSoft : COLORS.accentSoft,
-          borderRadius: 10, padding: "8px 12px",
-        }}>
-          <span style={{ fontSize: 14, marginTop: 1 }}>{tip.icon}</span>
-          <span style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.5 }}>{tip.text}</span>
+    <div style="margin-top:14px">
+      <div class="bar-wrap" style="height:6px">
+        <div class="bar" style="width:80%;height:6px;background:var(--accent)"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">80% du revenu utilisé</div>
+    </div>
+  </div>
+
+  <!-- AI Tips -->
+  <div class="card fu fu2">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
+      <span style="font-size:15px">🤖</span>
+      <span class="syne" style="font-weight:700;font-size:14px;color:var(--accent)">Assistant IA</span>
+    </div>
+    <div class="tip" style="background:var(--red-soft)"><span>🤖</span><span>Tu as dépassé ton budget Transport de 320 ₪. Réduis les trajets en voiture de 2x/semaine.</span></div>
+    <div class="tip" style="background:var(--green-soft)"><span>✅</span><span>Bravo ! Épargne à 100% ce mois-ci. Ton fond d'urgence sera complet en 4 mois.</span></div>
+    <div class="tip" style="background:var(--accent-soft)"><span>💡</span><span>Noam est à 35% de son objectif Switch 2. Avec 200 ₪/mois de plus, il l'atteindra en juillet.</span></div>
+    <div class="tip" style="background:var(--green-soft)"><span>📉</span><span>Alimentation : -12% vs le mois dernier. Excellente gestion des courses !</span></div>
+  </div>
+
+  <!-- Categories -->
+  <div class="card fu fu3">
+    <div class="syne sec-title">Catégories ce mois</div>
+    <div id="categories"></div>
+  </div>
+
+  <!-- Transactions -->
+  <div class="card fu fu4">
+    <div class="syne sec-title">Dernières transactions</div>
+    <div id="transactions"></div>
+  </div>
+</div>
+
+<!-- ===== FAMILLE ===== -->
+<div id="view-family" class="view">
+  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Espace Famille 👨‍👩‍👧‍👦</div>
+
+  <!-- Famille principale -->
+  <div class="card fu fu2">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div style="display:flex;gap:11px;align-items:center">
+        <div style="width:46px;height:46px;border-radius:14px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:22px">👨‍👩‍👧‍👦</div>
+        <div>
+          <div class="syne" style="font-weight:700;font-size:15px">Famille</div>
+          <span class="tag" style="background:var(--accent-soft);color:var(--accent)">Budget Famille</span>
         </div>
-      ))}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Solde</div>
+        <div class="syne" style="font-weight:800;font-size:20px;color:var(--green)">5 760 ₪</div>
+      </div>
     </div>
-  </Card>
-
-  {/* Categories */}
-  <Card className="fadeUp fadeUp-3">
-    <div className="syne" style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>Catégories ce mois</div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {data.categories.map(cat => {
-        const over = cat.spent > cat.budget;
-        return (
-          <div key={cat.id}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 16 }}>{cat.icon}</span>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{cat.name}</span>
-                {over && <Tag color={COLORS.red} bg={COLORS.redSoft}>Dépassé</Tag>}
-              </div>
-              <div style={{ fontSize: 12, color: COLORS.muted }}>
-                <span style={{ color: over ? COLORS.red : COLORS.text, fontWeight: 600 }}>{cat.spent.toLocaleString("fr-FR")}</span>
-                {" / "}{cat.budget.toLocaleString("fr-FR")} ₪
-              </div>
-            </div>
-            <ProgressBar value={cat.spent} max={cat.budget} color={cat.color} />
-          </div>
-        );
-      })}
+    <div style="display:flex;gap:8px">
+      <div class="stat-mini"><label>Ce mois</label><b style="color:var(--red)">14 760 ₪</b></div>
+      <div class="stat-mini"><label>Épargné</label><b style="color:var(--green)">2 000 ₪</b></div>
+      <div class="stat-mini"><label>Reste</label><b style="color:var(--accent)">5 760 ₪</b></div>
     </div>
-  </Card>
+  </div>
 
-  {/* Transactions */}
-  <Card className="fadeUp fadeUp-4">
-    <div className="syne" style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>Dernières transactions</div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {data.transactions.map(tx => (
-        <div key={tx.id} style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "10px 0", borderBottom: `1px solid ${COLORS.divider}`,
-        }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10, background: COLORS.divider,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
-            }}>
-              {tx.icon}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{tx.label}</div>
-              <div style={{ fontSize: 11, color: COLORS.muted }}>{tx.date} · {tx.cat}</div>
-            </div>
-          </div>
-          <span style={{
-            fontWeight: 700, fontSize: 14,
-            color: tx.amount > 0 ? COLORS.green : COLORS.text,
-          }}>
-            {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString("fr-FR")} ₪
-          </span>
+  <!-- Noam -->
+  <div class="card fu fu3">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div style="display:flex;gap:11px;align-items:center">
+        <div style="width:46px;height:46px;border-radius:14px;background:var(--purple-soft);display:flex;align-items:center;justify-content:center;font-size:22px">🧑</div>
+        <div>
+          <div class="syne" style="font-weight:700;font-size:15px">Noam (16 ans)</div>
+          <span class="tag" style="background:var(--purple-soft);color:var(--purple)">Jeune Épargnant</span>
         </div>
-      ))}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Solde</div>
+        <div class="syne" style="font-weight:800;font-size:20px;color:var(--green)">850 ₪</div>
+      </div>
     </div>
-  </Card>
-</div>
-```
+    <div class="goal-box">
+      <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+        <div style="font-size:13px;font-weight:500">🎮 Objectif : Nintendo Switch 2</div>
+        <div style="font-size:12px;color:var(--purple);font-weight:700">850/2400 ₪</div>
+      </div>
+      <div class="bar-wrap" style="height:10px">
+        <div class="bar" style="width:35%;height:10px;background:var(--purple)"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:5px">35% atteint · encore 1 550 ₪</div>
+    </div>
+  </div>
 
-);
-}
-
-function FamilyView({ data }) {
-return (
-<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
-<div className=“syne fadeUp fadeUp-1” style={{ fontWeight: 800, fontSize: 20 }}>
-Espace Famille 👨‍👩‍👧‍👦
-</div>
-{data.members.map((m, i) => (
-<Card key={m.id} className={`fadeUp fadeUp-${i + 2}`}>
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “flex-start”, marginBottom: 12 }}>
-<div style={{ display: “flex”, gap: 12, alignItems: “center” }}>
-<div style={{
-width: 46, height: 46, borderRadius: 14, background: COLORS.accentSoft,
-display: “flex”, alignItems: “center”, justifyContent: “center”, fontSize: 22,
-}}>{m.avatar}</div>
-<div>
-<div className=“syne” style={{ fontWeight: 700, fontSize: 15 }}>{m.name}</div>
-<Tag color={m.type === “family” ? COLORS.accent : COLORS.purple}
-bg={m.type === “family” ? COLORS.accentSoft : COLORS.purpleSoft}>
-{m.type === “family” ? “Budget Famille” : “Jeune Épargnant”}
-</Tag>
-</div>
-</div>
-<div style={{ textAlign: “right” }}>
-<div style={{ fontSize: 11, color: COLORS.muted }}>Solde</div>
-<div className=“syne” style={{ fontWeight: 800, fontSize: 20, color: COLORS.green }}>
-{m.balance.toLocaleString(“fr-FR”)} ₪
-</div>
-</div>
-</div>
-
-```
-      {m.goal && (
-        <div style={{ background: COLORS.purpleSoft, borderRadius: 12, padding: "12px 14px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>
-              {m.goalIcon} Objectif : {m.goalLabel}
-            </div>
-            <div style={{ fontSize: 12, color: COLORS.purple, fontWeight: 700 }}>
-              {m.balance}/{m.goal} ₪
-            </div>
-          </div>
-          <ProgressBar value={m.balance} max={m.goal} color={COLORS.purple} height={10} />
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>
-            {Math.round((m.balance / m.goal) * 100)}% atteint · encore {m.goal - m.balance} ₪
-          </div>
+  <!-- Maya -->
+  <div class="card fu fu4">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div style="display:flex;gap:11px;align-items:center">
+        <div style="width:46px;height:46px;border-radius:14px;background:var(--purple-soft);display:flex;align-items:center;justify-content:center;font-size:22px">👧</div>
+        <div>
+          <div class="syne" style="font-weight:700;font-size:15px">Maya (13 ans)</div>
+          <span class="tag" style="background:var(--purple-soft);color:var(--purple)">Jeune Épargnante</span>
         </div>
-      )}
-
-      {m.type === "family" && (
-        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-          {[
-            { label: "Ce mois", value: "14 760 ₪", color: COLORS.red },
-            { label: "Épargné", value: "2 000 ₪", color: COLORS.green },
-            { label: "Reste", value: "5 760 ₪", color: COLORS.accent },
-          ].map((s, i) => (
-            <div key={i} style={{
-              flex: 1, background: COLORS.divider, borderRadius: 10,
-              padding: "10px 8px", textAlign: "center",
-            }}>
-              <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 3 }}>{s.label}</div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: s.color }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  ))}
-
-  {/* Module éducatif jeunes */}
-  <Card className="fadeUp fadeUp-5" style={{ background: `linear-gradient(135deg, #1A1040 0%, #0D0F14 100%)`, border: `1px solid ${COLORS.purpleSoft}` }}>
-    <div className="syne" style={{ fontWeight: 700, fontSize: 14, marginBottom: 10, color: COLORS.purple }}>
-      📚 Leçon du mois — Pour les jeunes
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Solde</div>
+        <div class="syne" style="font-weight:800;font-size:20px;color:var(--green)">340 ₪</div>
+      </div>
     </div>
-    <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.7, marginBottom: 12 }}>
-      <strong style={{ color: COLORS.yellow }}>La règle des 50/30/20</strong><br />
-      Divise chaque shekel que tu reçois en 3 parties :<br />
-      🟢 50% pour les besoins (nourriture, transport)<br />
-      🟣 30% pour les envies (loisirs, cadeaux)<br />
-      💛 20% pour épargner (ton objectif Switch 2 !)<br />
+    <div class="goal-box">
+      <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+        <div style="font-size:13px;font-weight:500">🎸 Objectif : Cours de guitare</div>
+        <div style="font-size:12px;color:var(--purple);font-weight:700">340/600 ₪</div>
+      </div>
+      <div class="bar-wrap" style="height:10px">
+        <div class="bar" style="width:57%;height:10px;background:var(--purple)"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:5px">57% atteint · encore 260 ₪</div>
     </div>
-    <div style={{
-      background: COLORS.purpleSoft, borderRadius: 10, padding: "10px 14px",
-      fontSize: 12, color: COLORS.purple, fontWeight: 500,
-    }}>
+  </div>
+
+  <!-- Lesson -->
+  <div class="lesson fu fu5">
+    <div class="syne" style="font-weight:700;font-size:14px;margin-bottom:10px;color:var(--purple)">📚 Leçon du mois — Pour les jeunes</div>
+    <div style="font-size:13px;line-height:1.7;margin-bottom:11px">
+      <strong style="color:var(--yellow)">La règle des 50/30/20</strong><br>
+      Divise chaque shekel que tu reçois en 3 parties :<br>
+      🟢 50% pour les besoins<br>
+      🟣 30% pour les envies<br>
+      💛 20% pour épargner
+    </div>
+    <div style="background:var(--purple-soft);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--purple);font-weight:500">
       🤖 L'IA dit : Noam épargne actuellement 35% de son argent de poche. Excellent !
     </div>
-  </Card>
+  </div>
+</div>
+
+<!-- ===== AJOUTER ===== -->
+<div id="view-add" class="view">
+  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Ajouter une transaction</div>
+  <div class="card fu fu2">
+    <div class="toggle-row">
+      <button class="toggle-btn active-expense" id="btn-expense" onclick="setType('expense')">💸 Dépense</button>
+      <button class="toggle-btn" id="btn-income" onclick="setType('income')">💰 Revenu</button>
+    </div>
+    <label class="field-label">Description</label>
+    <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
+    <label class="field-label">Montant (₪)</label>
+    <input class="field" id="f-amount" placeholder="0.00" type="number" inputmode="decimal">
+    <label class="field-label">Catégorie</label>
+    <select class="field" id="f-cat">
+      <option>Alimentation</option><option>Logement</option><option>Transport</option>
+      <option>Loisirs</option><option>Santé</option><option>Épargne</option><option>Divers</option>
+    </select>
+    <button class="submit-btn" id="submit-btn" onclick="submitTx()">Ajouter la transaction</button>
+  </div>
+  <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
+    <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px">🤖 Conseil IA du moment</div>
+    <div style="font-size:13px;line-height:1.6">
+      Tu as encore <strong style="color:var(--yellow)">360 ₪</strong> disponibles en Alimentation ce mois-ci.
+      Pense à faire ta liste avant le supermarché pour optimiser tes achats !
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATS ===== -->
+<div id="view-stats" class="view">
+  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Statistiques 📊</div>
+
+  <div class="card fu fu2">
+    <div class="syne sec-title">Dépenses sur 6 mois</div>
+    <div class="chart-bars">
+      <div class="chart-bar-wrap"><div class="chart-bar-val">12K</div><div class="chart-bar" style="height:78px;background:var(--divider)"></div><div class="chart-bar-label">Nov</div></div>
+      <div class="chart-bar-wrap"><div class="chart-bar-val">15K</div><div class="chart-bar" style="height:100px;background:var(--divider)"></div><div class="chart-bar-label">Déc</div></div>
+      <div class="chart-bar-wrap"><div class="chart-bar-val">12K</div><div class="chart-bar" style="height:77px;background:var(--divider)"></div><div class="chart-bar-label">Jan</div></div>
+      <div class="chart-bar-wrap"><div class="chart-bar-val">14K</div><div class="chart-bar" style="height:89px;background:var(--divider)"></div><div class="chart-bar-label">Fév</div></div>
+      <div class="chart-bar-wrap"><div class="chart-bar-val">14K</div><div class="chart-bar" style="height:92px;background:var(--divider)"></div><div class="chart-bar-label">Mar</div></div>
+      <div class="chart-bar-wrap"><div class="chart-bar-val">15K</div><div class="chart-bar" style="height:96px;background:linear-gradient(180deg,var(--accent),var(--accent-soft))"></div><div class="chart-bar-label" style="color:var(--accent)">Avr</div></div>
+    </div>
+  </div>
+
+  <div class="card fu fu3">
+    <div class="syne sec-title">Épargne mensuelle</div>
+    <div id="savings-bars"></div>
+    <div style="background:var(--green-soft);border-radius:10px;padding:9px 13px;margin-top:12px">
+      <div style="font-size:12px;color:var(--green);font-weight:600">Total épargné : 10 900 ₪ sur 6 mois 🎉</div>
+    </div>
+  </div>
+
+  <div class="card fu fu4">
+    <div class="syne sec-title">Répartition ce mois</div>
+    <div id="repartition"></div>
+  </div>
 </div>
 ```
 
-);
-}
+  </div><!-- /content -->
 
-function AddView({ onAdd }) {
-const [form, setForm] = useState({ label: “”, amount: “”, cat: “Alimentation”, type: “expense” });
-const [sent, setSent] = useState(false);
+  <!-- NAV -->
 
-const cats = [“Logement”, “Alimentation”, “Transport”, “Loisirs”, “Santé”, “Épargne”, “Divers”];
-
-function handleSubmit() {
-if (!form.label || !form.amount) return;
-setSent(true);
-setTimeout(() => setSent(false), 2000);
-onAdd({ …form, amount: parseFloat(form.amount) });
-setForm({ label: “”, amount: “”, cat: “Alimentation”, type: “expense” });
-}
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
-<div className=“syne fadeUp fadeUp-1” style={{ fontWeight: 800, fontSize: 20 }}>Ajouter une transaction</div>
-
-```
-  <Card className="fadeUp fadeUp-2">
-    {/* Type toggle */}
-    <div style={{ display: "flex", gap: 8, marginBottom: 20, background: COLORS.divider, borderRadius: 12, padding: 4 }}>
-      {["expense", "income"].map(t => (
-        <button key={t} onClick={() => setForm(f => ({ ...f, type: t }))} style={{
-          flex: 1, padding: "10px", borderRadius: 10, border: "none", cursor: "pointer",
-          background: form.type === t ? (t === "expense" ? COLORS.redSoft : COLORS.greenSoft) : "transparent",
-          color: form.type === t ? (t === "expense" ? COLORS.red : COLORS.green) : COLORS.muted,
-          fontWeight: 600, fontSize: 13, transition: "all 0.2s",
-        }}>
-          {t === "expense" ? "💸 Dépense" : "💰 Revenu"}
-        </button>
-      ))}
-    </div>
-
-    {[
-      { label: "Description", key: "label", placeholder: "Ex: Supermarché Rami Levy", type: "text" },
-      { label: "Montant (₪)", key: "amount", placeholder: "0.00", type: "number" },
-    ].map(field => (
-      <div key={field.key} style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>{field.label}</div>
-        <input
-          value={form[field.key]}
-          onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
-          placeholder={field.placeholder}
-          type={field.type}
-          style={{
-            width: "100%", padding: "12px 14px", borderRadius: 12,
-            background: COLORS.divider, border: `1px solid ${COLORS.cardBorder}`,
-            color: COLORS.text, fontSize: 14, outline: "none",
-          }}
-        />
-      </div>
-    ))}
-
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>Catégorie</div>
-      <select
-        value={form.cat}
-        onChange={e => setForm(f => ({ ...f, cat: e.target.value }))}
-        style={{
-          width: "100%", padding: "12px 14px", borderRadius: 12,
-          background: COLORS.divider, border: `1px solid ${COLORS.cardBorder}`,
-          color: COLORS.text, fontSize: 14, outline: "none",
-        }}
-      >
-        {cats.map(c => <option key={c} value={c}>{c}</option>)}
-      </select>
-    </div>
-
-    <button onClick={handleSubmit} style={{
-      width: "100%", padding: "14px", borderRadius: 14, border: "none",
-      background: sent ? COLORS.green : COLORS.accent,
-      color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer",
-      transition: "all 0.3s", fontFamily: "Syne, sans-serif",
-    }}>
-      {sent ? "✓ Ajouté !" : "Ajouter la transaction"}
-    </button>
-  </Card>
-
-  {/* AI insight */}
-  <Card className="fadeUp fadeUp-3" style={{ background: COLORS.accentSoft, border: `1px solid ${COLORS.accent}22` }}>
-    <div style={{ fontSize: 12, color: COLORS.accent, fontWeight: 600, marginBottom: 6 }}>🤖 Conseil IA du moment</div>
-    <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>
-      Tu as encore <strong style={{ color: COLORS.yellow }}>360 ₪</strong> disponibles en Alimentation ce mois-ci.
-      Pense à faire ta liste avant d'aller au supermarché pour optimiser tes achats !
-    </div>
-  </Card>
+  <nav class="nav">
+    <button class="nav-item active" onclick="showView('dashboard',this)"><span>🏠</span><span>Accueil</span></button>
+    <button class="nav-item" onclick="showView('family',this)"><span>👨‍👩‍👧‍👦</span><span>Famille</span></button>
+    <button class="nav-item" onclick="showView('add',this)"><span>➕</span><span>Ajouter</span></button>
+    <button class="nav-item" onclick="showView('stats',this)"><span>📊</span><span>Stats</span></button>
+  </nav>
 </div>
-```
 
-);
-}
-
-function StatsView({ data }) {
-const months = [“Nov”, “Déc”, “Jan”, “Fév”, “Mar”, “Avr”];
-const spendingData = [12400, 15200, 11800, 13600, 14100, 14760];
-const savingData = [1500, 1800, 2000, 2000, 1600, 2000];
-const maxVal = Math.max(…spendingData);
-
-return (
-<div style={{ display: “flex”, flexDirection: “column”, gap: 16 }}>
-<div className=“syne fadeUp fadeUp-1” style={{ fontWeight: 800, fontSize: 20 }}>Statistiques 📊</div>
-
-```
-  <Card className="fadeUp fadeUp-2">
-    <div className="syne" style={{ fontWeight: 700, marginBottom: 16, fontSize: 14 }}>Dépenses sur 6 mois</div>
-    <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 130 }}>
-      {spendingData.map((val, i) => (
-        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <div style={{ fontSize: 9, color: COLORS.muted }}>{Math.round(val / 1000)}K</div>
-          <div style={{
-            width: "100%", borderRadius: "6px 6px 0 0",
-            height: `${(val / maxVal) * 100}px`,
-            background: i === 5
-              ? `linear-gradient(180deg, ${COLORS.accent}, ${COLORS.accentSoft})`
-              : COLORS.divider,
-            transition: "height 0.8s",
-          }} />
-          <div style={{ fontSize: 10, color: i === 5 ? COLORS.accent : COLORS.muted }}>{months[i]}</div>
-        </div>
-      ))}
-    </div>
-  </Card>
-
-  <Card className="fadeUp fadeUp-3">
-    <div className="syne" style={{ fontWeight: 700, marginBottom: 16, fontSize: 14 }}>Épargne mensuelle</div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {months.map((m, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 28, fontSize: 12, color: COLORS.muted }}>{m}</div>
-          <div style={{ flex: 1 }}>
-            <ProgressBar value={savingData[i]} max={2500} color={COLORS.green} height={10} />
-          </div>
-          <div style={{ width: 55, textAlign: "right", fontSize: 12, color: COLORS.green, fontWeight: 600 }}>
-            {savingData[i].toLocaleString("fr-FR")} ₪
-          </div>
-        </div>
-      ))}
-    </div>
-    <div style={{ marginTop: 14, background: COLORS.greenSoft, borderRadius: 10, padding: "10px 14px" }}>
-      <div style={{ fontSize: 12, color: COLORS.green, fontWeight: 600 }}>
-        Total épargné : 10 900 ₪ sur 6 mois 🎉
-      </div>
-    </div>
-  </Card>
-
-  <Card className="fadeUp fadeUp-4">
-    <div className="syne" style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>Répartition ce mois</div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {data.categories.map(cat => (
-        <div key={cat.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ fontSize: 14 }}>{cat.icon}</span>
-            <span style={{ fontSize: 13 }}>{cat.name}</span>
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <div style={{ fontSize: 12, color: COLORS.muted }}>
-              {Math.round((cat.spent / 14760) * 100)}%
-            </div>
-            <div style={{
-              width: 8, height: 8, borderRadius: "50%", background: cat.color,
-            }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  </Card>
-</div>
-```
-
-);
-}
-
-// ===== MAIN APP =====
-export default function App() {
-const [tab, setTab] = useState(“dashboard”);
-const [data, setData] = useState(initialBudget);
-
-useEffect(() => {
-const style = document.createElement(“style”);
-style.textContent = css;
-document.head.appendChild(style);
-return () => document.head.removeChild(style);
-}, []);
-
-function handleAdd(tx) {
-setData(d => ({
-…d,
-transactions: [
-{
-id: Date.now(), label: tx.label, cat: tx.cat,
-amount: tx.type === “expense” ? -tx.amount : tx.amount,
-date: new Date().toLocaleDateString(“fr-FR”, { day: “2-digit”, month: “2-digit” }),
-icon: tx.type === “expense” ? “💸” : “💰”,
-},
-…d.transactions,
-],
-}));
-}
-
-const navItems = [
-{ id: “dashboard”, icon: “🏠”, label: “Accueil” },
-{ id: “family”, icon: “👨‍👩‍👧‍👦”, label: “Famille” },
-{ id: “add”, icon: “➕”, label: “Ajouter” },
-{ id: “stats”, icon: “📊”, label: “Stats” },
+<script>
+const CATS = [
+  {name:"Logement",icon:"🏠",budget:5000,spent:5000,color:"#4F8EF7"},
+  {name:"Alimentation",icon:"🛒",budget:3000,spent:2640,color:"#2ECC8A"},
+  {name:"Transport",icon:"🚗",budget:1500,spent:1820,color:"#F7506A"},
+  {name:"Loisirs",icon:"🎮",budget:1000,spent:430,color:"#A78BFA"},
+  {name:"Santé",icon:"💊",budget:800,spent:310,color:"#F7C948"},
+  {name:"Épargne",icon:"💰",budget:2000,spent:2000,color:"#2ECC8A"},
+  {name:"Divers",icon:"📦",budget:700,spent:560,color:"#6B7280"},
 ];
 
-return (
-<div style={{
-minHeight: “100vh”, background: COLORS.bg, color: COLORS.text,
-fontFamily: “‘DM Sans’, sans-serif”,
-maxWidth: 420, margin: “0 auto”,
-display: “flex”, flexDirection: “column”,
-}}>
-{/* Header */}
-<div style={{
-padding: “18px 20px 14px”,
-borderBottom: `1px solid ${COLORS.divider}`,
-display: “flex”, justifyContent: “space-between”, alignItems: “center”,
-position: “sticky”, top: 0, background: COLORS.bg, zIndex: 10,
-}}>
-<div>
-<div className=“syne” style={{ fontWeight: 800, fontSize: 18, letterSpacing: “-0.5px” }}>
-BudgetFam <span style={{ color: COLORS.accent }}>🇮🇱</span>
-</div>
-<div style={{ fontSize: 11, color: COLORS.muted }}>Famille Cohen · Avril 2026</div>
-</div>
-<div style={{
-width: 38, height: 38, borderRadius: 12, background: COLORS.accentSoft,
-display: “flex”, alignItems: “center”, justifyContent: “center”, fontSize: 18,
-}}>👨‍👩‍👧‍👦</div>
-</div>
+const TXS = [
+  {icon:"🛒",label:"Supermarché Rami Levy",cat:"Alimentation",amount:-320,date:"13/04"},
+  {icon:"💼",label:"Virement salaire",cat:"Revenus",amount:18500,date:"01/04"},
+  {icon:"🚌",label:"Rav-Kav (transport)",cat:"Transport",amount:-230,date:"12/04"},
+  {icon:"💰",label:"Épargne mensuelle",cat:"Épargne",amount:-2000,date:"01/04"},
+  {icon:"📺",label:"Netflix",cat:"Loisirs",amount:-55,date:"10/04"},
+  {icon:"💊",label:"Pharmacie",cat:"Santé",amount:-88,date:"09/04"},
+  {icon:"⛽",label:"Essence",cat:"Transport",amount:-280,date:"08/04"},
+];
 
-```
-  {/* Content */}
-  <div style={{ flex: 1, padding: "16px 16px 90px", overflowY: "auto" }}>
-    {tab === "dashboard" && <DashboardView data={data} />}
-    {tab === "family" && <FamilyView data={data} />}
-    {tab === "add" && <AddView onAdd={handleAdd} />}
-    {tab === "stats" && <StatsView data={data} />}
-  </div>
-
-  {/* Bottom Nav */}
-  <div style={{
-    position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
-    width: "100%", maxWidth: 420,
-    background: COLORS.card,
-    borderTop: `1px solid ${COLORS.cardBorder}`,
-    display: "flex", justifyContent: "space-around",
-    padding: "8px 0 12px",
-    zIndex: 100,
-  }}>
-    {navItems.map(item => (
-      <NavItem
-        key={item.id}
-        icon={item.icon}
-        label={item.label}
-        active={tab === item.id}
-        onClick={() => setTab(item.id)}
-      />
-    ))}
-  </div>
-</div>
-```
-
-);
+// Render categories
+function renderCats(){
+  const el = document.getElementById('categories');
+  el.innerHTML = CATS.map(c=>{
+    const over = c.spent > c.budget;
+    const pct = Math.min(c.spent/c.budget*100,100);
+    return `<div style="margin-bottom:13px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;align-items:center">
+        <div style="display:flex;gap:7px;align-items:center">
+          <span style="font-size:15px">${c.icon}</span>
+          <span style="font-size:13px;font-weight:500">${c.name}</span>
+          ${over?`<span class="tag" style="background:#3A1020;color:#F7506A">Dépassé</span>`:''}
+        </div>
+        <div style="font-size:11px;color:var(--muted)">
+          <span style="color:${over?'#F7506A':'var(--text)'};font-weight:600">${c.spent.toLocaleString('fr-FR')}</span> / ${c.budget.toLocaleString('fr-FR')} ₪
+        </div>
+      </div>
+      <div class="bar-wrap" style="height:8px">
+        <div class="bar" style="width:${pct}%;height:8px;background:${over?'#F7506A':c.color}"></div>
+      </div>
+    </div>`;
+  }).join('');
 }
+
+// Render transactions
+function renderTxs(list){
+  const el = document.getElementById('transactions');
+  el.innerHTML = list.map(tx=>`
+    <div class="tx">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="tx-icon">${tx.icon}</div>
+        <div>
+          <div class="tx-label">${tx.label}</div>
+          <div class="tx-sub">${tx.date} · ${tx.cat}</div>
+        </div>
+      </div>
+      <span class="tx-amount" style="color:${tx.amount>0?'var(--green)':'var(--text)'}">
+        ${tx.amount>0?'+':''}${tx.amount.toLocaleString('fr-FR')} ₪
+      </span>
+    </div>`).join('');
+}
+
+// Render savings bars
+function renderSavings(){
+  const months = ['Nov','Déc','Jan','Fév','Mar','Avr'];
+  const vals = [1500,1800,2000,2000,1600,2000];
+  document.getElementById('savings-bars').innerHTML = months.map((m,i)=>`
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+      <div style="width:26px;font-size:12px;color:var(--muted)">${m}</div>
+      <div style="flex:1">
+        <div class="bar-wrap" style="height:10px">
+          <div class="bar" style="width:${vals[i]/2500*100}%;height:10px;background:var(--green)"></div>
+        </div>
+      </div>
+      <div style="width:60px;text-align:right;font-size:12px;color:var(--green);font-weight:600">${vals[i].toLocaleString('fr-FR')} ₪</div>
+    </div>`).join('');
+}
+
+// Render repartition
+function renderRep(){
+  document.getElementById('repartition').innerHTML = CATS.map(c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--divider)">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:13px">${c.icon}</span>
+        <span style="font-size:13px">${c.name}</span>
+      </div>
+      <div style="display:flex;gap:9px;align-items:center">
+        <span style="font-size:12px;color:var(--muted)">${Math.round(c.spent/14760*100)}%</span>
+        <div style="width:8px;height:8px;border-radius:50%;background:${c.color}"></div>
+      </div>
+    </div>`).join('');
+}
+
+// View switching
+function showView(name, btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  btn.classList.add('active');
+  document.querySelector('.content').scrollTop = 0;
+  // Re-trigger animations
+  document.querySelectorAll('#view-'+name+' .fu').forEach(el=>{
+    el.style.animation='none';
+    el.offsetHeight;
+    el.style.animation='';
+  });
+}
+
+// Type toggle for add form
+let txType = 'expense';
+function setType(t){
+  txType = t;
+  document.getElementById('btn-expense').className = 'toggle-btn'+(t==='expense'?' active-expense':'');
+  document.getElementById('btn-income').className = 'toggle-btn'+(t==='income'?' active-income':'');
+}
+
+// Submit transaction
+function submitTx(){
+  const label = document.getElementById('f-label').value.trim();
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  const cat = document.getElementById('f-cat').value;
+  if(!label || !amount) return;
+  const now = new Date();
+  const date = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}`;
+  TXS.unshift({icon: txType==='expense'?'💸':'💰', label, cat, amount: txType==='expense'?-amount:amount, date});
+  document.getElementById('f-label').value='';
+  document.getElementById('f-amount').value='';
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = '✓ Ajouté !';
+  btn.classList.add('sent');
+  setTimeout(()=>{btn.textContent='Ajouter la transaction';btn.classList.remove('sent');},2000);
+  renderTxs(TXS);
+}
+
+// Init
+renderCats();
+renderTxs(TXS);
+renderSavings();
+renderRep();
+</script>
+
+</body>
+</html>
