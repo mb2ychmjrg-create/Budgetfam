@@ -568,6 +568,15 @@ function setType(t) {
   txType = t;
   const sel = document.getElementById('tx-type-select');
   if (sel) sel.value = t;
+  
+  const catSel = document.getElementById('f-cat');
+  if (!catSel) return;
+  
+  const expenseCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Divers'];
+  const incomeCats = ['Salaire','Freelance','Allocations','Loyer reçu','Cadeau','Investissement','Autre'];
+  
+  const cats = t === 'income' ? incomeCats : expenseCats;
+  catSel.innerHTML = cats.map(c => `<option>${c}</option>`).join('');
 }
 
 // ===== VIEW SWITCHING =====
