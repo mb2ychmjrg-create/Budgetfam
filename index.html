@@ -109,7 +109,7 @@ height:100%;padding:30px 24px;background:var(–bg);
 .goal-box{background:var(–purple-soft);border-radius:12px;padding:11px 13px;margin-top:10px;}
 
 /* SPINNER */
-.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(–border);border-top-color:var(–accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;display:block;}
+.spinner{display:block;width:18px;height:18px;border:2px solid var(–border);border-top-color:var(–accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* EMPTY STATE */
@@ -172,10 +172,8 @@ height:100%;padding:30px 24px;background:var(–bg);
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view active">
     <div id="dashboard-content"><div class="spinner"></div></div>
+    <div id="tx-list" style="margin-top:20px;"></div>
   </div>
-  <!-- ===== TRANSACTIONS LIST ===== -->
-<div id="tx-list" style="margin-top:20px;"></div>
-
 
   <!-- AJOUTER -->
   <div id="view-add" class="view">
@@ -241,32 +239,6 @@ const sb = createClient(
 
 let currentUser = null;
 let txType = 'expense';
-let allTxs = [];
-// ===== SAVE TRANSACTION =====
-async function saveTransaction(amount, category, description) {
-  if (!currentUser) return;
-
-  const { error } = await sb
-    .from('transactions')
-    .insert([
-      {
-        user_id: currentUser.id,
-        type: txType,
-        amount: Number(amount),
-        category,
-        description
-      }
-    ]);
-
-  if (error) {
-    console.log("Erreur Supabase :", error);
-    alert("Erreur lors de l'enregistrement");
-  } else {
-    loadDashboard();
-    loadStats();
-  }
-}
-
 
 // ===== AUTH =====
 let authMode = 'login';
@@ -309,7 +281,6 @@ async function handleAuth() {
 async function handleLogout() {
   await sb.auth.signOut();
   currentUser = null;
-  allTxs = [];
   document.getElementById('main-app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('auth-email').value = '';
@@ -318,115 +289,119 @@ async function handleLogout() {
 
 // ===== APP ENTRY =====
 async function enterApp() {
-  document.getElementById('auth-screen').style.display = "none";
-  document.getElementById('main-app').style.display = "flex";
-
-  await ensureTables();
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  document.getElementById('header-sub').textContent = `Bonjour, ${name} 👋`;
   await loadDashboard();
   await loadTransactions();
   loadAiTip();
 }
 
-// ===== ENSURE TABLES (create if not exist via RPC fallback) =====
-async function ensureTables() {
-  // Try inserting a dummy check — tables created via Supabase SQL editor
-  // We'll just gracefully handle missing tables
-}
-
 // ===== LOAD DASHBOARD =====
 async function loadDashboard() {
-  const el = document.getElementById('dashboard');
+  const el = document.getElementById('dashboard-content'); // ✅ FIX: was 'dashboard'
 
-  // Fetch transactions
   const { data: txs, error } = await sb
     .from('transactions')
     .select('*')
     .eq('user_id', currentUser.id)
     .order('created_at', { ascending: false });
 
-  if (error && error.code === '42P01') {
-    // Table doesn't exist yet
-    el.innerHTML = renderEmptyDashboard();
+  if (error) {
+    el.innerHTML = '<div class="empty"><span>⚠️</span>Erreur de chargement</div>';
     return;
   }
 
-  const allTxs = txs || [];
+  const all = txs || [];
+  const income   = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  const balance  = income - expenses;
+  const pct = income > 0 ? Math.min(100, Math.round((balance / income) * 100)) : 0;
 
-  // Totaux
-  const income = allTxs
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const expenses = allTxs
-    .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const balance = income + expenses; // dépenses négatives
-
-  const pct = income > 0
-    ? Math.min(100, (balance / income) * 100)
-    : 0;
-
-  // Si aucune transaction
-  if (allTxs.length === 0) {
+  if (all.length === 0) {
     el.innerHTML = `
       <div class="hero fu fu1">
         <div style="font-size:11px;color:#888">Dashboard</div>
         <div class="syne" style="font-size:20px;font-weight:600">Aucune donnée</div>
-        <p style="margin-top:10px;color:#888">Ajoute ta première transaction pour commencer.</p>
-      </div>
-    `;
+        <p style="margin-top:10px;color:#888;font-size:13px">Ajoute ta première transaction pour commencer.</p>
+      </div>`;
     return;
   }
 
-  // Rendu du dashboard
   el.innerHTML = `
     <div class="hero fu fu1">
-      <div style="font-size:11px;color:#888">Dashboard</div>
-      <div class="syne" style="font-size:20px;font-weight:600">Résumé</div>
-
-      <div style="display:flex;gap:10px;margin-top:12px;">
-        <div class="card" style="flex:1;padding:12px;">
-          <div style="font-size:11px;color:#888">Revenus</div>
-          <div class="syne" style="font-size:18px;color:var(--green);font-weight:600">
-            ${income.toFixed(2)}€
-          </div>
-        </div>
-
-        <div class="card" style="flex:1;padding:12px;">
-          <div style="font-size:11px;color:#888">Dépenses</div>
-          <div class="syne" style="font-size:18px;color:var(--red);font-weight:600">
-            ${Math.abs(expenses).toFixed(2)}€
-          </div>
-        </div>
+      <div style="font-size:11px;color:var(--muted)">Résumé du mois</div>
+      <div class="syne" style="font-size:26px;font-weight:800;margin:4px 0">${balance.toLocaleString('fr-FR')} ₪</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Solde disponible</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div class="stat-mini"><label>Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Épargne %</label><b style="color:var(--accent)">${pct}%</b></div>
       </div>
-
-      <div class="card" style="margin-top:12px;padding:12px;">
-        <div style="font-size:11px;color:#888">Solde</div>
-        <div class="syne" style="font-size:22px;font-weight:600">
-          ${balance.toFixed(2)}€
-        </div>
-
-        <div class="bar-wrap" style="margin-top:10px;">
-          <div class="bar" style="width:${pct}%;background:var(--accent);height:6px;border-radius:99px;"></div>
-        </div>
+      <div class="bar-wrap" style="height:6px">
+        <div class="bar" style="width:${pct}%;height:6px;background:var(--accent)"></div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
+// ===== LOAD TRANSACTIONS =====
+async function loadTransactions() {
+  const list = document.getElementById('tx-list');
+  list.innerHTML = '<div class="spinner"></div>';
+
+  const { data, error } = await sb
+    .from('transactions')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    list.innerHTML = '<div class="empty"><span>⚠️</span>Erreur de chargement</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    list.innerHTML = `<div class="empty"><span>💸</span>Aucune transaction encore.<br>Ajoute ta première !</div>`;
+    return;
+  }
+
+  list.innerHTML = `
+    <div class="card" style="padding:14px 16px">
+      <div class="syne sec-title">Transactions récentes</div>
+      ${data.map(t => `
+        <div class="tx">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="tx-icon">${getCatIcon(t.category)}</div>
+            <div>
+              <div style="font-weight:600;font-size:13px">${t.label || t.description || '—'}</div>
+              <div style="font-size:10px;color:var(--muted)">${t.category || ''} · ${formatDate(t.created_at)}</div>
+            </div>
+          </div>
+          <div style="font-weight:700;font-size:14px;color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">
+            ${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString('fr-FR')} ₪
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
 
 // ===== STATS VIEW =====
 async function loadStats() {
   const el = document.getElementById('stats-content');
-  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  el.innerHTML = '<div class="spinner"></div>';
+
+  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id);
   const all = txs || [];
 
   const catMap = {};
-  all.filter(t=>t.amount<0).forEach(t => { catMap[t.category||'Divers'] = (catMap[t.category||'Divers']||0) + Math.abs(t.amount); });
-  const income = all.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
-  const expenses = all.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
-  const savings = income - expenses;
+  all.filter(t => t.amount < 0).forEach(t => {
+    const cat = t.category || 'Divers';
+    catMap[cat] = (catMap[cat] || 0) + Math.abs(t.amount);
+  });
+  const income   = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  const savings  = income - expenses;
 
   el.innerHTML = `
     <div class="card fu fu1">
@@ -440,17 +415,18 @@ async function loadStats() {
 
     <div class="card fu fu2">
       <div class="syne sec-title">Par catégorie</div>
-      ${Object.keys(catMap).length === 0 ? '<div class="empty"><span>📊</span>Aucune dépense encore.</div>' :
-        Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([cat, amt]) => {
-          const pct = expenses > 0 ? Math.round(amt/expenses*100) : 0;
-          return `<div style="margin-bottom:12px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-              <div style="display:flex;gap:7px;align-items:center"><span>${getCatIcon(cat)}</span><span style="font-size:13px">${cat}</span></div>
-              <div style="font-size:12px;color:var(--muted)">${amt.toLocaleString('fr-FR')} ₪ · ${pct}%</div>
-            </div>
-            <div class="bar-wrap" style="height:8px"><div class="bar" style="width:${pct}%;height:8px;background:var(--accent)"></div></div>
-          </div>`;
-        }).join('')
+      ${Object.keys(catMap).length === 0
+        ? '<div class="empty"><span>📊</span>Aucune dépense encore.</div>'
+        : Object.entries(catMap).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => {
+            const pct = expenses > 0 ? Math.round(amt/expenses*100) : 0;
+            return `<div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <div style="display:flex;gap:7px;align-items:center"><span>${getCatIcon(cat)}</span><span style="font-size:13px">${cat}</span></div>
+                <div style="font-size:12px;color:var(--muted)">${amt.toLocaleString('fr-FR')} ₪ · ${pct}%</div>
+              </div>
+              <div class="bar-wrap" style="height:8px"><div class="bar" style="width:${pct}%;height:8px;background:var(--accent)"></div></div>
+            </div>`;
+          }).join('')
       }
     </div>
 
@@ -458,13 +434,14 @@ async function loadStats() {
       <div class="syne sec-title">Nombre de transactions</div>
       <div style="font-size:36px;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;text-align:center;padding:10px 0">${all.length}</div>
       <div style="text-align:center;font-size:12px;color:var(--muted)">transactions enregistrées</div>
-    </div>
-  `;
+    </div>`;
 }
 
 // ===== PROFILE VIEW =====
 async function loadProfile() {
   const el = document.getElementById('profile-content');
+  el.innerHTML = '<div class="spinner"></div>';
+
   const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
   const { count } = await sb.from('transactions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
 
@@ -478,7 +455,7 @@ async function loadProfile() {
     <div class="card fu fu2">
       <div class="syne sec-title">Mon activité</div>
       <div style="display:flex;gap:8px">
-        <div class="stat-mini"><label>Transactions</label><b style="color:var(--accent)">${count||0}</b></div>
+        <div class="stat-mini"><label>Transactions</label><b style="color:var(--accent)">${count || 0}</b></div>
         <div class="stat-mini"><label>Membre depuis</label><b style="color:var(--purple)">${new Date(currentUser.created_at).toLocaleDateString('fr-FR',{month:'short',year:'numeric'})}</b></div>
       </div>
     </div>
@@ -487,7 +464,7 @@ async function loadProfile() {
       <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">🚀 Bientôt disponible</div>
       <div style="font-size:12px;color:var(--muted);line-height:1.7">
         🏦 Connexion bancaire automatique<br>
-        👨‍👩‍👧‍👦 Profils famille & enfants<br>
+        👨‍👩‍👧‍👦 Profils famille &amp; enfants<br>
         💒 Planificateur mariage israélien<br>
         🏠 Calculateur apport immobilier<br>
         🤖 IA conseillère avancée
@@ -496,7 +473,9 @@ async function loadProfile() {
 
     <button onclick="handleLogout()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px">
       Se déconnecter
-    
+    </button>`;  /* ✅ FIX: template literal correctement fermé */
+}
+
 // ===== ADD TRANSACTION =====
 async function submitTx() {
   const label = document.getElementById('f-label').value.trim();
@@ -508,39 +487,48 @@ async function submitTx() {
   btn.textContent = '...';
   btn.style.background = 'var(--muted)';
 
-  const { error } = await sb
-    .from('transactions')
-    .insert({
-      user_id: currentUser.id,
-      label,
-      amount: txType === 'expense' ? -amount : amount,
-      category,
-    });
+  const { error } = await sb.from('transactions').insert({
+    user_id: currentUser.id,
+    label,
+    amount: txType === 'expense' ? -Math.abs(amount) : Math.abs(amount),
+    category,
+  });
 
   if (error) {
-    if (error.code === '42P01') {
-      btn.textContent = '⚠️ Table missing';
-      btn.style.background = 'var(--error)';
-      setTimeout(() => {
-        btn.textContent = 'Retry';
-        showTableInstructions();
-      }, 1500);
-      return;
-    }
-
     btn.textContent = 'Erreur — réessayez';
-    setTimeout(() => { btn.textContent = 'Retry'; }, 1500);
+    btn.style.background = 'var(--red)';
+    setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.style.background = 'var(--accent)'; }, 2000);
     return;
   }
 
-  // 🔥 C’est ICI que tu dois mettre les deux lignes :
-  loadTransactions();
-  loadDashboard();
+  btn.textContent = '✅ Ajouté !';
+  btn.style.background = 'var(--green)';
+  document.getElementById('f-label').value = '';
+  document.getElementById('f-amount').value = '';
+
+  setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.style.background = 'var(--accent)'; }, 1500);
+
+  await loadDashboard();
+  await loadTransactions();
+}
+
+// ===== AI TIP =====
+async function loadAiTip() {
+  const el = document.getElementById('ai-tip');
+  if (!el) return;
+  const tips = [
+    "💡 Essaie d'épargner 20% de tes revenus chaque mois.",
+    "🛒 Les courses chez Rami Levy ou Victory peuvent réduire ta facture alimentaire.",
+    "📱 Vérifie tes abonnements — tu en as peut-être d'inutiles.",
+    "🏠 Le logement ne devrait pas dépasser 30% de tes revenus.",
+    "💰 Un fonds d'urgence de 3 mois de dépenses est recommandé.",
+  ];
+  el.textContent = tips[Math.floor(Math.random() * tips.length)];
 }
 
 // ===== HELPERS =====
 function getCatIcon(cat) {
-  const icons = { Alimentation:'🛒', Logement:'🏠', Transport:'🚗', Loisirs:'🎮', Santé:'💊', Épargne:'💰', Divers:'📦', Revenus:'💼' };
+  const icons = { Alimentation:'🛒', Logement:'🏠', Transport:'🚗', Loisirs:'🎮', Santé:'💊', Épargne:'💰', Divers:'📦', Revenus:'💼', Salaire:'💼', Freelance:'💻', Allocations:'🏛️', Cadeau:'🎁', Investissement:'📈' };
   return icons[cat] || '💸';
 }
 function formatDate(d) {
@@ -549,29 +537,23 @@ function formatDate(d) {
 }
 function setType(t) {
   txType = t;
-  const sel = document.getElementById('tx-type-select');
-  if (sel) sel.value = t;
-  
   const catSel = document.getElementById('f-cat');
   if (!catSel) return;
-  
   const expenseCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Divers'];
-  const incomeCats = ['Salaire','Freelance','Allocations','Loyer reçu','Cadeau','Investissement','Autre'];
-  
-  const cats = t === 'income' ? incomeCats : expenseCats;
-  catSel.innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+  const incomeCats  = ['Salaire','Freelance','Allocations','Loyer reçu','Cadeau','Investissement','Autre'];
+  catSel.innerHTML = (t === 'income' ? incomeCats : expenseCats).map(c => `<option>${c}</option>`).join('');
 }
 
 // ===== VIEW SWITCHING =====
 function showView(name, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
+  document.getElementById('view-' + name).classList.add('active');
   btn.classList.add('active');
   document.querySelector('.content').scrollTop = 0;
-  if (name === 'stats') loadStats();
-  if (name === 'profile') loadProfile();
-  if (name === 'dashboard') loadDashboard();
+  if (name === 'stats')     loadStats();
+  if (name === 'profile')   loadProfile();
+  if (name === 'dashboard') { loadDashboard(); loadTransactions(); }
 }
 
 // ===== INIT =====
@@ -581,52 +563,7 @@ sb.auth.onAuthStateChange((event, session) => {
     enterApp();
   }
 });
-// ===== LOAD TRANSACTIONS =====
-async function loadTransactions() {
-  const list = document.getElementById('tx-list');
-  list.innerHTML = '<div style="padding:10px;color:#888">Chargement...</div>';
-
-  const { data, error } = await sb
-    .from('transactions')
-    .select('*')
-    .eq('user_id', currentUser.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    list.innerHTML = '<div style="padding:10px;color:red">Erreur de chargement</div>';
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    list.innerHTML = `
-      <div style="padding:15px;color:#888;text-align:center;">
-        Aucune transaction pour le moment.<br>
-        Ajoute ta première transaction !
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = data
-    .map(t => `
-      <div class="tx" style="padding:12px 0;border-bottom:1px solid var(--divider);">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="tx-icon" style="background:var(--divider);"></div>
-          <div>
-            <div style="font-weight:600">${t.label}</div>
-            <div class="tag">${t.category}</div>
-          </div>
-        </div>
-
-        <div style="font-weight:700;color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">
-          ${t.amount}€
-        </div>
-      </div>
-    `)
-    .join('');
-}
-
 </script>
 
 </body>
-</html> 
+</html>
