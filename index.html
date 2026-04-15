@@ -239,6 +239,31 @@ const sb = createClient(
 let currentUser = null;
 let txType = 'expense';
 let allTxs = [];
+// ===== SAVE TRANSACTION =====
+async function saveTransaction(amount, category, description) {
+  if (!currentUser) return;
+
+  const { error } = await sb
+    .from('transactions')
+    .insert([
+      {
+        user_id: currentUser.id,
+        type: txType,
+        amount: Number(amount),
+        category,
+        description
+      }
+    ]);
+
+  if (error) {
+    console.log("Erreur Supabase :", error);
+    alert("Erreur lors de l'enregistrement");
+  } else {
+    loadDashboard();
+    loadStats();
+  }
+}
+
 
 // ===== AUTH =====
 let authMode = 'login';
