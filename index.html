@@ -610,6 +610,51 @@ sb.auth.onAuthStateChange((event, session) => {
     enterApp();
   }
 });
+// ===== LOAD TRANSACTIONS =====
+async function loadTransactions() {
+  const list = document.getElementById('tx-list');
+  list.innerHTML = '<div style="padding:10px;color:#888">Chargement...</div>';
+
+  const { data, error } = await sb
+    .from('transactions')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    list.innerHTML = '<div style="padding:10px;color:red">Erreur de chargement</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    list.innerHTML = `
+      <div style="padding:15px;color:#888;text-align:center;">
+        Aucune transaction pour le moment.<br>
+        Ajoute ta première transaction !
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = data
+    .map(t => `
+      <div class="tx" style="padding:12px 0;border-bottom:1px solid var(--divider);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="tx-icon" style="background:var(--divider);"></div>
+          <div>
+            <div style="font-weight:600">${t.label}</div>
+            <div class="tag">${t.category}</div>
+          </div>
+        </div>
+
+        <div style="font-weight:700;color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">
+          ${t.amount}€
+        </div>
+      </div>
+    `)
+    .join('');
+}
+
 </script>
 
 </body>
