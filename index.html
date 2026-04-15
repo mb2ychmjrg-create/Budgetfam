@@ -318,12 +318,12 @@ async function handleLogout() {
 
 // ===== APP ENTRY =====
 async function enterApp() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = 'flex';
-  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
-  document.getElementById('header-sub').textContent = name + ' · Avril 2026';
+  document.getElementById('auth-screen').style.display = "none";
+  document.getElementById('main-app').style.display = "flex";
+
   await ensureTables();
   await loadDashboard();
+  await loadTransactions();
   loadAiTip();
 }
 
