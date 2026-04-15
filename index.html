@@ -496,10 +496,7 @@ async function loadProfile() {
 
     <button onclick="handleLogout()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px">
       Se déconnecter
-    </button>
-  `;
-}
-
+    
 // ===== ADD TRANSACTION =====
 async function submitTx() {
   const label = document.getElementById('f-label').value.trim();
@@ -508,63 +505,37 @@ async function submitTx() {
   if (!label || !amount) return;
 
   const btn = document.getElementById('submit-btn');
-  btn.textContent = '...'; btn.style.background = 'var(--muted)';
+  btn.textContent = '...';
+  btn.style.background = 'var(--muted)';
 
-  const { error } = await sb.from('transactions').insert({
-    user_id: currentUser.id,
-    label,
-    amount: txType === 'expense' ? -amount : amount,
-    category,
-  });
+  const { error } = await sb
+    .from('transactions')
+    .insert({
+      user_id: currentUser.id,
+      label,
+      amount: txType === 'expense' ? -amount : amount,
+      category,
+    });
 
   if (error) {
     if (error.code === '42P01') {
-      btn.textContent = '⚠️ Table manquante — voir instructions';
-      btn.style.background = 'var(--red)';
-      setTimeout(() => { btn.textContent = 'Ajouter'; btn.style.background = 'var(--accent)'; }, 3000);
-      showTableInstructions();
+      btn.textContent = '⚠️ Table missing';
+      btn.style.background = 'var(--error)';
+      setTimeout(() => {
+        btn.textContent = 'Retry';
+        showTableInstructions();
+      }, 1500);
       return;
     }
-    btn.textContent = 'Erreur — réessaie'; btn.style.background = 'var(--red)';
-    setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.style.background = 'var(--accent)'; }, 2000);
+
+    btn.textContent = 'Erreur — réessayez';
+    setTimeout(() => { btn.textContent = 'Retry'; }, 1500);
     return;
   }
 
-  document.getElementById('f-label').value = '';
-  document.getElementById('f-amount').value = '';
-  btn.textContent = '✓ Ajouté !'; btn.classList.add('sent');
-  setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.classList.remove('sent'); btn.style.background = ''; }, 2000);
-  await loadDashboard();
-  loadAiTip();
-}
-
-function showTableInstructions() {
-  const el = document.getElementById('ai-tip');
-  el.innerHTML = `<strong style="color:var(--yellow)">⚠️ Une dernière étape !</strong><br><br>
-  Va sur <strong>supabase.com</strong> → ton projet → <strong>SQL Editor</strong> → colle ce code :<br><br>
-  <code style="font-size:10px;background:var(--bg);padding:8px;border-radius:8px;display:block;margin-top:6px;line-height:1.6">
-  create table transactions (<br>
-  &nbsp;&nbsp;id uuid default gen_random_uuid() primary key,<br>
-  &nbsp;&nbsp;user_id uuid references auth.users not null,<br>
-  &nbsp;&nbsp;label text not null,<br>
-  &nbsp;&nbsp;amount numeric not null,<br>
-  &nbsp;&nbsp;category text,<br>
-  &nbsp;&nbsp;created_at timestamptz default now()<br>
-  );<br>
-  alter table transactions enable row level security;<br>
-  create policy "Users own data" on transactions<br>
-  &nbsp;&nbsp;for all using (auth.uid() = user_id);
-  </code>`;
-}
-
-function loadAiTip() {
-  const tips = [
-    "Tu as encore de la marge ce mois-ci. Pense à mettre de côté pour tes objectifs long terme !",
-    "Conseil : la règle des 50/30/20 — 50% besoins, 30% envies, 20% épargne.",
-    "Chaque shekel épargné aujourd'hui travaille pour toi demain. Continue comme ça !",
-    "Pense à vérifier tes abonnements récurrents — des économies faciles se cachent souvent là.",
-  ];
-  document.getElementById('ai-tip').textContent = tips[Math.floor(Math.random()*tips.length)];
+  // 🔥 C’est ICI que tu dois mettre les deux lignes :
+  loadTransactions();
+  loadDashboard();
 }
 
 // ===== HELPERS =====
