@@ -178,9 +178,12 @@ height:100%;padding:30px 24px;background:var(–bg);
   <div id="view-add" class="view">
     <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Ajouter ➕</div>
     <div class="card fu fu2">
-      <div class="toggle-row">
-        <div class="toggle-btn active-expense" id="btn-expense" onclick="setType('expense')">💸 Dépense</div>
-        <div class="toggle-btn" id="btn-income" onclick="setType('income')">💰 Revenu</div>
+      <div style="margin-bottom:18px">
+        <label class="field-label">Type de transaction</label>
+        <select class="select-field" id="tx-type-select" onchange="setType(this.value)" style="font-size:15px;font-weight:600">
+          <option value="expense">💸 Dépense</option>
+          <option value="income">💰 Revenu</option>
+        </select>
       </div>
       <label class="field-label">Description</label>
       <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
@@ -563,8 +566,8 @@ function formatDate(d) {
 }
 function setType(t) {
   txType = t;
-  document.getElementById('btn-expense').className = 'toggle-btn' + (t==='expense'?' active-expense':'');
-  document.getElementById('btn-income').className = 'toggle-btn' + (t==='income'?' active-income':'');
+  const sel = document.getElementById('tx-type-select');
+  if (sel) sel.value = t;
 }
 
 // ===== VIEW SWITCHING =====
