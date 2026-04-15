@@ -331,8 +331,9 @@ async function ensureTables() {
 }
 
 // ===== LOAD DASHBOARD =====
+// ===== LOAD DASHBOARD =====
 async function loadDashboard() {
-  const el = document.getElementById('dashboard-content');
+  const el = document.getElementById('dashboard');
 
   // Fetch transactions
   const { data: txs, error } = await sb
@@ -347,87 +348,71 @@ async function loadDashboard() {
     return;
   }
 
-  allTxs = txs || [];
-  const income = allTxs.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
-  const expenses = allTxs.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
-  const balance = income - expenses;
-  const pct = income > 0 ? Math.min(Math.round(expenses/income*100), 100) : 0;
+  const allTxs = txs || [];
 
+  // Totaux
+  const income = allTxs
+    .filter(t => t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const expenses = allTxs
+    .filter(t => t.amount < 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const balance = income + expenses; // dépenses négatives
+
+  const pct = income > 0
+    ? Math.min(100, (balance / income) * 100)
+    : 0;
+
+  // Si aucune transaction
+  if (allTxs.length === 0) {
+    el.innerHTML = `
+      <div class="hero fu fu1">
+        <div style="font-size:11px;color:#888">Dashboard</div>
+        <div class="syne" style="font-size:20px;font-weight:600">Aucune donnée</div>
+        <p style="margin-top:10px;color:#888">Ajoute ta première transaction pour commencer.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Rendu du dashboard
   el.innerHTML = `
     <div class="hero fu fu1">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Solde disponible</div>
-      <div class="syne" style="font-size:36px;font-weight:800;line-height:1">${balance.toLocaleString('fr-FR')} <span style="font-size:18px;color:var(--accent)">₪</span></div>
-      <div style="display:flex;gap:18px;margin-top:12px">
-        <div><label style="font-size:11px;color:var(--muted);display:block">Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
-        <div><label style="font-size:11px;color:var(--muted);display:block">Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
-      </div>
-      <div style="margin-top:14px">
-        <div class="bar-wrap" style="height:6px"><div class="bar" style="width:${pct}%;height:6px;background:var(--accent)"></div></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">${pct}% du revenu utilisé</div>
-      </div>
-    </div>
+      <div style="font-size:11px;color:#888">Dashboard</div>
+      <div class="syne" style="font-size:20px;font-weight:600">Résumé</div>
 
-    <div class="card fu fu2">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
-        <span style="font-size:15px">🤖</span>
-        <span class="syne" style="font-weight:700;font-size:14px;color:var(--accent)">Assistant IA</span>
-      </div>
-      ${renderAiInsights(allTxs, balance, expenses, income)}
-    </div>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <div class="card" style="flex:1;padding:12px;">
+          <div style="font-size:11px;color:#888">Revenus</div>
+          <div class="syne" style="font-size:18px;color:var(--green);font-weight:600">
+            ${income.toFixed(2)}€
+          </div>
+        </div>
 
-    <div class="card fu fu3">
-      <div class="syne sec-title">Transactions récentes</div>
-      ${allTxs.length === 0 ? `<div class="empty"><span>📭</span>Aucune transaction encore.<br>Ajoute ta première dépense !</div>` :
-        allTxs.slice(0, 8).map(tx => `
-          <div class="tx">
-            <div style="display:flex;gap:10px;align-items:center">
-              <div class="tx-icon">${getCatIcon(tx.category)}</div>
-              <div>
-                <div style="font-size:13px;font-weight:500">${tx.label}</div>
-                <div style="font-size:11px;color:var(--muted)">${formatDate(tx.created_at)} · ${tx.category||'Divers'}</div>
-              </div>
-            </div>
-            <span style="font-weight:700;font-size:14px;color:${tx.amount>0?'var(--green)':'var(--text)'}">
-              ${tx.amount>0?'+':''}${tx.amount.toLocaleString('fr-FR')} ₪
-            </span>
-          </div>`).join('')
-      }
+        <div class="card" style="flex:1;padding:12px;">
+          <div style="font-size:11px;color:#888">Dépenses</div>
+          <div class="syne" style="font-size:18px;color:var(--red);font-weight:600">
+            ${Math.abs(expenses).toFixed(2)}€
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;padding:12px;">
+        <div style="font-size:11px;color:#888">Solde</div>
+        <div class="syne" style="font-size:22px;font-weight:600">
+          ${balance.toFixed(2)}€
+        </div>
+
+        <div class="bar-wrap" style="margin-top:10px;">
+          <div class="bar" style="width:${pct}%;background:var(--accent);height:6px;border-radius:99px;"></div>
+        </div>
+      </div>
     </div>
   `;
 }
 
-function renderEmptyDashboard() {
-  return `
-    <div class="hero fu fu1">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Solde disponible</div>
-      <div class="syne" style="font-size:36px;font-weight:800;line-height:1">0 <span style="font-size:18px;color:var(--accent)">₪</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-top:12px">Commence par ajouter tes revenus et dépenses !</div>
-    </div>
-    <div class="card fu fu2" style="text-align:center;padding:30px">
-      <div style="font-size:40px;margin-bottom:12px">🚀</div>
-      <div class="syne" style="font-size:16px;font-weight:700;margin-bottom:8px">Bienvenue sur BudgetFam !</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">Appuie sur <strong style="color:var(--accent)">➕ Ajouter</strong> pour enregistrer ta première transaction et commencer à suivre ton budget.</div>
-    </div>
-  `;
-}
-
-function renderAiInsights(txs, balance, expenses, income) {
-  if (txs.length === 0) return `<div style="font-size:12px;color:var(--muted)">Ajoute tes premières transactions pour recevoir des conseils personnalisés !</div>`;
-
-  const tips = [];
-  const savingsRate = income > 0 ? ((income - expenses) / income * 100) : 0;
-
-  if (savingsRate > 20) tips.push({ bg:'var(--green-soft)', icon:'✅', text:`Excellent ! Tu épargnes ${Math.round(savingsRate)}% de tes revenus ce mois-ci.` });
-  else if (savingsRate < 0) tips.push({ bg:'var(--red-soft)', icon:'⚠️', text:`Attention : tu as dépensé plus que tes revenus de ${Math.abs(balance).toLocaleString('fr-FR')} ₪.` });
-  else tips.push({ bg:'var(--accent-soft)', icon:'💡', text:`Tu utilises ${Math.round(expenses/income*100)}% de tes revenus. Essaie d'épargner au moins 20%.` });
-
-  const catMap = {};
-  txs.filter(t=>t.amount<0).forEach(t => { catMap[t.category] = (catMap[t.category]||0) + Math.abs(t.amount); });
-  const topCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
-  if (topCat) tips.push({ bg:'var(--yellow-soft)', icon:'📊', text:`Ta dépense principale : ${topCat[0]} (${topCat[1].toLocaleString('fr-FR')} ₪).` });
-
-  return tips.map(t => `<div style="display:flex;gap:9px;align-items:flex-start;background:${t.bg};border-radius:10px;padding:8px 11px;margin-bottom:7px;font-size:12px;line-height:1.5"><span>${t.icon}</span><span>${t.text}</span></div>`).join('');
-}
 
 // ===== STATS VIEW =====
 async function loadStats() {
