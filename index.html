@@ -140,8 +140,10 @@
           <option value="income">💰 Revenu</option>
         </select>
       </div>
-      <label class="field-label">Description</label>
-      <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
+      <div id="f-label-wrap">
+        <label class="field-label">Description</label>
+        <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
+      </div>
       <label class="field-label">Montant (₪)</label>
       <input class="field" id="f-amount" placeholder="0.00" type="number" inputmode="decimal">
       <label class="field-label">Catégorie</label>
@@ -562,6 +564,10 @@ function setType(t) {
   const exp = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Divers'];
   const inc = ['Salaire','Freelance','Allocations','Loyer reçu','Cadeau','Investissement','Autre'];
   catSel.innerHTML = (t === 'income' ? inc : exp).map(c => `<option>${c}</option>`).join('');
+  // Masquer le champ description pour les revenus
+  const labelWrap = document.getElementById('f-label-wrap');
+  if (labelWrap) labelWrap.style.display = t === 'income' ? 'none' : 'block';
+  if (t === 'income') document.getElementById('f-label').value = '';
 }
 
 // ===== VIEW SWITCHING =====
