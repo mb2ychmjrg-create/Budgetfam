@@ -10,6 +10,7 @@
 <title>BudgetFam 🇮🇱</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   :root{
@@ -25,154 +26,107 @@
   .syne{font-family:'Syne',sans-serif;}
   ::-webkit-scrollbar{width:3px;}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
-
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes barGrow{from{width:0}}
-.fu{animation:fadeUp .4s ease both;}
-.fu1{animation-delay:.04s}.fu2{animation-delay:.1s}.fu3{animation-delay:.17s}.fu4{animation-delay:.24s}.fu5{animation-delay:.31s}
-
-#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
-
-/* AUTH SCREEN */
-.auth-screen{
-display:flex;flex-direction:column;justify-content:center;align-items:center;
-height:100%;padding:30px 24px;background:var(–bg);
-}
-.auth-logo{font-size:48px;margin-bottom:8px;}
-.auth-title{font-size:28px;font-weight:800;color:var(–text);margin-bottom:4px;font-family:‘Syne’,sans-serif;}
-.auth-sub{font-size:13px;color:var(–muted);margin-bottom:36px;text-align:center;line-height:1.5;}
-.auth-tabs{display:flex;background:var(–card);border-radius:14px;padding:4px;margin-bottom:24px;width:100%;}
-.auth-tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:var(–muted);transition:all .2s;font-family:‘DM Sans’,sans-serif;}
-.auth-tab.active{background:var(–accent);color:#fff;}
-.field-label{font-size:12px;color:var(–muted);margin-bottom:6px;display:block;width:100%;}
-.field{width:100%;padding:13px 14px;border-radius:12px;background:var(–card);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:‘DM Sans’,sans-serif;margin-bottom:14px;}
-.field:focus{border-color:var(–accent);}
-.btn-primary{width:100%;padding:14px;border-radius:14px;border:none;background:var(–accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:‘Syne’,sans-serif;transition:all .3s;margin-top:4px;}
-.btn-primary:active{opacity:.8;}
-.btn-primary.loading{opacity:.6;pointer-events:none;}
-.auth-error{background:var(–red-soft);color:var(–red);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
-.auth-success{background:var(–green-soft);color:var(–green);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
-
-/* HEADER */
-.header{padding:14px 18px 12px;border-bottom:1px solid var(–divider);display:flex;justify-content:space-between;align-items:center;background:var(–bg);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top));}
-.header-title{font-size:18px;font-weight:800;letter-spacing:-0.5px;}
-.header-sub{font-size:11px;color:var(–muted);margin-top:1px;}
-.logout-btn{background:var(–card);border:1px solid var(–border);color:var(–muted);border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:‘DM Sans’,sans-serif;}
-
-/* CONTENT */
-.content{flex:1;overflow-y:auto;padding:14px 14px 80px;-webkit-overflow-scrolling:touch;}
-
-/* NAV */
-.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(–card);border-top:1px solid var(–border);display:flex;justify-content:space-around;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 14px;border-radius:12px;transition:color .2s;color:var(–muted);}
-.nav-item.active{color:var(–accent);}
-.nav-item span:first-child{font-size:20px;}
-.nav-item span:last-child{font-size:10px;font-weight:600;}
-
-/* CARD */
-.card{background:var(–card);border:1px solid var(–border);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
-
-/* HERO */
-.hero{background:linear-gradient(135deg,#1A2540,#0D1428);border:1px solid var(–accent-soft);border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
-.hero::before{content:’’;position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(–accent);border-radius:50%;opacity:.07;}
-
-/* PROGRESS */
-.bar-wrap{background:var(–divider);border-radius:99px;overflow:hidden;}
-.bar{border-radius:99px;animation:barGrow .8s cubic-bezier(.4,0,.2,1) both;transition:width .6s;}
-
-/* TAG */
-.tag{border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;display:inline-block;}
-
-/* TRANSACTIONS */
-.tx{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(–divider);}
-.tx-icon{width:36px;height:36px;border-radius:10px;background:var(–divider);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-
-/* FORM */
-.toggle-row{display:flex;gap:6px;background:var(–divider);border-radius:12px;padding:4px;margin-bottom:18px;}
-.toggle-btn{flex:1;padding:12px 10px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s;background:transparent;color:var(–muted);min-height:44px;font-family:“DM Sans”,sans-serif;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;}
-.toggle-btn.active-expense{background:var(–red-soft);color:var(–red);}
-.toggle-btn.active-income{background:var(–green-soft);color:var(–green);}
-.select-field{width:100%;padding:12px 14px;border-radius:12px;background:var(–divider);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:‘DM Sans’,sans-serif;-webkit-appearance:none;margin-bottom:14px;}
-.submit-btn{width:100%;padding:14px;border-radius:14px;border:none;background:var(–accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:‘Syne’,sans-serif;transition:background .3s;}
-.submit-btn.sent{background:var(–green);}
-
-/* VIEWS */
-.view{display:none;}.view.active{display:block;}
-.sec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
-
-/* STAT MINI */
-.stat-mini{flex:1;background:var(–divider);border-radius:10px;padding:9px 7px;text-align:center;}
-.stat-mini label{font-size:10px;color:var(–muted);display:block;margin-bottom:2px;}
-.stat-mini b{font-size:13px;font-weight:700;}
-
-/* GOAL */
-.goal-box{background:var(–purple-soft);border-radius:12px;padding:11px 13px;margin-top:10px;}
-
-/* SPINNER */
-.spinner{display:block;width:18px;height:18px;border:2px solid var(–border);border-top-color:var(–accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* EMPTY STATE */
-.empty{text-align:center;padding:30px 20px;color:var(–muted);font-size:13px;}
-.empty span{font-size:32px;display:block;margin-bottom:10px;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes barGrow{from{width:0}}
+  .fu{animation:fadeUp .4s ease both;}
+  .fu1{animation-delay:.04s}.fu2{animation-delay:.1s}.fu3{animation-delay:.17s}.fu4{animation-delay:.24s}.fu5{animation-delay:.31s}
+  #app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
+  .auth-screen{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:30px 24px;background:var(--bg);}
+  .auth-logo{font-size:48px;margin-bottom:8px;}
+  .auth-title{font-size:28px;font-weight:800;color:var(--text);margin-bottom:4px;font-family:'Syne',sans-serif;}
+  .auth-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center;line-height:1.5;}
+  .auth-tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;margin-bottom:24px;width:100%;}
+  .auth-tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:var(--muted);transition:all .2s;font-family:'DM Sans',sans-serif;}
+  .auth-tab.active{background:var(--accent);color:#fff;}
+  .field-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;width:100%;}
+  .field{width:100%;padding:13px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;margin-bottom:14px;}
+  .field:focus{border-color:var(--accent);}
+  .btn-primary{width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;transition:all .3s;margin-top:4px;}
+  .btn-primary:active{opacity:.8;}
+  .btn-primary.loading{opacity:.6;pointer-events:none;}
+  .auth-error{background:var(--red-soft);color:var(--red);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
+  .auth-success{background:var(--green-soft);color:var(--green);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
+  .header{padding:14px 18px 12px;border-bottom:1px solid var(--divider);display:flex;justify-content:space-between;align-items:center;background:var(--bg);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top));}
+  .header-title{font-size:18px;font-weight:800;letter-spacing:-0.5px;}
+  .header-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+  .logout-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .content{flex:1;overflow-y:auto;padding:14px 14px 80px;-webkit-overflow-scrolling:touch;}
+  .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;}
+  .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 14px;border-radius:12px;transition:color .2s;color:var(--muted);}
+  .nav-item.active{color:var(--accent);}
+  .nav-item span:first-child{font-size:20px;}
+  .nav-item span:last-child{font-size:10px;font-weight:600;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
+  .hero{background:linear-gradient(135deg,#1A2540,#0D1428);border:1px solid var(--accent-soft);border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
+  .hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(--accent);border-radius:50%;opacity:.07;}
+  .bar-wrap{background:var(--divider);border-radius:99px;overflow:hidden;}
+  .bar{border-radius:99px;animation:barGrow .8s cubic-bezier(.4,0,.2,1) both;transition:width .6s;}
+  .tag{border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;display:inline-block;}
+  .tx{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);}
+  .tx-icon{width:36px;height:36px;border-radius:10px;background:var(--divider);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .select-field{width:100%;padding:12px 14px;border-radius:12px;background:var(--divider);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;-webkit-appearance:none;margin-bottom:14px;}
+  .submit-btn{width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;transition:background .3s;}
+  .view{display:none;}.view.active{display:block;}
+  .sec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
+  .stat-mini{flex:1;background:var(--divider);border-radius:10px;padding:9px 7px;text-align:center;}
+  .stat-mini label{font-size:10px;color:var(--muted);display:block;margin-bottom:2px;}
+  .stat-mini b{font-size:13px;font-weight:700;}
+  .spinner{display:block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;}
+  .empty span{font-size:32px;display:block;margin-bottom:10px;}
+  /* Chart tabs */
+  .chart-tabs{display:flex;gap:6px;margin-bottom:16px;}
+  .chart-tab{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center;}
+  .chart-tab.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+  .chart-panel{display:none;}
+  .chart-panel.active{display:block;}
+  .legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--divider);font-size:12px;}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
 </style>
-
 </head>
 <body>
 <div id="app">
 
-  <!-- ===== AUTH SCREEN ===== -->
+  <!-- AUTH -->
 
   <div id="auth-screen" class="auth-screen">
     <div class="auth-logo">💰</div>
     <div class="syne auth-title">BudgetFam 🇮🇱</div>
     <div class="auth-sub">Votre conseiller financier IA<br>pour les familles israéliennes</div>
-
-```
-<div class="auth-tabs" style="width:100%">
-  <button class="auth-tab active" onclick="switchTab('login')">Se connecter</button>
-  <button class="auth-tab" onclick="switchTab('signup')">Créer un compte</button>
-</div>
-
-<div id="auth-msg"></div>
-
-<label class="field-label">Email</label>
-<input class="field" id="auth-email" type="email" placeholder="votre@email.com">
-
-<label class="field-label">Mot de passe</label>
-<input class="field" id="auth-password" type="password" placeholder="••••••••">
-
-<div id="signup-extra" style="display:none;width:100%">
-  <label class="field-label">Prénom</label>
-  <input class="field" id="auth-name" type="text" placeholder="Ex: David">
-</div>
-
-<button class="btn-primary" id="auth-btn" onclick="handleAuth()">Se connecter</button>
-```
-
+    <div class="auth-tabs" style="width:100%">
+      <button class="auth-tab active" onclick="switchTab('login')">Se connecter</button>
+      <button class="auth-tab" onclick="switchTab('signup')">Créer un compte</button>
+    </div>
+    <div id="auth-msg"></div>
+    <label class="field-label">Email</label>
+    <input class="field" id="auth-email" type="email" placeholder="votre@email.com">
+    <label class="field-label">Mot de passe</label>
+    <input class="field" id="auth-password" type="password" placeholder="••••••••">
+    <div id="signup-extra" style="display:none;width:100%">
+      <label class="field-label">Prénom</label>
+      <input class="field" id="auth-name" type="text" placeholder="Ex: David">
+    </div>
+    <button class="btn-primary" id="auth-btn" onclick="handleAuth()">Se connecter</button>
   </div>
 
-  <!-- ===== MAIN APP ===== -->
+  <!-- MAIN APP -->
 
   <div id="main-app" style="display:none;flex-direction:column;height:100%">
+    <div class="header">
+      <div>
+        <div class="syne header-title">BudgetFam 🇮🇱</div>
+        <div class="header-sub" id="header-sub">Chargement...</div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">Déconnexion</button>
+    </div>
 
 ```
-<!-- HEADER -->
-<div class="header">
-  <div>
-    <div class="syne header-title">BudgetFam 🇮🇱</div>
-    <div class="header-sub" id="header-sub">Chargement...</div>
-  </div>
-  <button class="logout-btn" onclick="handleLogout()">Déconnexion</button>
-</div>
-
-<!-- CONTENT -->
 <div class="content">
-
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view active">
     <div id="dashboard-content"><div class="spinner"></div></div>
-    <div id="tx-list" style="margin-top:20px;"></div>
+    <div id="tx-list" style="margin-top:6px;"></div>
   </div>
 
   <!-- AJOUTER -->
@@ -214,10 +168,8 @@ height:100%;padding:30px 24px;background:var(–bg);
     <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Mon Profil 👤</div>
     <div id="profile-content"><div class="spinner"></div></div>
   </div>
-
 </div>
 
-<!-- NAV -->
 <nav class="nav">
   <button class="nav-item active" onclick="showView('dashboard',this)"><span>🏠</span><span>Accueil</span></button>
   <button class="nav-item" onclick="showView('add',this)"><span>➕</span><span>Ajouter</span></button>
@@ -230,7 +182,6 @@ height:100%;padding:30px 24px;background:var(–bg);
 </div>
 
 <script>
-// ===== SUPABASE INIT =====
 const { createClient } = supabase;
 const sb = createClient(
   'https://nyywcxcahalxazienuav.supabase.co',
@@ -239,10 +190,11 @@ const sb = createClient(
 
 let currentUser = null;
 let txType = 'expense';
+let chartDonut = null, chartBar = null, chartLine = null;
+const PALETTE = ['#4F8EF7','#2ECC8A','#F7506A','#F7C948','#A78BFA','#FB923C','#34D399','#F472B6'];
 
 // ===== AUTH =====
 let authMode = 'login';
-
 function switchTab(mode) {
   authMode = mode;
   document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='signup')));
@@ -250,25 +202,20 @@ function switchTab(mode) {
   document.getElementById('auth-btn').textContent = mode === 'login' ? 'Se connecter' : 'Créer mon compte';
   document.getElementById('auth-msg').innerHTML = '';
 }
-
 function showMsg(msg, type='error') {
   document.getElementById('auth-msg').innerHTML = `<div class="auth-${type}">${msg}</div>`;
 }
-
 async function handleAuth() {
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
   const btn = document.getElementById('auth-btn');
-
   if (!email || !password) return showMsg('Remplis tous les champs.');
-  btn.classList.add('loading');
-  btn.textContent = '...';
-
+  btn.classList.add('loading'); btn.textContent = '...';
   if (authMode === 'signup') {
     const name = document.getElementById('auth-name').value.trim() || 'Utilisateur';
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    const { error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
     if (error) { showMsg(error.message); btn.classList.remove('loading'); btn.textContent = 'Créer mon compte'; return; }
-    showMsg('✅ Compte créé ! Vérifie ton email pour confirmer.', 'success');
+    showMsg('✅ Compte créé ! Vérifie ton email.', 'success');
     btn.classList.remove('loading'); btn.textContent = 'Créer mon compte';
   } else {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
@@ -277,7 +224,6 @@ async function handleAuth() {
     enterApp();
   }
 }
-
 async function handleLogout() {
   await sb.auth.signOut();
   currentUser = null;
@@ -298,37 +244,20 @@ async function enterApp() {
   loadAiTip();
 }
 
-// ===== LOAD DASHBOARD =====
+// ===== DASHBOARD =====
 async function loadDashboard() {
-  const el = document.getElementById('dashboard-content'); // ✅ FIX: was 'dashboard'
-
-  const { data: txs, error } = await sb
-    .from('transactions')
-    .select('*')
-    .eq('user_id', currentUser.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    el.innerHTML = '<div class="empty"><span>⚠️</span>Erreur de chargement</div>';
-    return;
-  }
-
+  const el = document.getElementById('dashboard-content');
+  const { data: txs, error } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) { el.innerHTML = '<div class="empty"><span>⚠️</span>Erreur de chargement</div>'; return; }
   const all = txs || [];
   const income   = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
   const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
   const balance  = income - expenses;
   const pct = income > 0 ? Math.min(100, Math.round((balance / income) * 100)) : 0;
-
   if (all.length === 0) {
-    el.innerHTML = `
-      <div class="hero fu fu1">
-        <div style="font-size:11px;color:#888">Dashboard</div>
-        <div class="syne" style="font-size:20px;font-weight:600">Aucune donnée</div>
-        <p style="margin-top:10px;color:#888;font-size:13px">Ajoute ta première transaction pour commencer.</p>
-      </div>`;
+    el.innerHTML = `<div class="hero fu fu1"><div style="font-size:11px;color:var(--muted)">Dashboard</div><div class="syne" style="font-size:20px;font-weight:600">Aucune donnée</div><p style="margin-top:10px;color:var(--muted);font-size:13px">Ajoute ta première transaction !</p></div>`;
     return;
   }
-
   el.innerHTML = `
     <div class="hero fu fu1">
       <div style="font-size:11px;color:var(--muted)">Résumé du mois</div>
@@ -339,34 +268,17 @@ async function loadDashboard() {
         <div class="stat-mini"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
         <div class="stat-mini"><label>Épargne %</label><b style="color:var(--accent)">${pct}%</b></div>
       </div>
-      <div class="bar-wrap" style="height:6px">
-        <div class="bar" style="width:${pct}%;height:6px;background:var(--accent)"></div>
-      </div>
+      <div class="bar-wrap" style="height:6px"><div class="bar" style="width:${pct}%;height:6px;background:var(--accent)"></div></div>
     </div>`;
 }
 
-// ===== LOAD TRANSACTIONS =====
+// ===== TRANSACTIONS LIST =====
 async function loadTransactions() {
   const list = document.getElementById('tx-list');
   list.innerHTML = '<div class="spinner"></div>';
-
-  const { data, error } = await sb
-    .from('transactions')
-    .select('*')
-    .eq('user_id', currentUser.id)
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  if (error) {
-    list.innerHTML = '<div class="empty"><span>⚠️</span>Erreur de chargement</div>';
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    list.innerHTML = `<div class="empty"><span>💸</span>Aucune transaction encore.<br>Ajoute ta première !</div>`;
-    return;
-  }
-
+  const { data, error } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20);
+  if (error) { list.innerHTML = '<div class="empty"><span>⚠️</span>Erreur</div>'; return; }
+  if (!data || data.length === 0) { list.innerHTML = `<div class="empty"><span>💸</span>Aucune transaction encore.</div>`; return; }
   list.innerHTML = `
     <div class="card" style="padding:14px 16px">
       <div class="syne sec-title">Transactions récentes</div>
@@ -391,14 +303,42 @@ async function loadStats() {
   const el = document.getElementById('stats-content');
   el.innerHTML = '<div class="spinner"></div>';
 
-  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id);
+  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
   const all = txs || [];
 
+  if (all.length === 0) {
+    el.innerHTML = `<div class="empty"><span>📊</span>Aucune donnée à afficher.<br>Ajoute des transactions d'abord !</div>`;
+    return;
+  }
+
+  // Catégories (dépenses seulement)
   const catMap = {};
   all.filter(t => t.amount < 0).forEach(t => {
     const cat = t.category || 'Divers';
     catMap[cat] = (catMap[cat] || 0) + Math.abs(t.amount);
   });
+  const catLabels = Object.keys(catMap);
+  const catValues = Object.values(catMap);
+
+  // Mensuel (6 derniers mois)
+  const mIncome = {}, mExpenses = {};
+  all.forEach(t => {
+    const d = new Date(t.created_at);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (t.amount > 0) mIncome[k]   = (mIncome[k]   || 0) + t.amount;
+    else              mExpenses[k] = (mExpenses[k] || 0) + Math.abs(t.amount);
+  });
+  const months      = [...new Set([...Object.keys(mIncome), ...Object.keys(mExpenses)])].sort().slice(-6);
+  const monthLabels = months.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleDateString('fr-FR',{month:'short'}); });
+  const incomeData  = months.map(m => mIncome[m]   || 0);
+  const expData     = months.map(m => mExpenses[m] || 0);
+
+  // Courbe solde cumulé
+  let running = 0;
+  const balanceData   = all.map(t => { running += t.amount; return Math.round(running); });
+  const balanceLabels = all.map(t => formatDate(t.created_at));
+
+  // Résumé
   const income   = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
   const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
   const savings  = income - expenses;
@@ -414,20 +354,30 @@ async function loadStats() {
     </div>
 
     <div class="card fu fu2">
-      <div class="syne sec-title">Par catégorie</div>
-      ${Object.keys(catMap).length === 0
-        ? '<div class="empty"><span>📊</span>Aucune dépense encore.</div>'
-        : Object.entries(catMap).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => {
-            const pct = expenses > 0 ? Math.round(amt/expenses*100) : 0;
-            return `<div style="margin-bottom:12px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-                <div style="display:flex;gap:7px;align-items:center"><span>${getCatIcon(cat)}</span><span style="font-size:13px">${cat}</span></div>
-                <div style="font-size:12px;color:var(--muted)">${amt.toLocaleString('fr-FR')} ₪ · ${pct}%</div>
-              </div>
-              <div class="bar-wrap" style="height:8px"><div class="bar" style="width:${pct}%;height:8px;background:var(--accent)"></div></div>
-            </div>`;
-          }).join('')
-      }
+      <div class="chart-tabs">
+        <button class="chart-tab active" onclick="switchChart('donut',this)">🍩 Catégories</button>
+        <button class="chart-tab"        onclick="switchChart('bar',this)">📊 Mensuel</button>
+        <button class="chart-tab"        onclick="switchChart('line',this)">📈 Solde</button>
+      </div>
+
+      <div id="panel-donut" class="chart-panel active">
+        <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;">
+          <canvas id="chart-donut"></canvas>
+        </div>
+        <div id="donut-legend" style="margin-top:12px"></div>
+      </div>
+
+      <div id="panel-bar" class="chart-panel">
+        <div style="position:relative;height:220px;">
+          <canvas id="chart-bar"></canvas>
+        </div>
+      </div>
+
+      <div id="panel-line" class="chart-panel">
+        <div style="position:relative;height:220px;">
+          <canvas id="chart-line"></canvas>
+        </div>
+      </div>
     </div>
 
     <div class="card fu fu3">
@@ -435,23 +385,105 @@ async function loadStats() {
       <div style="font-size:36px;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;text-align:center;padding:10px 0">${all.length}</div>
       <div style="text-align:center;font-size:12px;color:var(--muted)">transactions enregistrées</div>
     </div>`;
+
+  requestAnimationFrame(() => {
+    buildDonut(catLabels, catValues);
+    buildBar(monthLabels, incomeData, expData);
+    buildLine(balanceLabels, balanceData);
+  });
 }
 
-// ===== PROFILE VIEW =====
+// ===== CHARTS =====
+function baseOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } }
+  };
+}
+
+function buildDonut(labels, values) {
+  if (chartDonut) { chartDonut.destroy(); chartDonut = null; }
+  if (!labels.length) return;
+  const ctx = document.getElementById('chart-donut').getContext('2d');
+  chartDonut = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderColor: '#161A23', borderWidth: 3, hoverOffset: 6 }] },
+    options: {
+      ...baseOpts(), cutout: '68%',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed.toLocaleString('fr-FR')} ₪` } } }
+    }
+  });
+  const total = values.reduce((a,b) => a+b, 0);
+  document.getElementById('donut-legend').innerHTML = labels.map((l,i) => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${PALETTE[i%PALETTE.length]}"></div>
+      <div style="flex:1;font-size:12px">${getCatIcon(l)} ${l}</div>
+      <div style="font-size:12px;color:var(--muted)">${values[i].toLocaleString('fr-FR')} ₪</div>
+      <div style="font-size:11px;color:var(--accent);margin-left:6px;width:32px;text-align:right">${Math.round(values[i]/total*100)}%</div>
+    </div>`).join('');
+}
+
+function buildBar(labels, incomeData, expData) {
+  if (chartBar) { chartBar.destroy(); chartBar = null; }
+  if (!labels.length) return;
+  const ctx = document.getElementById('chart-bar').getContext('2d');
+  chartBar = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Revenus',  data: incomeData, backgroundColor: '#2ECC8A55', borderColor: '#2ECC8A', borderWidth: 2, borderRadius: 6 },
+      { label: 'Dépenses', data: expData,    backgroundColor: '#F7506A55', borderColor: '#F7506A', borderWidth: 2, borderRadius: 6 }
+    ]},
+    options: {
+      ...baseOpts(),
+      plugins: { legend: { display: true, labels: { color: '#6B7280', font: { size: 11 }, boxWidth: 12, padding: 16 } }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString('fr-FR')} ₪` } } },
+      scales: {
+        x: { ticks: { color: '#6B7280', font: { size: 10 } }, grid: { color: '#1E2230' } },
+        y: { ticks: { color: '#6B7280', font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') }, grid: { color: '#1E2230' } }
+      }
+    }
+  });
+}
+
+function buildLine(labels, data) {
+  if (chartLine) { chartLine.destroy(); chartLine = null; }
+  if (!labels.length) return;
+  const ctx = document.getElementById('chart-line').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+  gradient.addColorStop(0, '#4F8EF744');
+  gradient.addColorStop(1, '#4F8EF700');
+  chartLine = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Solde', data, borderColor: '#4F8EF7', borderWidth: 2, backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: data.length <= 20 ? 3 : 0, pointBackgroundColor: '#4F8EF7' }] },
+    options: {
+      ...baseOpts(),
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` Solde: ${c.parsed.y.toLocaleString('fr-FR')} ₪` } } },
+      scales: {
+        x: { ticks: { color: '#6B7280', font: { size: 10 }, maxTicksLimit: 6 }, grid: { color: '#1E2230' } },
+        y: { ticks: { color: '#6B7280', font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') }, grid: { color: '#1E2230' } }
+      }
+    }
+  });
+}
+
+function switchChart(name, btn) {
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ===== PROFILE =====
 async function loadProfile() {
   const el = document.getElementById('profile-content');
   el.innerHTML = '<div class="spinner"></div>';
-
   const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
   const { count } = await sb.from('transactions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
-
   el.innerHTML = `
     <div class="card fu fu1" style="text-align:center">
       <div style="width:70px;height:70px;border-radius:20px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px">👤</div>
       <div class="syne" style="font-size:20px;font-weight:800;margin-bottom:4px">${name}</div>
       <div style="font-size:12px;color:var(--muted)">${currentUser.email}</div>
     </div>
-
     <div class="card fu fu2">
       <div class="syne sec-title">Mon activité</div>
       <div style="display:flex;gap:8px">
@@ -459,7 +491,6 @@ async function loadProfile() {
         <div class="stat-mini"><label>Membre depuis</label><b style="color:var(--purple)">${new Date(currentUser.created_at).toLocaleDateString('fr-FR',{month:'short',year:'numeric'})}</b></div>
       </div>
     </div>
-
     <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
       <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">🚀 Bientôt disponible</div>
       <div style="font-size:12px;color:var(--muted);line-height:1.7">
@@ -470,55 +501,44 @@ async function loadProfile() {
         🤖 IA conseillère avancée
       </div>
     </div>
-
     <button onclick="handleLogout()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px">
       Se déconnecter
-    </button>`;  /* ✅ FIX: template literal correctement fermé */
+    </button>`;
 }
 
 // ===== ADD TRANSACTION =====
 async function submitTx() {
-  const label = document.getElementById('f-label').value.trim();
-  const amount = parseFloat(document.getElementById('f-amount').value);
+  const label    = document.getElementById('f-label').value.trim();
+  const amount   = parseFloat(document.getElementById('f-amount').value);
   const category = document.getElementById('f-cat').value;
   if (!label || !amount) return;
-
   const btn = document.getElementById('submit-btn');
-  btn.textContent = '...';
-  btn.style.background = 'var(--muted)';
-
+  btn.textContent = '...'; btn.style.background = 'var(--muted)';
   const { error } = await sb.from('transactions').insert({
-    user_id: currentUser.id,
-    label,
+    user_id: currentUser.id, label,
     amount: txType === 'expense' ? -Math.abs(amount) : Math.abs(amount),
     category,
   });
-
   if (error) {
-    btn.textContent = 'Erreur — réessayez';
-    btn.style.background = 'var(--red)';
+    btn.textContent = 'Erreur — réessayez'; btn.style.background = 'var(--red)';
     setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.style.background = 'var(--accent)'; }, 2000);
     return;
   }
-
-  btn.textContent = '✅ Ajouté !';
-  btn.style.background = 'var(--green)';
+  btn.textContent = '✅ Ajouté !'; btn.style.background = 'var(--green)';
   document.getElementById('f-label').value = '';
   document.getElementById('f-amount').value = '';
-
   setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.style.background = 'var(--accent)'; }, 1500);
-
   await loadDashboard();
   await loadTransactions();
 }
 
 // ===== AI TIP =====
-async function loadAiTip() {
+function loadAiTip() {
   const el = document.getElementById('ai-tip');
   if (!el) return;
   const tips = [
     "💡 Essaie d'épargner 20% de tes revenus chaque mois.",
-    "🛒 Les courses chez Rami Levy ou Victory peuvent réduire ta facture alimentaire.",
+    "🛒 Les courses chez Rami Levy ou Victory réduisent la facture alimentaire.",
     "📱 Vérifie tes abonnements — tu en as peut-être d'inutiles.",
     "🏠 Le logement ne devrait pas dépasser 30% de tes revenus.",
     "💰 Un fonds d'urgence de 3 mois de dépenses est recommandé.",
@@ -539,9 +559,9 @@ function setType(t) {
   txType = t;
   const catSel = document.getElementById('f-cat');
   if (!catSel) return;
-  const expenseCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Divers'];
-  const incomeCats  = ['Salaire','Freelance','Allocations','Loyer reçu','Cadeau','Investissement','Autre'];
-  catSel.innerHTML = (t === 'income' ? incomeCats : expenseCats).map(c => `<option>${c}</option>`).join('');
+  const exp = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Divers'];
+  const inc = ['Salaire','Freelance','Allocations','Loyer reçu','Cadeau','Investissement','Autre'];
+  catSel.innerHTML = (t === 'income' ? inc : exp).map(c => `<option>${c}</option>`).join('');
 }
 
 // ===== VIEW SWITCHING =====
@@ -558,10 +578,7 @@ function showView(name, btn) {
 
 // ===== INIT =====
 sb.auth.onAuthStateChange((event, session) => {
-  if (session?.user) {
-    currentUser = session.user;
-    enterApp();
-  }
+  if (session?.user) { currentUser = session.user; enterApp(); }
 });
 </script>
 
