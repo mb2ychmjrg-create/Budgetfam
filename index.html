@@ -285,7 +285,7 @@ async function loadTransactions() {
     <div class="card" style="padding:14px 16px">
       <div class="syne sec-title">Transactions récentes</div>
       ${data.map(t => `
-        <div class="tx">
+        <div class="tx" id="tx-${t.id}">
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="tx-icon">${getCatIcon(t.category)}</div>
             <div>
@@ -293,8 +293,11 @@ async function loadTransactions() {
               <div style="font-size:10px;color:var(--muted)">${t.category || ''} · ${formatDate(t.created_at)}</div>
             </div>
           </div>
-          <div style="font-weight:700;font-size:14px;color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">
-            ${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString('fr-FR')} ₪
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-weight:700;font-size:14px;color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">
+              ${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString('fr-FR')} ₪
+            </div>
+            <button onclick="deleteTx('${t.id}')" style="background:var(--red-soft);border:none;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;">🗑️</button>
           </div>
         </div>`).join('')}
     </div>`;
@@ -510,10 +513,10 @@ async function loadProfile() {
 
 // ===== ADD TRANSACTION =====
 async function submitTx() {
-  const label    = document.getElementById('f-label').value.trim();
+  const label    = txType === 'income' ? document.getElementById('f-cat').value : document.getElementById('f-label').value.trim();
   const amount   = parseFloat(document.getElementById('f-amount').value);
   const category = document.getElementById('f-cat').value;
-  if (!label || !amount) return;
+  if (!amount) return;
   const btn = document.getElementById('submit-btn');
   btn.textContent = '...'; btn.style.background = 'var(--muted)';
   const { error } = await sb.from('transactions').insert({
@@ -546,6 +549,37 @@ function loadAiTip() {
     "💰 Un fonds d'urgence de 3 mois de dépenses est recommandé.",
   ];
   el.textContent = tips[Math.floor(Math.random() * tips.length)];
+}
+
+// ===== DELETE TRANSACTION =====
+async function deleteTx(id) {
+  if (!confirm('Supprimer cette transaction ?')) return;
+
+  const row = document.getElementById('tx-' + id);
+  if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
+
+  const { error } = await sb.from('transactions').delete().eq('id', id).eq('user_id', currentUser.id);
+
+  if (error) {
+    if (row) { row.style.opacity = '1'; row.style.pointerEvents = 'auto'; }
+    alert('Erreur lors de la suppression.');
+    return;
+  }
+
+  // Retirer la ligne avec animation
+  if (row) {
+    row.style.transition = 'all .3s';
+    row.style.maxHeight  = row.offsetHeight + 'px';
+    requestAnimationFrame(() => {
+      row.style.maxHeight  = '0';
+      row.style.opacity    = '0';
+      row.style.padding    = '0';
+      row.style.overflow   = 'hidden';
+    });
+    setTimeout(() => row.remove(), 350);
+  }
+
+  await loadDashboard();
 }
 
 // ===== HELPERS =====
