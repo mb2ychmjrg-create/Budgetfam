@@ -192,6 +192,8 @@ const sb = createClient(
 
 let currentUser = null;
 let txType = 'expense';
+let currentFamily = null;
+let familyMembers = [];
 let chartDonut = null, chartBar = null, chartLine = null;
 const PALETTE = ['#4F8EF7','#2ECC8A','#F7506A','#F7C948','#A78BFA','#FB923C','#34D399','#F472B6'];
 
@@ -243,6 +245,7 @@ async function enterApp() {
   document.getElementById('header-sub').textContent = `Bonjour, ${name} 👋`;
   await loadDashboard();
   await loadTransactions();
+  await loadFamilyData();
   loadAiTip();
 }
 
@@ -284,13 +287,16 @@ async function loadTransactions() {
   list.innerHTML = `
     <div class="card" style="padding:14px 16px">
       <div class="syne sec-title">Transactions récentes</div>
-      ${data.map(t => `
+      ${data.map(t => {
+        const member = familyMembers.find(m => m.user_id === t.user_id);
+        const memberName = member ? member.display_name : null;
+        return `
         <div class="tx" id="tx-${t.id}">
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="tx-icon">${getCatIcon(t.category)}</div>
             <div>
               <div style="font-weight:600;font-size:13px">${t.label || t.description || '—'}</div>
-              <div style="font-size:10px;color:var(--muted)">${t.category || ''} · ${formatDate(t.created_at)}</div>
+              <div style="font-size:10px;color:var(--muted)">${t.category || ''} · ${formatDate(t.created_at)}${memberName ? ` · <span style="color:var(--purple)">${memberName}</span>` : ''}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -299,7 +305,7 @@ async function loadTransactions() {
             </div>
             <button onclick="deleteTx('${t.id}')" style="background:var(--red-soft);border:none;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;">🗑️</button>
           </div>
-        </div>`).join('')}
+        </div>`}).join('')}
     </div>`;
 }
 
@@ -500,15 +506,20 @@ async function loadProfile() {
       <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">🚀 Bientôt disponible</div>
       <div style="font-size:12px;color:var(--muted);line-height:1.7">
         🏦 Connexion bancaire automatique<br>
-        👨‍👩‍👧‍👦 Profils famille &amp; enfants<br>
         💒 Planificateur mariage israélien<br>
         🏠 Calculateur apport immobilier<br>
         🤖 IA conseillère avancée
       </div>
     </div>
+
+    <div id="family-section"></div>
+
     <button onclick="handleLogout()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px">
       Se déconnecter
     </button>`;
+
+  loadFamilySection();
+}
 }
 
 // ===== ADD TRANSACTION =====
@@ -523,6 +534,7 @@ async function submitTx() {
     user_id: currentUser.id, label,
     amount: txType === 'expense' ? -Math.abs(amount) : Math.abs(amount),
     category,
+    ...(currentFamily ? { family_id: currentFamily.id } : {})
   });
   if (error) {
     btn.textContent = 'Erreur — réessayez'; btn.style.background = 'var(--red)';
@@ -580,6 +592,166 @@ async function deleteTx(id) {
   }
 
   await loadDashboard();
+}
+
+// ===== FAMILY =====
+async function loadFamilyData() {
+  // Cherche si l'utilisateur appartient à une famille
+  const { data } = await sb
+    .from('family_members')
+    .select('*, families(*)')
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+
+  if (data?.families) {
+    currentFamily = data.families;
+    // Charger tous les membres
+    const { data: members } = await sb
+      .from('family_members')
+      .select('*')
+      .eq('family_id', currentFamily.id);
+    familyMembers = members || [];
+  }
+}
+
+async function loadFamilySection() {
+  const el = document.getElementById('family-section');
+  if (!el) return;
+
+  if (!currentFamily) {
+    el.innerHTML = `
+      <div class="card fu fu3" style="border-color:var(--purple);background:var(--purple-soft)">
+        <div class="syne sec-title" style="color:var(--purple)">👨‍👩‍👧 Ma Famille</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">Crée une famille pour partager les dépenses et revenus avec tes proches.</p>
+
+        <label class="field-label">Nom de la famille</label>
+        <input class="field" id="fam-name" placeholder="Ex: Famille Cohen" type="text" style="background:var(--bg)">
+        <button onclick="createFamily()" style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:'Syne',sans-serif;margin-bottom:14px;">
+          ✨ Créer ma famille
+        </button>
+
+        <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px">— ou rejoindre une famille existante —</div>
+
+        <label class="field-label">Code d'invitation</label>
+        <input class="field" id="fam-code" placeholder="Ex: FAM-ABC123" type="text" style="background:var(--bg);text-transform:uppercase;letter-spacing:2px">
+        <button onclick="joinFamily()" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--purple);background:transparent;color:var(--purple);font-weight:700;font-size:14px;cursor:pointer;font-family:'Syne',sans-serif;">
+          🔗 Rejoindre
+        </button>
+        <div id="fam-msg" style="margin-top:10px"></div>
+      </div>`;
+    return;
+  }
+
+  // Famille existante
+  const myRole = familyMembers.find(m => m.user_id === currentUser.id)?.role;
+
+  el.innerHTML = `
+    <div class="card fu fu3" style="border-color:var(--purple);background:var(--purple-soft)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="syne sec-title" style="color:var(--purple);margin-bottom:0">👨‍👩‍👧 ${currentFamily.name}</div>
+        <div style="font-size:10px;background:var(--purple);color:#fff;border-radius:20px;padding:2px 8px;font-weight:700">${myRole === 'admin' ? '👑 Admin' : '👤 Membre'}</div>
+      </div>
+
+      <!-- Code d'invitation -->
+      <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:14px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Code d'invitation</div>
+        <div style="font-size:18px;font-weight:800;letter-spacing:3px;color:var(--purple);font-family:'Syne',sans-serif">${currentFamily.invite_code}</div>
+        <button onclick="copyCode('${currentFamily.invite_code}')" style="margin-top:8px;background:var(--purple-soft);border:1px solid var(--purple);color:var(--purple);border-radius:8px;padding:5px 14px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600">
+          📋 Copier
+        </button>
+      </div>
+
+      <!-- Membres -->
+      <div class="syne" style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text)">Membres (${familyMembers.length})</div>
+      ${familyMembers.map(m => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--divider)">
+          <div style="width:32px;height:32px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:14px">
+            ${m.user_id === currentFamily.created_by ? '👑' : '👤'}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${m.display_name || 'Membre'}</div>
+            <div style="font-size:10px;color:var(--muted)">Rejoint le ${new Date(m.joined_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</div>
+          </div>
+          ${m.user_id === currentUser.id ? '<div style="font-size:10px;color:var(--accent);font-weight:600">Moi</div>' : ''}
+        </div>`).join('')}
+
+      ${myRole === 'admin' ? `
+        <button onclick="leaveFamily(true)" style="width:100%;margin-top:14px;padding:10px;border-radius:10px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+          🗑️ Dissoudre la famille
+        </button>` : `
+        <button onclick="leaveFamily(false)" style="width:100%;margin-top:14px;padding:10px;border-radius:10px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+          🚪 Quitter la famille
+        </button>`}
+    </div>`;
+}
+
+async function createFamily() {
+  const name = document.getElementById('fam-name')?.value.trim();
+  if (!name) return;
+  const code = 'FAM-' + Math.random().toString(36).substring(2,8).toUpperCase();
+  const myName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+
+  const { data: fam, error } = await sb.from('families').insert({
+    name, invite_code: code, created_by: currentUser.id
+  }).select().single();
+
+  if (error) { showFamMsg('Erreur lors de la création.', 'error'); return; }
+
+  await sb.from('family_members').insert({
+    family_id: fam.id, user_id: currentUser.id,
+    display_name: myName, role: 'admin'
+  });
+
+  currentFamily = fam;
+  familyMembers = [{ family_id: fam.id, user_id: currentUser.id, display_name: myName, role: 'admin', joined_at: new Date().toISOString() }];
+  loadFamilySection();
+}
+
+async function joinFamily() {
+  const code = document.getElementById('fam-code')?.value.trim().toUpperCase();
+  if (!code) return;
+  const myName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+
+  const { data: fam, error } = await sb.from('families').select('*').eq('invite_code', code).maybeSingle();
+  if (error || !fam) { showFamMsg('Code invalide ou introuvable.', 'error'); return; }
+
+  // Vérifier si déjà membre
+  const { data: existing } = await sb.from('family_members').select('id').eq('family_id', fam.id).eq('user_id', currentUser.id).maybeSingle();
+  if (existing) { showFamMsg('Tu es déjà dans cette famille.', 'error'); return; }
+
+  const { error: e2 } = await sb.from('family_members').insert({
+    family_id: fam.id, user_id: currentUser.id,
+    display_name: myName, role: 'member'
+  });
+  if (e2) { showFamMsg('Erreur lors de la jonction.', 'error'); return; }
+
+  currentFamily = fam;
+  const { data: members } = await sb.from('family_members').select('*').eq('family_id', fam.id);
+  familyMembers = members || [];
+  loadFamilySection();
+}
+
+async function leaveFamily(dissolve) {
+  const msg = dissolve ? 'Dissoudre la famille ? Tous les membres seront retirés.' : 'Quitter la famille ?';
+  if (!confirm(msg)) return;
+
+  if (dissolve) {
+    await sb.from('families').delete().eq('id', currentFamily.id);
+  } else {
+    await sb.from('family_members').delete().eq('family_id', currentFamily.id).eq('user_id', currentUser.id);
+  }
+  currentFamily = null;
+  familyMembers = [];
+  loadFamilySection();
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => alert('Code copié : ' + code));
+}
+
+function showFamMsg(msg, type) {
+  const el = document.getElementById('fam-msg');
+  if (el) el.innerHTML = `<div style="font-size:12px;color:var(--${type==='error'?'red':'green'});text-align:center;padding:6px">${msg}</div>`;
 }
 
 // ===== HELPERS =====
