@@ -11,177 +11,287 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!--
+=== SUPABASE — TABLE À CRÉER ===
+CREATE TABLE projects (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  family_id uuid references families,
+  type text not null default 'autre',
+  name text not null,
+  target_amount numeric not null default 0,
+  target_date date,
+  monthly_saving numeric default 0,
+  saved_amount numeric default 0,
+  ai_plan text,
+  meta jsonb,
+  created_at timestamptz default now()
+);
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own_projects" ON projects FOR ALL USING (auth.uid() = user_id);
+-->
+
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  :root{
-    --bg:#0D0F14;--card:#161A23;--border:#232840;
-    --accent:#4F8EF7;--accent-soft:#1E2D50;
-    --green:#2ECC8A;--green-soft:#0E3028;
-    --red:#F7506A;--red-soft:#3A1020;
-    --yellow:#F7C948;--yellow-soft:#3A2E0A;
-    --purple:#A78BFA;--purple-soft:#1E1640;
-    --text:#E8EAF2;--muted:#6B7280;--divider:#1E2230;
-  }
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;}
-  .syne{font-family:'Syne',sans-serif;}
-  ::-webkit-scrollbar{width:3px;}
-  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes barGrow{from{width:0}}
-  .fu{animation:fadeUp .4s ease both;}
-  .fu1{animation-delay:.04s}.fu2{animation-delay:.1s}.fu3{animation-delay:.17s}.fu4{animation-delay:.24s}.fu5{animation-delay:.31s}
-  #app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
-  .auth-screen{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:30px 24px;background:var(--bg);}
-  .auth-logo{font-size:48px;margin-bottom:8px;}
-  .auth-title{font-size:28px;font-weight:800;color:var(--text);margin-bottom:4px;font-family:'Syne',sans-serif;}
-  .auth-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center;line-height:1.5;}
-  .auth-tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;margin-bottom:24px;width:100%;}
-  .auth-tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:var(--muted);transition:all .2s;font-family:'DM Sans',sans-serif;}
-  .auth-tab.active{background:var(--accent);color:#fff;}
-  .field-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;width:100%;}
-  .field{width:100%;padding:13px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;margin-bottom:14px;}
-  .field:focus{border-color:var(--accent);}
-  .btn-primary{width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;transition:all .3s;margin-top:4px;}
-  .btn-primary:active{opacity:.8;}
-  .btn-primary.loading{opacity:.6;pointer-events:none;}
-  .auth-error{background:var(--red-soft);color:var(--red);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
-  .auth-success{background:var(--green-soft);color:var(--green);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
-  .header{padding:14px 18px 12px;border-bottom:1px solid var(--divider);display:flex;justify-content:space-between;align-items:center;background:var(--bg);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top));}
-  .header-title{font-size:18px;font-weight:800;letter-spacing:-0.5px;}
-  .header-sub{font-size:11px;color:var(--muted);margin-top:1px;}
-  .logout-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
-  .content{flex:1;overflow-y:auto;padding:14px 14px 80px;-webkit-overflow-scrolling:touch;}
-  .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;}
-  .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:6px 14px;border-radius:12px;transition:color .2s;color:var(--muted);}
-  .nav-item.active{color:var(--accent);}
-  .nav-item span:first-child{font-size:20px;}
-  .nav-item span:last-child{font-size:10px;font-weight:600;}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
-  .hero{background:linear-gradient(135deg,#1A2540,#0D1428);border:1px solid var(--accent-soft);border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
-  .hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(--accent);border-radius:50%;opacity:.07;}
-  .bar-wrap{background:var(--divider);border-radius:99px;overflow:hidden;}
-  .bar{border-radius:99px;animation:barGrow .8s cubic-bezier(.4,0,.2,1) both;transition:width .6s;}
-  .tag{border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;display:inline-block;}
-  .tx{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);}
-  .tx-icon{width:36px;height:36px;border-radius:10px;background:var(--divider);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-  .select-field{width:100%;padding:12px 14px;border-radius:12px;background:var(--divider);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;-webkit-appearance:none;margin-bottom:14px;}
-  .submit-btn{width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;transition:background .3s;}
-  .view{display:none;}.view.active{display:block;}
-  .sec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
-  .stat-mini{flex:1;background:var(--divider);border-radius:10px;padding:9px 7px;text-align:center;}
-  .stat-mini label{font-size:10px;color:var(--muted);display:block;margin-bottom:2px;}
-  .stat-mini b{font-size:13px;font-weight:700;}
-  .spinner{display:block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .empty{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;}
-  .empty span{font-size:32px;display:block;margin-bottom:10px;}
-  /* Chart tabs */
-  .chart-tabs{display:flex;gap:6px;margin-bottom:16px;}
-  .chart-tab{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center;}
-  .chart-tab.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
-  .chart-panel{display:none;}
-  .chart-panel.active{display:block;}
-  .legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--divider);font-size:12px;}
-  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0D0F14;--card:#161A23;--border:#232840;
+  --accent:#4F8EF7;--accent-soft:#1E2D50;
+  --green:#2ECC8A;--green-soft:#0E3028;
+  --red:#F7506A;--red-soft:#3A1020;
+  --yellow:#F7C948;--yellow-soft:#3A2E0A;
+  --purple:#A78BFA;--purple-soft:#1E1640;
+  --orange:#FB923C;--orange-soft:#2A1500;
+  --text:#E8EAF2;--muted:#6B7280;--divider:#1E2230;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;}
+.syne{font-family:'Syne',sans-serif;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes barGrow{from{width:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.fu{animation:fadeUp .4s ease both;}
+.fu1{animation-delay:.04s}.fu2{animation-delay:.1s}.fu3{animation-delay:.17s}.fu4{animation-delay:.24s}.fu5{animation-delay:.31s}
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
+
+/* AUTH */
+.auth-screen{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:30px 24px;background:var(--bg);}
+.auth-logo{font-size:48px;margin-bottom:8px;}
+.auth-title{font-size:28px;font-weight:800;color:var(--text);margin-bottom:4px;font-family:'Syne',sans-serif;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center;line-height:1.5;}
+.auth-tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;margin-bottom:24px;width:100%;}
+.auth-tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:var(--muted);transition:all .2s;font-family:'DM Sans',sans-serif;}
+.auth-tab.active{background:var(--accent);color:#fff;}
+.field-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;width:100%;}
+.field{width:100%;padding:13px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;margin-bottom:14px;}
+.field:focus{border-color:var(--accent);}
+.btn-primary{width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;transition:all .3s;margin-top:4px;}
+.btn-primary:active{opacity:.8;}
+.btn-primary.loading{opacity:.6;pointer-events:none;}
+.auth-error{background:var(--red-soft);color:var(--red);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
+.auth-success{background:var(--green-soft);color:var(--green);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
+
+/* HEADER */
+.header{padding:14px 18px 12px;border-bottom:1px solid var(--divider);display:flex;justify-content:space-between;align-items:center;background:var(--bg);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top));}
+.header-title{font-size:18px;font-weight:800;letter-spacing:-0.5px;}
+.header-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.logout-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* LAYOUT */
+.content{flex:1;overflow-y:auto;padding:14px 14px 84px;-webkit-overflow-scrolling:touch;}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:6px 0;padding-bottom:max(6px,env(safe-area-inset-bottom));z-index:100;}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:5px 10px;border-radius:12px;transition:color .2s;color:var(--muted);}
+.nav-item.active{color:var(--accent);}
+.nav-item span:first-child{font-size:19px;}
+.nav-item span:last-child{font-size:9px;font-weight:600;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
+.hero{background:linear-gradient(135deg,#1A2540,#0D1428);border:1px solid var(--accent-soft);border-radius:18px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:var(--accent);border-radius:50%;opacity:.07;}
+.bar-wrap{background:var(--divider);border-radius:99px;overflow:hidden;}
+.bar{border-radius:99px;animation:barGrow .8s cubic-bezier(.4,0,.2,1) both;transition:width .6s;}
+
+/* TRANSACTION */
+.tx{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);}
+.tx-icon{width:36px;height:36px;border-radius:10px;background:var(--divider);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.select-field{width:100%;padding:12px 14px;border-radius:12px;background:var(--divider);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;-webkit-appearance:none;margin-bottom:14px;}
+.submit-btn{width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Syne',sans-serif;transition:background .3s;}
+
+/* VIEWS */
+.view{display:none;}.view.active{display:block;}
+.sec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
+.stat-mini{flex:1;background:var(--divider);border-radius:10px;padding:9px 7px;text-align:center;}
+.stat-mini label{font-size:10px;color:var(--muted);display:block;margin-bottom:2px;}
+.stat-mini b{font-size:13px;font-weight:700;}
+
+/* SPINNER / EMPTY */
+.spinner{display:block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;}
+.empty{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;}
+.empty span{font-size:32px;display:block;margin-bottom:10px;}
+
+/* QUICK-ADD BUTTONS */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.quick-btn{padding:10px 4px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:10px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center;transition:all .15s;}
+.quick-btn:active{transform:scale(.95);}
+.quick-btn .q-emoji{font-size:20px;display:block;margin-bottom:3px;}
+
+/* MODAL SHEET */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.modal-sheet{background:var(--bg);border:1px solid var(--border);border-radius:24px 24px 0 0;width:100%;max-width:430px;max-height:88vh;overflow-y:auto;padding:20px 20px 40px;position:relative;}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 20px;}
+.modal-close{position:absolute;top:20px;right:18px;background:var(--divider);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:var(--muted);font-size:16px;display:flex;align-items:center;justify-content:center;}
+
+/* PROJECT CARDS */
+.proj-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px 18px;margin-bottom:12px;}
+.proj-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.proj-type-btn{padding:12px 6px;border-radius:14px;border:1px solid var(--border);background:var(--divider);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center;transition:all .2s;}
+.proj-type-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.proj-type-btn .pt-emoji{font-size:22px;display:block;margin-bottom:4px;}
+
+/* STEP INDICATOR */
+.steps{display:flex;gap:5px;justify-content:center;margin-bottom:20px;}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--divider);transition:all .3s;}
+.step-dot.done{background:var(--green);}
+.step-dot.active{background:var(--accent);width:22px;border-radius:4px;}
+
+/* CHART TABS */
+.chart-tabs{display:flex;gap:6px;margin-bottom:16px;}
+.chart-tab{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center;}
+.chart-tab.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.chart-panel{display:none;}.chart-panel.active{display:block;}
+.legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--divider);font-size:12px;}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+/* AI LOADER */
+.ai-thinking{display:flex;align-items:center;gap:10px;padding:16px;background:var(--accent-soft);border-radius:14px;margin:12px 0;}
+.ai-thinking .dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin:0 2px;animation:pulse 1.2s infinite;}
+.ai-thinking .dots span:nth-child(2){animation-delay:.2s;}
+.ai-thinking .dots span:nth-child(3){animation-delay:.4s;}
+
+/* AI PLAN RESULT */
+.ai-result{background:linear-gradient(135deg,#1E2D50,#1E1640);border:1px solid var(--accent);border-radius:16px;padding:16px;margin:12px 0;line-height:1.7;font-size:13px;}
+.ai-result strong{color:var(--accent);}
 </style>
+
 </head>
 <body>
 <div id="app">
 
-  <!-- AUTH -->
+<!-- ===== AUTH ===== -->
 
-  <div id="auth-screen" class="auth-screen">
-    <div class="auth-logo">💰</div>
-    <div class="syne auth-title">BudgetFam 🇮🇱</div>
-    <div class="auth-sub">Votre conseiller financier IA<br>pour les familles israéliennes</div>
-    <div class="auth-tabs" style="width:100%">
-      <button class="auth-tab active" onclick="switchTab('login')">Se connecter</button>
-      <button class="auth-tab" onclick="switchTab('signup')">Créer un compte</button>
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-logo">💰</div>
+  <div class="syne auth-title">BudgetFam 🇮🇱</div>
+  <div class="auth-sub">Votre conseiller financier IA<br>pour les familles israéliennes</div>
+  <div class="auth-tabs"><button class="auth-tab active" onclick="switchTab('login')">Se connecter</button><button class="auth-tab" onclick="switchTab('signup')">Créer un compte</button></div>
+  <div id="auth-msg"></div>
+  <label class="field-label">Email</label>
+  <input class="field" id="auth-email" type="email" placeholder="votre@email.com">
+  <label class="field-label">Mot de passe</label>
+  <input class="field" id="auth-password" type="password" placeholder="••••••••">
+  <div id="signup-extra" style="display:none;width:100%">
+    <label class="field-label">Prénom</label>
+    <input class="field" id="auth-name" type="text" placeholder="Ex: David">
+  </div>
+  <button class="btn-primary" id="auth-btn" onclick="handleAuth()">Se connecter</button>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+
+<div id="main-app" style="display:none;flex-direction:column;height:100%">
+  <div class="header">
+    <div>
+      <div class="syne header-title">BudgetFam 🇮🇱</div>
+      <div class="header-sub" id="header-sub">Chargement...</div>
     </div>
-    <div id="auth-msg"></div>
-    <label class="field-label">Email</label>
-    <input class="field" id="auth-email" type="email" placeholder="votre@email.com">
-    <label class="field-label">Mot de passe</label>
-    <input class="field" id="auth-password" type="password" placeholder="••••••••">
-    <div id="signup-extra" style="display:none;width:100%">
-      <label class="field-label">Prénom</label>
-      <input class="field" id="auth-name" type="text" placeholder="Ex: David">
-    </div>
-    <button class="btn-primary" id="auth-btn" onclick="handleAuth()">Se connecter</button>
+    <button class="logout-btn" onclick="handleLogout()">⚙️</button>
   </div>
 
-  <!-- MAIN APP -->
-
-  <div id="main-app" style="display:none;flex-direction:column;height:100%">
-    <div class="header">
-      <div>
-        <div class="syne header-title">BudgetFam 🇮🇱</div>
-        <div class="header-sub" id="header-sub">Chargement...</div>
-      </div>
-      <button class="logout-btn" onclick="handleLogout()">Déconnexion</button>
-    </div>
+  <div class="content">
 
 ```
-<div class="content">
-  <!-- DASHBOARD -->
-  <div id="view-dashboard" class="view active">
-    <div id="dashboard-content"><div class="spinner"></div></div>
-    <div id="tx-list" style="margin-top:6px;"></div>
+<!-- DASHBOARD -->
+<div id="view-dashboard" class="view active">
+  <div id="dashboard-content"><div class="spinner"></div></div>
+
+  <!-- QUICK ADD -->
+  <div class="quick-grid" style="margin-top:0">
+    <button class="quick-btn" onclick="quickAdd('Alimentation','🛒','Courses')"><span class="q-emoji">🛒</span>Courses</button>
+    <button class="quick-btn" onclick="quickAdd('Transport','⛽','Carburant')"><span class="q-emoji">⛽</span>Carburant</button>
+    <button class="quick-btn" onclick="quickAdd('Loisirs','🍕','Restaurant')"><span class="q-emoji">🍕</span>Restaurant</button>
+    <button class="quick-btn" onclick="quickAdd('Santé','💊','Pharmacie')"><span class="q-emoji">💊</span>Pharmacie</button>
   </div>
 
-  <!-- AJOUTER -->
-  <div id="view-add" class="view">
-    <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Ajouter ➕</div>
-    <div class="card fu fu2">
-      <div style="margin-bottom:18px">
-        <label class="field-label">Type de transaction</label>
-        <select class="select-field" id="tx-type-select" onchange="setType(this.value)" style="font-size:15px;font-weight:600">
-          <option value="expense">💸 Dépense</option>
-          <option value="income">💰 Revenu</option>
-        </select>
-      </div>
-      <div id="f-label-wrap">
-        <label class="field-label">Description</label>
-        <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
-      </div>
-      <label class="field-label">Montant (₪)</label>
-      <input class="field" id="f-amount" placeholder="0.00" type="number" inputmode="decimal">
-      <label class="field-label">Catégorie</label>
-      <select class="select-field" id="f-cat">
-        <option>Alimentation</option><option>Logement</option><option>Transport</option>
-        <option>Loisirs</option><option>Santé</option><option>Épargne</option><option>Divers</option>
+  <div id="tx-list"></div>
+</div>
+
+<!-- AJOUTER -->
+<div id="view-add" class="view">
+  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Ajouter ➕</div>
+  <div class="card fu fu2">
+    <div style="margin-bottom:18px">
+      <label class="field-label">Type</label>
+      <select class="select-field" id="tx-type-select" onchange="setType(this.value)" style="font-size:15px;font-weight:600">
+        <option value="expense">💸 Dépense</option>
+        <option value="income">💰 Revenu</option>
       </select>
-      <button class="submit-btn" id="submit-btn" onclick="submitTx()">Ajouter la transaction</button>
     </div>
-    <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
-      <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px">🤖 Conseil IA</div>
-      <div style="font-size:13px;line-height:1.6" id="ai-tip">Analyse de tes dépenses en cours...</div>
+    <div id="f-label-wrap">
+      <label class="field-label">Description</label>
+      <input class="field" id="f-label" placeholder="Ex: Supermarché Rami Levy" type="text">
     </div>
+    <label class="field-label">Montant (₪)</label>
+    <input class="field" id="f-amount" placeholder="0.00" type="number" inputmode="decimal">
+    <label class="field-label">Catégorie</label>
+    <select class="select-field" id="f-cat">
+      <option>Alimentation</option><option>Logement</option><option>Transport</option>
+      <option>Loisirs</option><option>Santé</option><option>Épargne</option><option>Divers</option>
+    </select>
+    <button class="submit-btn" id="submit-btn" onclick="submitTx()">Ajouter la transaction</button>
   </div>
-
-  <!-- STATS -->
-  <div id="view-stats" class="view">
-    <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Statistiques 📊</div>
-    <div id="stats-content"><div class="spinner"></div></div>
-  </div>
-
-  <!-- PROFIL -->
-  <div id="view-profile" class="view">
-    <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Mon Profil 👤</div>
-    <div id="profile-content"><div class="spinner"></div></div>
+  <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
+    <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px">🤖 Conseil IA</div>
+    <div style="font-size:13px;line-height:1.6" id="ai-tip">Analyse de tes dépenses en cours...</div>
   </div>
 </div>
 
-<nav class="nav">
-  <button class="nav-item active" onclick="showView('dashboard',this)"><span>🏠</span><span>Accueil</span></button>
-  <button class="nav-item" onclick="showView('add',this)"><span>➕</span><span>Ajouter</span></button>
-  <button class="nav-item" onclick="showView('stats',this)"><span>📊</span><span>Stats</span></button>
-  <button class="nav-item" onclick="showView('profile',this)"><span>👤</span><span>Profil</span></button>
-</nav>
+<!-- PROJETS -->
+<div id="view-projects" class="view">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div class="syne fu fu1" style="font-size:20px;font-weight:800;">Mes Projets 🎯</div>
+    <button onclick="openProjectWizard()" style="background:var(--accent);border:none;border-radius:12px;padding:8px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;">+ Nouveau</button>
+  </div>
+  <div id="projects-content"><div class="spinner"></div></div>
+</div>
+
+<!-- STATS -->
+<div id="view-stats" class="view">
+  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Statistiques 📊</div>
+  <div id="stats-content"><div class="spinner"></div></div>
+</div>
+
+<!-- PROFIL -->
+<div id="view-profile" class="view">
+  <div class="syne fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">Mon Profil 👤</div>
+  <div id="profile-content"><div class="spinner"></div></div>
+</div>
 ```
 
+  </div><!-- /content -->
+
+  <nav class="nav">
+    <button class="nav-item active" onclick="showView('dashboard',this)"><span>🏠</span><span>Accueil</span></button>
+    <button class="nav-item" onclick="showView('add',this)"><span>➕</span><span>Ajouter</span></button>
+    <button class="nav-item" onclick="showView('projects',this)"><span>🎯</span><span>Projets</span></button>
+    <button class="nav-item" onclick="showView('stats',this)"><span>📊</span><span>Stats</span></button>
+    <button class="nav-item" onclick="showView('profile',this)"><span>👤</span><span>Profil</span></button>
+  </nav>
+</div><!-- /main-app -->
+
+<!-- ===== QUICK-ADD MODAL ===== -->
+
+<div id="quick-modal" class="modal-overlay" style="display:none" onclick="closeQuickModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeQuickModal()">✕</button>
+    <div id="quick-modal-content"></div>
   </div>
 </div>
+
+<!-- ===== PROJECT WIZARD MODAL ===== -->
+
+<div id="proj-modal" class="modal-overlay" style="display:none" onclick="closeProjModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeProjModal()">✕</button>
+    <div id="proj-modal-content"></div>
+  </div>
+</div>
+
+</div><!-- /app -->
 
 <script>
 const { createClient } = supabase;
@@ -195,13 +305,33 @@ let txType = 'expense';
 let currentFamily = null;
 let familyMembers = [];
 let chartDonut = null, chartBar = null, chartLine = null;
+let projWizardStep = 1;
+let projWizardData = {};
 const PALETTE = ['#4F8EF7','#2ECC8A','#F7506A','#F7C948','#A78BFA','#FB923C','#34D399','#F472B6'];
+
+// ===== CLAUDE API =====
+async function askClaude(userMsg, systemMsg = '') {
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemMsg || 'Tu es un conseiller financier expert pour les familles israéliennes. Réponds en français, de façon concise, chaleureuse et pratique. Utilise des chiffres réels en ₪.',
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+    const d = await r.json();
+    return d.content?.[0]?.text || '';
+  } catch (e) { return ''; }
+}
 
 // ===== AUTH =====
 let authMode = 'login';
 function switchTab(mode) {
   authMode = mode;
-  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='signup')));
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active',(i===0&&mode==='login')||(i===1&&mode==='signup')));
   document.getElementById('signup-extra').style.display = mode === 'signup' ? 'block' : 'none';
   document.getElementById('auth-btn').textContent = mode === 'login' ? 'Se connecter' : 'Créer mon compte';
   document.getElementById('auth-msg').innerHTML = '';
@@ -224,17 +354,16 @@ async function handleAuth() {
   } else {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) { showMsg('Email ou mot de passe incorrect.'); btn.classList.remove('loading'); btn.textContent = 'Se connecter'; return; }
-    currentUser = data.user;
-    enterApp();
+    currentUser = data.user; enterApp();
   }
 }
 async function handleLogout() {
-  await sb.auth.signOut();
-  currentUser = null;
+  // Simple settings/logout sheet
+  const confirmed = confirm('Se déconnecter ?');
+  if (!confirmed) return;
+  await sb.auth.signOut(); currentUser = null;
   document.getElementById('main-app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('auth-email').value = '';
-  document.getElementById('auth-password').value = '';
 }
 
 // ===== APP ENTRY =====
@@ -243,9 +372,9 @@ async function enterApp() {
   document.getElementById('main-app').style.display = 'flex';
   const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
   document.getElementById('header-sub').textContent = `Bonjour, ${name} 👋`;
+  await loadFamilyData();
   await loadDashboard();
   await loadTransactions();
-  await loadFamilyData();
   loadAiTip();
 }
 
@@ -255,38 +384,54 @@ async function loadDashboard() {
   const { data: txs, error } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { el.innerHTML = '<div class="empty"><span>⚠️</span>Erreur de chargement</div>'; return; }
   const all = txs || [];
-  const income   = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
-  const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  // This month only
+  const now = new Date();
+  const thisMonth = all.filter(t => {
+    const d = new Date(t.created_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const income   = thisMonth.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const expenses = thisMonth.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
   const balance  = income - expenses;
   const pct = income > 0 ? Math.min(100, Math.round((balance / income) * 100)) : 0;
+
   if (all.length === 0) {
-    el.innerHTML = `<div class="hero fu fu1"><div style="font-size:11px;color:var(--muted)">Dashboard</div><div class="syne" style="font-size:20px;font-weight:600">Aucune donnée</div><p style="margin-top:10px;color:var(--muted);font-size:13px">Ajoute ta première transaction !</p></div>`;
-    return;
+    el.innerHTML = `<div class="hero fu fu1">
+      <div style="font-size:11px;color:var(--muted)">Bienvenue sur BudgetFam</div>
+      <div class="syne" style="font-size:18px;font-weight:700;margin:6px 0">Commence ici ! 👇</div>
+      <p style="color:var(--muted);font-size:12px;line-height:1.6">Utilise les raccourcis ci-dessous pour ajouter ta première dépense ou crée un projet IA.</p>
+    </div>`; return;
   }
+
   el.innerHTML = `
     <div class="hero fu fu1">
-      <div style="font-size:11px;color:var(--muted)">Résumé du mois</div>
-      <div class="syne" style="font-size:26px;font-weight:800;margin:4px 0">${balance.toLocaleString('fr-FR')} ₪</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Solde disponible</div>
-      <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</div>
+      <div class="syne" style="font-size:28px;font-weight:800;margin:4px 0;color:${balance >= 0 ? 'var(--text)' : 'var(--red)'}">${balance.toLocaleString('fr-FR')} ₪</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Solde du mois</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
         <div class="stat-mini"><label>Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
         <div class="stat-mini"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
-        <div class="stat-mini"><label>Épargne %</label><b style="color:var(--accent)">${pct}%</b></div>
+        <div class="stat-mini"><label>Épargne</label><b style="color:var(--accent)">${pct}%</b></div>
       </div>
-      <div class="bar-wrap" style="height:6px"><div class="bar" style="width:${pct}%;height:6px;background:var(--accent)"></div></div>
+      <div class="bar-wrap" style="height:5px"><div class="bar" style="width:${pct}%;height:5px;background:var(--accent)"></div></div>
     </div>`;
 }
 
-// ===== TRANSACTIONS LIST =====
+// ===== TRANSACTIONS =====
 async function loadTransactions() {
   const list = document.getElementById('tx-list');
   list.innerHTML = '<div class="spinner"></div>';
-  const { data, error } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20);
-  if (error) { list.innerHTML = '<div class="empty"><span>⚠️</span>Erreur</div>'; return; }
-  if (!data || data.length === 0) { list.innerHTML = `<div class="empty"><span>💸</span>Aucune transaction encore.</div>`; return; }
+  const { data, error } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(15);
+  if (error || !data?.length) {
+    list.innerHTML = `<div class="empty"><span>💸</span>Aucune transaction encore.<br>Utilise les raccourcis ci-dessus !</div>`;
+    return;
+  }
   list.innerHTML = `
     <div class="card" style="padding:14px 16px">
-      <div class="syne sec-title">Transactions récentes</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="syne sec-title" style="margin-bottom:0">Transactions récentes</div>
+        <button onclick="showView('stats', document.querySelectorAll('.nav-item')[3])" style="background:transparent;border:none;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer">Voir tout →</button>
+      </div>
       ${data.map(t => {
         const member = familyMembers.find(m => m.user_id === t.user_id);
         const memberName = member ? member.display_name : null;
@@ -299,232 +444,61 @@ async function loadTransactions() {
               <div style="font-size:10px;color:var(--muted)">${t.category || ''} · ${formatDate(t.created_at)}${memberName ? ` · <span style="color:var(--purple)">${memberName}</span>` : ''}</div>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="font-weight:700;font-size:14px;color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-weight:700;font-size:13px;color:${t.amount < 0 ? 'var(--red)' : 'var(--green)'}">
               ${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString('fr-FR')} ₪
             </div>
-            <button onclick="deleteTx('${t.id}')" style="background:var(--red-soft);border:none;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;">🗑️</button>
+            <button onclick="deleteTx('${t.id}')" style="background:var(--red-soft);border:none;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;">🗑️</button>
           </div>
-        </div>`}).join('')}
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
-// ===== STATS VIEW =====
-async function loadStats() {
-  const el = document.getElementById('stats-content');
-  el.innerHTML = '<div class="spinner"></div>';
-
-  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
-  const all = txs || [];
-
-  if (all.length === 0) {
-    el.innerHTML = `<div class="empty"><span>📊</span>Aucune donnée à afficher.<br>Ajoute des transactions d'abord !</div>`;
-    return;
+// ===== QUICK ADD =====
+function quickAdd(cat, emoji, label) {
+  const modal = document.getElementById('quick-modal');
+  const content = document.getElementById('quick-modal-content');
+  content.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:40px;margin-bottom:6px">${emoji}</div>
+      <div class="syne" style="font-size:18px;font-weight:800">${label}</div>
+      <div style="font-size:12px;color:var(--muted)">Catégorie: ${cat}</div>
+    </div>
+    <label class="field-label">Montant (₪)</label>
+    <input class="field" id="quick-amount" placeholder="0.00" type="number" inputmode="decimal" style="font-size:24px;text-align:center;padding:16px;" autofocus>
+    <input type="hidden" id="quick-cat" value="${cat}">
+    <input type="hidden" id="quick-label" value="${label}">
+    <button onclick="submitQuick()" class="submit-btn" style="margin-top:6px">✅ Enregistrer</button>`;
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('quick-amount')?.focus(), 100);
+}
+function closeQuickModal(e) {
+  if (!e || e.target === document.getElementById('quick-modal')) {
+    document.getElementById('quick-modal').style.display = 'none';
   }
-
-  // Catégories (dépenses seulement)
-  const catMap = {};
-  all.filter(t => t.amount < 0).forEach(t => {
-    const cat = t.category || 'Divers';
-    catMap[cat] = (catMap[cat] || 0) + Math.abs(t.amount);
-  });
-  const catLabels = Object.keys(catMap);
-  const catValues = Object.values(catMap);
-
-  // Mensuel (6 derniers mois)
-  const mIncome = {}, mExpenses = {};
-  all.forEach(t => {
-    const d = new Date(t.created_at);
-    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if (t.amount > 0) mIncome[k]   = (mIncome[k]   || 0) + t.amount;
-    else              mExpenses[k] = (mExpenses[k] || 0) + Math.abs(t.amount);
-  });
-  const months      = [...new Set([...Object.keys(mIncome), ...Object.keys(mExpenses)])].sort().slice(-6);
-  const monthLabels = months.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleDateString('fr-FR',{month:'short'}); });
-  const incomeData  = months.map(m => mIncome[m]   || 0);
-  const expData     = months.map(m => mExpenses[m] || 0);
-
-  // Courbe solde cumulé
-  let running = 0;
-  const balanceData   = all.map(t => { running += t.amount; return Math.round(running); });
-  const balanceLabels = all.map(t => formatDate(t.created_at));
-
-  // Résumé
-  const income   = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
-  const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
-  const savings  = income - expenses;
-
-  el.innerHTML = `
-    <div class="card fu fu1">
-      <div class="syne sec-title">Résumé global</div>
-      <div style="display:flex;gap:8px">
-        <div class="stat-mini"><label>Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
-        <div class="stat-mini"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
-        <div class="stat-mini"><label>Épargne</label><b style="color:${savings>=0?'var(--accent)':'var(--red)'}">${savings.toLocaleString('fr-FR')} ₪</b></div>
-      </div>
-    </div>
-
-    <div class="card fu fu2">
-      <div class="chart-tabs">
-        <button class="chart-tab active" onclick="switchChart('donut',this)">🍩 Catégories</button>
-        <button class="chart-tab"        onclick="switchChart('bar',this)">📊 Mensuel</button>
-        <button class="chart-tab"        onclick="switchChart('line',this)">📈 Solde</button>
-      </div>
-
-      <div id="panel-donut" class="chart-panel active">
-        <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;">
-          <canvas id="chart-donut"></canvas>
-        </div>
-        <div id="donut-legend" style="margin-top:12px"></div>
-      </div>
-
-      <div id="panel-bar" class="chart-panel">
-        <div style="position:relative;height:220px;">
-          <canvas id="chart-bar"></canvas>
-        </div>
-      </div>
-
-      <div id="panel-line" class="chart-panel">
-        <div style="position:relative;height:220px;">
-          <canvas id="chart-line"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="card fu fu3">
-      <div class="syne sec-title">Nombre de transactions</div>
-      <div style="font-size:36px;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;text-align:center;padding:10px 0">${all.length}</div>
-      <div style="text-align:center;font-size:12px;color:var(--muted)">transactions enregistrées</div>
-    </div>`;
-
-  requestAnimationFrame(() => {
-    buildDonut(catLabels, catValues);
-    buildBar(monthLabels, incomeData, expData);
-    buildLine(balanceLabels, balanceData);
-  });
 }
-
-// ===== CHARTS =====
-function baseOpts() {
-  return {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false } }
-  };
-}
-
-function buildDonut(labels, values) {
-  if (chartDonut) { chartDonut.destroy(); chartDonut = null; }
-  if (!labels.length) return;
-  const ctx = document.getElementById('chart-donut').getContext('2d');
-  chartDonut = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderColor: '#161A23', borderWidth: 3, hoverOffset: 6 }] },
-    options: {
-      ...baseOpts(), cutout: '68%',
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed.toLocaleString('fr-FR')} ₪` } } }
-    }
+async function submitQuick() {
+  const amount = parseFloat(document.getElementById('quick-amount').value);
+  const cat = document.getElementById('quick-cat').value;
+  const label = document.getElementById('quick-label').value;
+  if (!amount || amount <= 0) return;
+  const { error } = await sb.from('transactions').insert({
+    user_id: currentUser.id, label,
+    amount: -Math.abs(amount), category: cat,
+    ...(currentFamily ? { family_id: currentFamily.id } : {})
   });
-  const total = values.reduce((a,b) => a+b, 0);
-  document.getElementById('donut-legend').innerHTML = labels.map((l,i) => `
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${PALETTE[i%PALETTE.length]}"></div>
-      <div style="flex:1;font-size:12px">${getCatIcon(l)} ${l}</div>
-      <div style="font-size:12px;color:var(--muted)">${values[i].toLocaleString('fr-FR')} ₪</div>
-      <div style="font-size:11px;color:var(--accent);margin-left:6px;width:32px;text-align:right">${Math.round(values[i]/total*100)}%</div>
-    </div>`).join('');
-}
-
-function buildBar(labels, incomeData, expData) {
-  if (chartBar) { chartBar.destroy(); chartBar = null; }
-  if (!labels.length) return;
-  const ctx = document.getElementById('chart-bar').getContext('2d');
-  chartBar = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [
-      { label: 'Revenus',  data: incomeData, backgroundColor: '#2ECC8A55', borderColor: '#2ECC8A', borderWidth: 2, borderRadius: 6 },
-      { label: 'Dépenses', data: expData,    backgroundColor: '#F7506A55', borderColor: '#F7506A', borderWidth: 2, borderRadius: 6 }
-    ]},
-    options: {
-      ...baseOpts(),
-      plugins: { legend: { display: true, labels: { color: '#6B7280', font: { size: 11 }, boxWidth: 12, padding: 16 } }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString('fr-FR')} ₪` } } },
-      scales: {
-        x: { ticks: { color: '#6B7280', font: { size: 10 } }, grid: { color: '#1E2230' } },
-        y: { ticks: { color: '#6B7280', font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') }, grid: { color: '#1E2230' } }
-      }
-    }
-  });
-}
-
-function buildLine(labels, data) {
-  if (chartLine) { chartLine.destroy(); chartLine = null; }
-  if (!labels.length) return;
-  const ctx = document.getElementById('chart-line').getContext('2d');
-  const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-  gradient.addColorStop(0, '#4F8EF744');
-  gradient.addColorStop(1, '#4F8EF700');
-  chartLine = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ label: 'Solde', data, borderColor: '#4F8EF7', borderWidth: 2, backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: data.length <= 20 ? 3 : 0, pointBackgroundColor: '#4F8EF7' }] },
-    options: {
-      ...baseOpts(),
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` Solde: ${c.parsed.y.toLocaleString('fr-FR')} ₪` } } },
-      scales: {
-        x: { ticks: { color: '#6B7280', font: { size: 10 }, maxTicksLimit: 6 }, grid: { color: '#1E2230' } },
-        y: { ticks: { color: '#6B7280', font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') }, grid: { color: '#1E2230' } }
-      }
-    }
-  });
-}
-
-function switchChart(name, btn) {
-  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('panel-' + name).classList.add('active');
-}
-
-// ===== PROFILE =====
-async function loadProfile() {
-  const el = document.getElementById('profile-content');
-  el.innerHTML = '<div class="spinner"></div>';
-  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
-  const { count } = await sb.from('transactions').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
-  el.innerHTML = `
-    <div class="card fu fu1" style="text-align:center">
-      <div style="width:70px;height:70px;border-radius:20px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px">👤</div>
-      <div class="syne" style="font-size:20px;font-weight:800;margin-bottom:4px">${name}</div>
-      <div style="font-size:12px;color:var(--muted)">${currentUser.email}</div>
-    </div>
-    <div class="card fu fu2">
-      <div class="syne sec-title">Mon activité</div>
-      <div style="display:flex;gap:8px">
-        <div class="stat-mini"><label>Transactions</label><b style="color:var(--accent)">${count || 0}</b></div>
-        <div class="stat-mini"><label>Membre depuis</label><b style="color:var(--purple)">${new Date(currentUser.created_at).toLocaleDateString('fr-FR',{month:'short',year:'numeric'})}</b></div>
-      </div>
-    </div>
-    <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
-      <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">🚀 Bientôt disponible</div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.7">
-        🏦 Connexion bancaire automatique<br>
-        💒 Planificateur mariage israélien<br>
-        🏠 Calculateur apport immobilier<br>
-        🤖 IA conseillère avancée
-      </div>
-    </div>
-
-    <div id="family-section"></div>
-
-    <button onclick="handleLogout()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px">
-      Se déconnecter
-    </button>`;
-
-  loadFamilySection();
+  if (!error) {
+    document.getElementById('quick-modal').style.display = 'none';
+    await loadDashboard();
+    await loadTransactions();
+  }
 }
 
 // ===== ADD TRANSACTION =====
 async function submitTx() {
-  const label    = txType === 'income' ? document.getElementById('f-cat').value : document.getElementById('f-label').value.trim();
-  const amount   = parseFloat(document.getElementById('f-amount').value);
+  const label = txType === 'income' ? document.getElementById('f-cat').value : document.getElementById('f-label').value.trim();
+  const amount = parseFloat(document.getElementById('f-amount').value);
   const category = document.getElementById('f-cat').value;
   if (!amount) return;
   const btn = document.getElementById('submit-btn');
@@ -544,218 +518,644 @@ async function submitTx() {
   document.getElementById('f-label').value = '';
   document.getElementById('f-amount').value = '';
   setTimeout(() => { btn.textContent = 'Ajouter la transaction'; btn.style.background = 'var(--accent)'; }, 1500);
-  await loadDashboard();
-  await loadTransactions();
+  await loadDashboard(); await loadTransactions();
+  loadAiTip();
 }
 
-// ===== AI TIP =====
-function loadAiTip() {
+// ===== AI TIP (via Claude API) =====
+async function loadAiTip() {
   const el = document.getElementById('ai-tip');
   if (!el) return;
-  const tips = [
-    "💡 Essaie d'épargner 20% de tes revenus chaque mois.",
-    "🛒 Les courses chez Rami Levy ou Victory réduisent la facture alimentaire.",
-    "📱 Vérifie tes abonnements — tu en as peut-être d'inutiles.",
-    "🏠 Le logement ne devrait pas dépasser 30% de tes revenus.",
-    "💰 Un fonds d'urgence de 3 mois de dépenses est recommandé.",
-  ];
-  el.textContent = tips[Math.floor(Math.random() * tips.length)];
+  el.innerHTML = `<div class="ai-thinking"><div class="dots"><span></span><span></span><span></span></div><span style="font-size:12px;color:var(--accent)">IA en train d'analyser...</span></div>`;
+
+  // Fetch user's spending data for context
+  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(30);
+  const all = txs || [];
+
+  let context = '';
+  if (all.length > 0) {
+    const income = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+    const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+    const catMap = {};
+    all.filter(t => t.amount < 0).forEach(t => {
+      const c = t.category || 'Divers';
+      catMap[c] = (catMap[c] || 0) + Math.abs(t.amount);
+    });
+    const topCat = Object.entries(catMap).sort((a,b) => b[1]-a[1])[0];
+    context = `Revenus total: ${income.toLocaleString('fr-FR')} ₪. Dépenses totales: ${expenses.toLocaleString('fr-FR')} ₪. Catégorie principale: ${topCat ? topCat[0] + ' (' + topCat[1].toLocaleString('fr-FR') + ' ₪)' : 'aucune'}. Nombre de transactions: ${all.length}.`;
+  }
+
+  const prompt = all.length > 0
+    ? `Données utilisateur: ${context}\n\nDonne UN conseil financier personnalisé très court (2-3 lignes max) adapté à une famille israélienne, basé sur ces données. Sois direct, pratique et bienveillant. Commence directement par le conseil.`
+    : `Donne UN conseil financier général court (2-3 lignes max) pour les familles israéliennes. Exemple: épargne, supermarché, budget. Commence directement par le conseil.`;
+
+  const tip = await askClaude(prompt);
+  if (el) el.textContent = tip || "💡 Essaie d'épargner au moins 10% de tes revenus chaque mois — même petit, l'essentiel est la régularité !";
 }
 
 // ===== DELETE TRANSACTION =====
 async function deleteTx(id) {
   if (!confirm('Supprimer cette transaction ?')) return;
-
   const row = document.getElementById('tx-' + id);
   if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
-
   const { error } = await sb.from('transactions').delete().eq('id', id).eq('user_id', currentUser.id);
-
-  if (error) {
-    if (row) { row.style.opacity = '1'; row.style.pointerEvents = 'auto'; }
-    alert('Erreur lors de la suppression.');
-    return;
-  }
-
-  // Retirer la ligne avec animation
+  if (error) { if (row) { row.style.opacity = '1'; row.style.pointerEvents = 'auto'; } alert('Erreur.'); return; }
   if (row) {
     row.style.transition = 'all .3s';
-    row.style.maxHeight  = row.offsetHeight + 'px';
-    requestAnimationFrame(() => {
-      row.style.maxHeight  = '0';
-      row.style.opacity    = '0';
-      row.style.padding    = '0';
-      row.style.overflow   = 'hidden';
-    });
+    row.style.maxHeight = row.offsetHeight + 'px';
+    requestAnimationFrame(() => { row.style.maxHeight = '0'; row.style.opacity = '0'; row.style.padding = '0'; row.style.overflow = 'hidden'; });
     setTimeout(() => row.remove(), 350);
   }
-
   await loadDashboard();
 }
 
-// ===== FAMILY =====
-async function loadFamilyData() {
-  // Cherche si l'utilisateur appartient à une famille
-  const { data } = await sb
-    .from('family_members')
-    .select('*, families(*)')
-    .eq('user_id', currentUser.id)
-    .maybeSingle();
+// ===== PROJECTS =====
+async function loadProjects() {
+  const el = document.getElementById('projects-content');
+  el.innerHTML = '<div class="spinner"></div>';
+  const { data: projects } = await sb.from('projects').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const all = projects || [];
 
-  if (data?.families) {
-    currentFamily = data.families;
-    // Charger tous les membres
-    const { data: members } = await sb
-      .from('family_members')
-      .select('*')
-      .eq('family_id', currentFamily.id);
-    familyMembers = members || [];
-  }
-}
-
-async function loadFamilySection() {
-  const el = document.getElementById('family-section');
-  if (!el) return;
-
-  if (!currentFamily) {
+  if (all.length === 0) {
     el.innerHTML = `
-      <div class="card fu fu3" style="border-color:var(--purple);background:var(--purple-soft)">
-        <div class="syne sec-title" style="color:var(--purple)">👨‍👩‍👧 Ma Famille</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">Crée une famille pour partager les dépenses et revenus avec tes proches.</p>
-
-        <label class="field-label">Nom de la famille</label>
-        <input class="field" id="fam-name" placeholder="Ex: Famille Cohen" type="text" style="background:var(--bg)">
-        <button onclick="createFamily()" style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:'Syne',sans-serif;margin-bottom:14px;">
-          ✨ Créer ma famille
-        </button>
-
-        <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px">— ou rejoindre une famille existante —</div>
-
-        <label class="field-label">Code d'invitation</label>
-        <input class="field" id="fam-code" placeholder="Ex: FAM-ABC123" type="text" style="background:var(--bg);text-transform:uppercase;letter-spacing:2px">
-        <button onclick="joinFamily()" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--purple);background:transparent;color:var(--purple);font-weight:700;font-size:14px;cursor:pointer;font-family:'Syne',sans-serif;">
-          🔗 Rejoindre
-        </button>
-        <div id="fam-msg" style="margin-top:10px"></div>
+      <div class="empty fu fu1"><span>🎯</span>Aucun projet pour l'instant.<br>Crée ton premier projet IA !</div>
+      <div class="card fu fu2" style="background:linear-gradient(135deg,#1A2540,#1E1640);border-color:var(--accent)">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Exemples de projets IA</div>
+        <div style="font-size:13px;color:var(--muted);line-height:2">
+          💒 Mariage de votre enfant<br>
+          🚗 Achat d'une voiture<br>
+          🏠 Apport immobilier<br>
+          ✈️ Vacances en famille<br>
+          🎓 Études des enfants
+        </div>
+        <button onclick="openProjectWizard()" class="submit-btn" style="margin-top:14px">✨ Créer un projet avec l'IA</button>
       </div>`;
     return;
   }
 
-  // Famille existante
-  const myRole = familyMembers.find(m => m.user_id === currentUser.id)?.role;
-
-  el.innerHTML = `
-    <div class="card fu fu3" style="border-color:var(--purple);background:var(--purple-soft)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div class="syne sec-title" style="color:var(--purple);margin-bottom:0">👨‍👩‍👧 ${currentFamily.name}</div>
-        <div style="font-size:10px;background:var(--purple);color:#fff;border-radius:20px;padding:2px 8px;font-weight:700">${myRole === 'admin' ? '👑 Admin' : '👤 Membre'}</div>
+  el.innerHTML = all.map(p => {
+    const progress = p.target_amount > 0 ? Math.min(100, Math.round((p.saved_amount / p.target_amount) * 100)) : 0;
+    const daysLeft = p.target_date ? Math.max(0, Math.round((new Date(p.target_date) - new Date()) / 86400000)) : null;
+    return `
+    <div class="proj-card fu fu2">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-size:16px;margin-bottom:2px">${getProjEmoji(p.type)}</div>
+          <div class="syne" style="font-size:15px;font-weight:700">${p.name}</div>
+          ${daysLeft !== null ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${daysLeft > 0 ? daysLeft + ' jours restants' : '⏰ Échéance atteinte'}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div class="syne" style="font-size:16px;font-weight:800;color:var(--accent)">${p.target_amount.toLocaleString('fr-FR')} ₪</div>
+          <div style="font-size:10px;color:var(--muted)">objectif</div>
+        </div>
       </div>
-
-      <!-- Code d'invitation -->
-      <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:14px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Code d'invitation</div>
-        <div style="font-size:18px;font-weight:800;letter-spacing:3px;color:var(--purple);font-family:'Syne',sans-serif">${currentFamily.invite_code}</div>
-        <button onclick="copyCode('${currentFamily.invite_code}')" style="margin-top:8px;background:var(--purple-soft);border:1px solid var(--purple);color:var(--purple);border-radius:8px;padding:5px 14px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600">
-          📋 Copier
-        </button>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <div class="stat-mini"><label>Épargné</label><b style="color:var(--green)">${(p.saved_amount||0).toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Mensuel</label><b style="color:var(--purple)">${(p.monthly_saving||0).toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Avancement</label><b style="color:var(--accent)">${progress}%</b></div>
       </div>
+      <div class="bar-wrap" style="height:6px;margin-bottom:10px">
+        <div class="bar" style="width:${progress}%;height:6px;background:${progress >= 75 ? 'var(--green)' : progress >= 40 ? 'var(--accent)' : 'var(--yellow)'}"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="addToProject('${p.id}','${p.name}')" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--green);background:transparent;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Ajouter épargne</button>
+        <button onclick="deleteProject('${p.id}')" style="padding:8px 12px;border-radius:10px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-size:12px;cursor:pointer;">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 
-      <!-- Membres -->
-      <div class="syne" style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text)">Membres (${familyMembers.length})</div>
-      ${familyMembers.map(m => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--divider)">
-          <div style="width:32px;height:32px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:14px">
-            ${m.user_id === currentFamily.created_by ? '👑' : '👤'}
-          </div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${m.display_name || 'Membre'}</div>
-            <div style="font-size:10px;color:var(--muted)">Rejoint le ${new Date(m.joined_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</div>
-          </div>
-          ${m.user_id === currentUser.id ? '<div style="font-size:10px;color:var(--accent);font-weight:600">Moi</div>' : ''}
-        </div>`).join('')}
+// ===== PROJECT WIZARD =====
+let wizardType = 'mariage';
+let wizardStep = 1;
+let wizardMeta = {};
 
-      ${myRole === 'admin' ? `
-        <button onclick="leaveFamily(true)" style="width:100%;margin-top:14px;padding:10px;border-radius:10px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
-          🗑️ Dissoudre la famille
-        </button>` : `
-        <button onclick="leaveFamily(false)" style="width:100%;margin-top:14px;padding:10px;border-radius:10px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">
-          🚪 Quitter la famille
-        </button>`}
+function openProjectWizard() {
+  wizardStep = 1; wizardType = 'mariage'; wizardMeta = {};
+  document.getElementById('proj-modal').style.display = 'flex';
+  renderWizardStep1();
+}
+function closeProjModal(e) {
+  if (!e || e.target === document.getElementById('proj-modal')) {
+    document.getElementById('proj-modal').style.display = 'none';
+  }
+}
+function renderWizardStep1() {
+  const c = document.getElementById('proj-modal-content');
+  c.innerHTML = `
+    <div class="steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+    <div class="syne" style="font-size:18px;font-weight:800;margin-bottom:6px;text-align:center">Quel type de projet ? 🎯</div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:18px">L'IA va créer un plan personnalisé</div>
+    <div class="proj-type-grid">
+      ${[
+        {k:'mariage', e:'💒', l:'Mariage'},
+        {k:'voiture', e:'🚗', l:'Voiture'},
+        {k:'immobilier', e:'🏠', l:'Immobilier'},
+        {k:'vacances', e:'✈️', l:'Vacances'},
+        {k:'etudes', e:'🎓', l:'Études'},
+        {k:'autre', e:'🎯', l:'Autre'}
+      ].map(t => `<button class="proj-type-btn ${wizardType===t.k?'active':''}" onclick="selectType('${t.k}',this)"><span class="pt-emoji">${t.e}</span>${t.l}</button>`).join('')}
+    </div>
+    <button onclick="renderWizardStep2()" class="submit-btn" style="margin-top:4px">Continuer →</button>`;
+}
+function selectType(type, btn) {
+  wizardType = type;
+  document.querySelectorAll('.proj-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function renderWizardStep2() {
+  const c = document.getElementById('proj-modal-content');
+  const forms = {
+    mariage: `
+      <label class="field-label">Pour qui ? (prénom)</label>
+      <input class="field" id="w-who" placeholder="Ex: Sarah" type="text">
+      <label class="field-label">Date prévue du mariage</label>
+      <input class="field" id="w-date" type="month">
+      <label class="field-label">Nombre d'invités estimé</label>
+      <input class="field" id="w-guests" placeholder="Ex: 200" type="number" inputmode="numeric">
+      <label class="field-label">Région en Israël</label>
+      <select class="select-field" id="w-region">
+        <option>Tel Aviv</option><option>Jérusalem</option><option>Centre</option>
+        <option>Nord (Haïfa, Galilée)</option><option>Sud (Beer Sheva)</option><option>Périphérie</option>
+      </select>
+      <label class="field-label">Style du mariage</label>
+      <select class="select-field" id="w-style">
+        <option value="simple">Simple et convivial</option>
+        <option value="classique" selected>Classique</option>
+        <option value="luxe">Haut de gamme / Luxueux</option>
+      </select>`,
+    voiture: `
+      <label class="field-label">Budget cible (₪)</label>
+      <input class="field" id="w-budget" placeholder="Ex: 80000" type="number">
+      <label class="field-label">Date d'achat souhaitée</label>
+      <input class="field" id="w-date" type="month">
+      <label class="field-label">Type de véhicule</label>
+      <select class="select-field" id="w-style">
+        <option>Voiture d'occasion</option><option>Voiture neuve</option>
+        <option>SUV / Familiale</option><option>Électrique</option>
+      </select>`,
+    immobilier: `
+      <label class="field-label">Prix du bien visé (₪)</label>
+      <input class="field" id="w-budget" placeholder="Ex: 1500000" type="number">
+      <label class="field-label">Apport visé (%)</label>
+      <input class="field" id="w-pct" placeholder="Ex: 25" type="number" inputmode="numeric">
+      <label class="field-label">Date cible</label>
+      <input class="field" id="w-date" type="month">
+      <label class="field-label">Ville / Région</label>
+      <input class="field" id="w-region" placeholder="Ex: Netanya" type="text">`,
+    vacances: `
+      <label class="field-label">Destination</label>
+      <input class="field" id="w-who" placeholder="Ex: Europe, États-Unis..." type="text">
+      <label class="field-label">Budget total (₪)</label>
+      <input class="field" id="w-budget" placeholder="Ex: 15000" type="number">
+      <label class="field-label">Nombre de personnes</label>
+      <input class="field" id="w-guests" placeholder="Ex: 4" type="number" inputmode="numeric">
+      <label class="field-label">Date de départ</label>
+      <input class="field" id="w-date" type="month">`,
+    etudes: `
+      <label class="field-label">Pour qui ?</label>
+      <input class="field" id="w-who" placeholder="Ex: Mon fils David" type="text">
+      <label class="field-label">Type d'études</label>
+      <select class="select-field" id="w-style">
+        <option>Université en Israël</option><option>Université à l'étranger</option>
+        <option>École privée</option><option>Formation professionnelle</option>
+      </select>
+      <label class="field-label">Budget annuel estimé (₪)</label>
+      <input class="field" id="w-budget" placeholder="Ex: 40000" type="number">
+      <label class="field-label">Début des études</label>
+      <input class="field" id="w-date" type="month">`,
+    autre: `
+      <label class="field-label">Nom du projet</label>
+      <input class="field" id="w-who" placeholder="Ex: Rénovation cuisine" type="text">
+      <label class="field-label">Budget cible (₪)</label>
+      <input class="field" id="w-budget" placeholder="Ex: 30000" type="number">
+      <label class="field-label">Date cible</label>
+      <input class="field" id="w-date" type="month">`
+  };
+  c.innerHTML = `
+    <div class="steps"><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
+    <div class="syne" style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center">${getProjEmoji(wizardType)} Détails du projet</div>
+    ${forms[wizardType] || forms.autre}
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button onclick="renderWizardStep1()" style="flex:1;padding:13px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">← Retour</button>
+      <button onclick="runAiWizard()" class="submit-btn" style="flex:2">🤖 Générer le plan IA</button>
     </div>`;
 }
 
+async function runAiWizard() {
+  // Collect form data
+  const who = document.getElementById('w-who')?.value.trim() || '';
+  const dateVal = document.getElementById('w-date')?.value || '';
+  const guests = document.getElementById('w-guests')?.value || '';
+  const region = document.getElementById('w-region')?.value || '';
+  const style = document.getElementById('w-style')?.value || '';
+  const budget = document.getElementById('w-budget')?.value || '';
+  const pct = document.getElementById('w-pct')?.value || '';
+
+  // Build AI prompt
+  const prompts = {
+    mariage: `Je planifie le mariage de ${who || 'mon enfant'} en Israël.
+Détails: Date prévue: ${dateVal || 'dans 2 ans'}, Nombre d'invités: ${guests || '200'}, Région: ${region || 'Centre'}, Style: ${style || 'Classique'}.
+
+En tant qu'expert financier familial israélien:
+1. Estime le coût TOTAL du mariage en ₪ (avec inflation actuelle)
+2. Donne un budget détaillé par poste (salle, traiteur, musique, photographe, robes/costumes, etc.)
+3. Calcule combien épargner par mois pour atteindre l'objectif
+4. Donne 2-3 conseils pratiques pour réduire le budget sans sacrifier la qualité
+
+Réponds de façon structurée, chiffres précis, adapté au marché israélien actuel.`,
+    voiture: `Je veux acheter une voiture en Israël. Budget: ${budget || '80000'} ₪, Type: ${style || 'Voiture neuve'}, Date cible: ${dateVal}.
+Donne un plan d'épargne mensuel, conseils sur le marché automobile israélien, financement, assurance.`,
+    immobilier: `Achat immobilier en Israël à ${region || 'Centre Israël'}. Prix du bien: ${budget || '1,500,000'} ₪, Apport visé: ${pct || '25'}%, Date cible: ${dateVal}.
+Calcule l'apport nécessaire, l'épargne mensuelle, et les aides disponibles en Israël (משכנתא, זכאות).`,
+    vacances: `Voyage en famille (${guests || '4'} personnes) vers ${who || 'l\'Europe'}, budget ${budget || '15000'} ₪, départ ${dateVal}.
+Plan d'épargne mensuel + conseils pour économiser sur ce voyage depuis Israël.`,
+    etudes: `Financer les études de ${who || 'mon enfant'}: ${style || 'Université en Israël'}, budget annuel ${budget || '40000'} ₪, début ${dateVal}.
+Plan d'épargne, bourses disponibles en Israël, dispositifs fiscaux.`,
+    autre: `Projet: ${who || 'projet personnel'}, budget ${budget || '30000'} ₪, date cible ${dateVal}.
+Plan d'épargne mensuel et conseils pratiques.`
+  };
+
+  // Save wizard data
+  wizardMeta = { who, dateVal, guests, region, style, budget, pct };
+
+  // Show loading
+  const c = document.getElementById('proj-modal-content');
+  c.innerHTML = `
+    <div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div>
+    <div style="text-align:center;padding:30px 0">
+      <div style="font-size:40px;margin-bottom:12px">${getProjEmoji(wizardType)}</div>
+      <div class="syne" style="font-size:16px;font-weight:700;margin-bottom:8px">L'IA analyse votre projet...</div>
+      <div class="ai-thinking" style="justify-content:center">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span style="font-size:12px;color:var(--accent)">Calcul des estimations israéliennes</span>
+      </div>
+    </div>`;
+
+  const aiResponse = await askClaude(
+    prompts[wizardType] || prompts.autre,
+    'Tu es un conseiller financier expert des familles israéliennes. Réponds en français, de façon structurée, avec des montants en ₪ réalistes pour le marché israélien de 2025-2026. Utilise des emojis pour structurer ta réponse.'
+  );
+
+  // Extract estimated amounts from AI response for saving
+  // Try to parse a target amount from the response
+  let targetAmount = parseInt(budget) || 0;
+  if (!targetAmount && wizardType === 'mariage') targetAmount = parseInt(guests || 200) * 800; // rough estimate
+
+  let targetDate = null;
+  if (dateVal) { const d = new Date(dateVal + '-01'); targetDate = d.toISOString().split('T')[0]; }
+  const monthsLeft = targetDate ? Math.max(1, Math.round((new Date(targetDate) - new Date()) / (30.44 * 86400000))) : 24;
+  const monthlySaving = targetAmount > 0 ? Math.round(targetAmount / monthsLeft) : 0;
+
+  const projectName = wizardType === 'mariage' ? `💒 Mariage de ${who || 'mon enfant'}` :
+    wizardType === 'voiture' ? `🚗 Voiture (${style || ''})` :
+    wizardType === 'immobilier' ? `🏠 Apport immobilier ${region || ''}` :
+    wizardType === 'vacances' ? `✈️ Vacances ${who || ''}` :
+    wizardType === 'etudes' ? `🎓 Études de ${who || ''}` : (who || '🎯 Mon projet');
+
+  c.innerHTML = `
+    <div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div></div>
+    <div class="syne" style="font-size:16px;font-weight:800;margin-bottom:12px;text-align:center">✅ Plan IA généré !</div>
+    <div class="ai-result">${aiResponse.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+    <div class="card" style="margin:12px 0;background:var(--divider)">
+      <label class="field-label">Montant cible (₪) — ajuste si besoin</label>
+      <input class="field" id="w-final-amount" type="number" value="${targetAmount}" style="background:var(--card)">
+      <label class="field-label">Épargne mensuelle suggérée</label>
+      <div style="font-size:20px;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;text-align:center;padding:6px 0" id="w-monthly-display">${monthlySaving.toLocaleString('fr-FR')} ₪ / mois</div>
+    </div>
+    <button onclick="saveProject('${projectName}','${wizardType}','${targetDate}',${monthlySaving},'${aiResponse.replace(/'/g,"&#39;").replace(/\n/g,'\\n')}')" class="submit-btn">💾 Sauvegarder le projet</button>`;
+}
+
+async function saveProject(name, type, date, monthly, aiPlan) {
+  const amount = parseFloat(document.getElementById('w-final-amount')?.value) || 0;
+  const { error } = await sb.from('projects').insert({
+    user_id: currentUser.id,
+    name, type,
+    target_amount: amount,
+    target_date: date || null,
+    monthly_saving: monthly,
+    saved_amount: 0,
+    ai_plan: aiPlan,
+    meta: wizardMeta,
+    ...(currentFamily ? { family_id: currentFamily.id } : {})
+  });
+  if (error) { alert('Erreur lors de la sauvegarde: ' + error.message); return; }
+  document.getElementById('proj-modal').style.display = 'none';
+  showView('projects', document.querySelectorAll('.nav-item')[2]);
+}
+
+async function addToProject(id, name) {
+  const amount = prompt(`Combien as-tu épargné pour "${name}" ce mois ? (₪)`);
+  if (!amount || isNaN(amount)) return;
+  const { data: proj } = await sb.from('projects').select('saved_amount').eq('id', id).single();
+  await sb.from('projects').update({ saved_amount: (proj?.saved_amount || 0) + parseFloat(amount) }).eq('id', id);
+  loadProjects();
+}
+
+async function deleteProject(id) {
+  if (!confirm('Supprimer ce projet ?')) return;
+  await sb.from('projects').delete().eq('id', id);
+  loadProjects();
+}
+
+function getProjEmoji(type) {
+  const m = { mariage:'💒', voiture:'🚗', immobilier:'🏠', vacances:'✈️', etudes:'🎓', autre:'🎯' };
+  return m[type] || '🎯';
+}
+
+// ===== STATS =====
+async function loadStats() {
+  const el = document.getElementById('stats-content');
+  el.innerHTML = '<div class="spinner"></div>';
+  const { data: txs } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
+  const all = txs || [];
+  if (all.length === 0) {
+    el.innerHTML = `<div class="empty"><span>📊</span>Aucune donnée à afficher.</div>`; return;
+  }
+  const catMap = {};
+  all.filter(t => t.amount < 0).forEach(t => {
+    const cat = t.category || 'Divers';
+    catMap[cat] = (catMap[cat] || 0) + Math.abs(t.amount);
+  });
+  const catLabels = Object.keys(catMap);
+  const catValues = Object.values(catMap);
+  const mIncome = {}, mExpenses = {};
+  all.forEach(t => {
+    const d = new Date(t.created_at);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (t.amount > 0) mIncome[k] = (mIncome[k] || 0) + t.amount;
+    else mExpenses[k] = (mExpenses[k] || 0) + Math.abs(t.amount);
+  });
+  const months = [...new Set([...Object.keys(mIncome), ...Object.keys(mExpenses)])].sort().slice(-6);
+  const monthLabels = months.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleDateString('fr-FR',{month:'short'}); });
+  const incomeData = months.map(m => mIncome[m] || 0);
+  const expData = months.map(m => mExpenses[m] || 0);
+  let running = 0;
+  const balanceData = all.map(t => { running += t.amount; return Math.round(running); });
+  const balanceLabels = all.map(t => formatDate(t.created_at));
+  const income = all.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const expenses = all.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  const savings = income - expenses;
+  el.innerHTML = `
+    <div class="card fu fu1">
+      <div class="syne sec-title">Résumé global</div>
+      <div style="display:flex;gap:8px">
+        <div class="stat-mini"><label>Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-mini"><label>Épargne</label><b style="color:${savings>=0?'var(--accent)':'var(--red)'}">${savings.toLocaleString('fr-FR')} ₪</b></div>
+      </div>
+    </div>
+    <div class="card fu fu2">
+      <div class="chart-tabs">
+        <button class="chart-tab active" onclick="switchChart('donut',this)">🍩 Catégories</button>
+        <button class="chart-tab" onclick="switchChart('bar',this)">📊 Mensuel</button>
+        <button class="chart-tab" onclick="switchChart('line',this)">📈 Solde</button>
+      </div>
+      <div id="panel-donut" class="chart-panel active">
+        <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;"><canvas id="chart-donut"></canvas></div>
+        <div id="donut-legend" style="margin-top:12px"></div>
+      </div>
+      <div id="panel-bar" class="chart-panel"><div style="position:relative;height:220px;"><canvas id="chart-bar"></canvas></div></div>
+      <div id="panel-line" class="chart-panel"><div style="position:relative;height:220px;"><canvas id="chart-line"></canvas></div></div>
+    </div>
+    <div class="card fu fu3">
+      <div class="syne sec-title">Transactions</div>
+      <div style="font-size:36px;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;text-align:center;padding:6px 0">${all.length}</div>
+      <div style="text-align:center;font-size:12px;color:var(--muted)">transactions enregistrées</div>
+    </div>`;
+  requestAnimationFrame(() => {
+    buildDonut(catLabels, catValues);
+    buildBar(monthLabels, incomeData, expData);
+    buildLine(balanceLabels, balanceData);
+  });
+}
+
+// ===== CHARTS =====
+function baseOpts() { return { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }; }
+function buildDonut(labels, values) {
+  if (chartDonut) { chartDonut.destroy(); chartDonut = null; }
+  if (!labels.length) return;
+  const ctx = document.getElementById('chart-donut').getContext('2d');
+  chartDonut = new Chart(ctx, { type:'doughnut', data:{ labels, datasets:[{ data:values, backgroundColor:PALETTE, borderColor:'#161A23', borderWidth:3, hoverOffset:6 }] }, options:{ ...baseOpts(), cutout:'68%', plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed.toLocaleString('fr-FR')} ₪`}} } } });
+  const total = values.reduce((a,b)=>a+b,0);
+  document.getElementById('donut-legend').innerHTML = labels.map((l,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${PALETTE[i%PALETTE.length]}"></div><div style="flex:1;font-size:12px">${getCatIcon(l)} ${l}</div><div style="font-size:12px;color:var(--muted)">${values[i].toLocaleString('fr-FR')} ₪</div><div style="font-size:11px;color:var(--accent);width:32px;text-align:right">${Math.round(values[i]/total*100)}%</div></div>`).join('');
+}
+function buildBar(labels, incomeData, expData) {
+  if (chartBar) { chartBar.destroy(); chartBar = null; }
+  if (!labels.length) return;
+  const ctx = document.getElementById('chart-bar').getContext('2d');
+  chartBar = new Chart(ctx, { type:'bar', data:{ labels, datasets:[ { label:'Revenus', data:incomeData, backgroundColor:'#2ECC8A55', borderColor:'#2ECC8A', borderWidth:2, borderRadius:6 }, { label:'Dépenses', data:expData, backgroundColor:'#F7506A55', borderColor:'#F7506A', borderWidth:2, borderRadius:6 } ]}, options:{ ...baseOpts(), plugins:{ legend:{ display:true, labels:{color:'#6B7280',font:{size:11},boxWidth:12,padding:16} }, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toLocaleString('fr-FR')} ₪`}} }, scales:{ x:{ticks:{color:'#6B7280',font:{size:10}},grid:{color:'#1E2230'}}, y:{ticks:{color:'#6B7280',font:{size:10},callback:v=>v.toLocaleString('fr-FR')},grid:{color:'#1E2230'}} } } });
+}
+function buildLine(labels, data) {
+  if (chartLine) { chartLine.destroy(); chartLine = null; }
+  if (!labels.length) return;
+  const ctx = document.getElementById('chart-line').getContext('2d');
+  const gradient = ctx.createLinearGradient(0,0,0,200);
+  gradient.addColorStop(0,'#4F8EF744'); gradient.addColorStop(1,'#4F8EF700');
+  chartLine = new Chart(ctx, { type:'line', data:{ labels, datasets:[{ label:'Solde', data, borderColor:'#4F8EF7', borderWidth:2, backgroundColor:gradient, fill:true, tension:0.4, pointRadius:data.length<=20?3:0, pointBackgroundColor:'#4F8EF7' }] }, options:{ ...baseOpts(), plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` Solde: ${c.parsed.y.toLocaleString('fr-FR')} ₪`}} }, scales:{ x:{ticks:{color:'#6B7280',font:{size:10},maxTicksLimit:6},grid:{color:'#1E2230'}}, y:{ticks:{color:'#6B7280',font:{size:10},callback:v=>v.toLocaleString('fr-FR')},grid:{color:'#1E2230'}} } } });
+}
+function switchChart(name, btn) {
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.chart-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+// ===== PROFILE =====
+async function loadProfile() {
+  const el = document.getElementById('profile-content');
+  el.innerHTML = '<div class="spinner"></div>';
+  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  const { count } = await sb.from('transactions').select('*',{count:'exact',head:true}).eq('user_id', currentUser.id);
+  const { count: projCount } = await sb.from('projects').select('*',{count:'exact',head:true}).eq('user_id', currentUser.id);
+  el.innerHTML = `
+    <div class="card fu fu1" style="text-align:center">
+      <div style="width:70px;height:70px;border-radius:20px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px">👤</div>
+      <div class="syne" style="font-size:20px;font-weight:800;margin-bottom:4px">${name}</div>
+      <div style="font-size:12px;color:var(--muted)">${currentUser.email}</div>
+    </div>
+    <div class="card fu fu2">
+      <div class="syne sec-title">Mon activité</div>
+      <div style="display:flex;gap:8px">
+        <div class="stat-mini"><label>Transactions</label><b style="color:var(--accent)">${count||0}</b></div>
+        <div class="stat-mini"><label>Projets IA</label><b style="color:var(--purple)">${projCount||0}</b></div>
+        <div class="stat-mini"><label>Depuis</label><b style="color:var(--green)">${new Date(currentUser.created_at).toLocaleDateString('fr-FR',{month:'short',year:'numeric'})}</b></div>
+      </div>
+    </div>
+
+    <!-- BANK CONNECTION -->
+    <div class="card fu fu3" style="background:var(--yellow-soft);border-color:var(--yellow)">
+      <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:8px">🏦 Connexion bancaire</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:12px">
+        Importez vos transactions directement depuis votre banque israélienne (Hapoalim, Leumi, Discount, Mizrahi, Poalim).
+      </div>
+      <button onclick="showBankImport()" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--yellow);background:transparent;color:var(--yellow);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
+        📂 Importer un fichier CSV bancaire
+      </button>
+    </div>
+
+    <div id="bank-import-section"></div>
+    <div id="family-section"></div>
+
+    <button onclick="handleLogout()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px">
+      Se déconnecter
+    </button>`;
+  loadFamilySection();
+}
+
+// ===== BANK CSV IMPORT =====
+function showBankImport() {
+  const el = document.getElementById('bank-import-section');
+  el.innerHTML = `
+    <div class="card" style="border-color:var(--yellow)">
+      <div class="syne sec-title" style="color:var(--yellow)">📂 Import CSV bancaire</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        Téléchargez votre relevé de compte au format CSV depuis le site de votre banque, puis importez-le ici. Colonnes attendues: <b>Date, Description, Montant</b>
+      </div>
+      <label class="field-label">Banque</label>
+      <select class="select-field" id="bank-name">
+        <option>Bank Hapoalim</option><option>Bank Leumi</option><option>Bank Discount</option>
+        <option>Mizrahi-Tefahot</option><option>Bank Poalim</option><option>Autre</option>
+      </select>
+      <label class="field-label">Fichier CSV</label>
+      <input type="file" accept=".csv" id="csv-file" onchange="previewCSV(this)" style="width:100%;color:var(--muted);font-size:13px;margin-bottom:14px;">
+      <div id="csv-preview"></div>
+    </div>`;
+}
+
+function previewCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    const preview = lines.slice(0, 5);
+    const el = document.getElementById('csv-preview');
+    el.innerHTML = `
+      <div style="font-size:11px;color:var(--green);margin-bottom:8px">✅ ${lines.length} lignes détectées</div>
+      <div style="font-size:10px;color:var(--muted);background:var(--divider);border-radius:8px;padding:8px;overflow-x:auto;margin-bottom:12px;font-family:monospace">${preview.map(l=>`<div>${l.substring(0,60)}${l.length>60?'...':''}</div>`).join('')}</div>
+      <button onclick="importCSV()" class="submit-btn" style="background:var(--yellow);color:var(--bg)">📥 Importer les transactions</button>`;
+    // Store for import
+    el.setAttribute('data-csv', e.target.result);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+async function importCSV() {
+  const preview = document.getElementById('csv-preview');
+  const csv = preview.getAttribute('data-csv');
+  const bankName = document.getElementById('bank-name').value;
+  if (!csv) return;
+  const lines = csv.split('\n').filter(l => l.trim());
+  const sep = csv.includes(';') ? ';' : ',';
+  let imported = 0;
+  const toInsert = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(sep).map(c => c.trim().replace(/"/g,''));
+    if (cols.length < 3) continue;
+    // Try to parse: date, description, amount
+    const dateStr = cols[0];
+    const desc = cols[1] || 'Transaction bancaire';
+    const amtStr = (cols[2] || cols[3] || '0').replace(/,/,'.');
+    const amount = parseFloat(amtStr);
+    if (isNaN(amount)) continue;
+    toInsert.push({
+      user_id: currentUser.id,
+      label: desc,
+      amount: amount,
+      category: 'Divers',
+      ...(currentFamily ? { family_id: currentFamily.id } : {})
+    });
+  }
+  if (toInsert.length === 0) { alert('Aucune transaction valide trouvée dans le fichier.'); return; }
+  const { error } = await sb.from('transactions').insert(toInsert);
+  if (error) { alert('Erreur import: ' + error.message); return; }
+  preview.innerHTML = `<div style="text-align:center;padding:16px;color:var(--green)"><div style="font-size:32px;margin-bottom:8px">✅</div><div class="syne" style="font-size:16px;font-weight:700">${toInsert.length} transactions importées !</div><div style="font-size:12px;color:var(--muted);margin-top:4px">Depuis ${bankName}</div></div>`;
+  await loadDashboard(); await loadTransactions();
+}
+
+// ===== FAMILY =====
+async function loadFamilyData() {
+  const { data } = await sb.from('family_members').select('*, families(*)').eq('user_id', currentUser.id).maybeSingle();
+  if (data?.families) {
+    currentFamily = data.families;
+    const { data: members } = await sb.from('family_members').select('*').eq('family_id', currentFamily.id);
+    familyMembers = members || [];
+  }
+}
+async function loadFamilySection() {
+  const el = document.getElementById('family-section');
+  if (!el) return;
+  if (!currentFamily) {
+    el.innerHTML = `
+      <div class="card" style="border-color:var(--purple);background:var(--purple-soft)">
+        <div class="syne sec-title" style="color:var(--purple)">👨‍👩‍👧 Ma Famille</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">Crée une famille pour partager les dépenses avec tes proches.</p>
+        <label class="field-label">Nom de la famille</label>
+        <input class="field" id="fam-name" placeholder="Ex: Famille Cohen" type="text" style="background:var(--bg)">
+        <button onclick="createFamily()" style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:'Syne',sans-serif;margin-bottom:12px;">✨ Créer ma famille</button>
+        <div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px">— ou rejoindre —</div>
+        <label class="field-label">Code d'invitation</label>
+        <input class="field" id="fam-code" placeholder="FAM-ABC123" type="text" style="background:var(--bg);text-transform:uppercase;letter-spacing:2px">
+        <button onclick="joinFamily()" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--purple);background:transparent;color:var(--purple);font-weight:700;font-size:14px;cursor:pointer;font-family:'Syne',sans-serif;">🔗 Rejoindre</button>
+        <div id="fam-msg" style="margin-top:10px"></div>
+      </div>`; return;
+  }
+  const myRole = familyMembers.find(m => m.user_id === currentUser.id)?.role;
+  el.innerHTML = `
+    <div class="card" style="border-color:var(--purple);background:var(--purple-soft)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="syne sec-title" style="color:var(--purple);margin-bottom:0">👨‍👩‍👧 ${currentFamily.name}</div>
+        <div style="font-size:10px;background:var(--purple);color:#fff;border-radius:20px;padding:2px 8px;font-weight:700">${myRole==='admin'?'👑 Admin':'👤 Membre'}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Code d'invitation</div>
+        <div style="font-size:18px;font-weight:800;letter-spacing:3px;color:var(--purple);font-family:'Syne',sans-serif">${currentFamily.invite_code}</div>
+        <button onclick="navigator.clipboard.writeText('${currentFamily.invite_code}').then(()=>alert('Copié !'))" style="margin-top:8px;background:var(--purple-soft);border:1px solid var(--purple);color:var(--purple);border-radius:8px;padding:5px 14px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600">📋 Copier</button>
+      </div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">Membres (${familyMembers.length})</div>
+      ${familyMembers.map(m=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--divider)"><div style="width:30px;height:30px;border-radius:8px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:13px">${m.user_id===currentFamily.created_by?'👑':'👤'}</div><div style="flex:1"><div style="font-size:12px;font-weight:600">${m.display_name||'Membre'}</div><div style="font-size:10px;color:var(--muted)">Rejoint le ${new Date(m.joined_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</div></div>${m.user_id===currentUser.id?'<div style="font-size:10px;color:var(--accent);font-weight:600">Moi</div>':''}</div>`).join('')}
+      <button onclick="leaveFamily(${myRole==='admin'})" style="width:100%;margin-top:12px;padding:10px;border-radius:10px;border:1px solid var(--red-soft);background:transparent;color:var(--red);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">${myRole==='admin'?'🗑️ Dissoudre la famille':'🚪 Quitter la famille'}</button>
+    </div>`;
+}
 async function createFamily() {
   const name = document.getElementById('fam-name')?.value.trim();
   if (!name) return;
   const code = 'FAM-' + Math.random().toString(36).substring(2,8).toUpperCase();
   const myName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
-
-  const { data: fam, error } = await sb.from('families').insert({
-    name, invite_code: code, created_by: currentUser.id
-  }).select().single();
-
-  if (error) { showFamMsg('Erreur lors de la création.', 'error'); return; }
-
-  await sb.from('family_members').insert({
-    family_id: fam.id, user_id: currentUser.id,
-    display_name: myName, role: 'admin'
-  });
-
+  const { data: fam, error } = await sb.from('families').insert({ name, invite_code: code, created_by: currentUser.id }).select().single();
+  if (error) return;
+  await sb.from('family_members').insert({ family_id: fam.id, user_id: currentUser.id, display_name: myName, role: 'admin' });
   currentFamily = fam;
   familyMembers = [{ family_id: fam.id, user_id: currentUser.id, display_name: myName, role: 'admin', joined_at: new Date().toISOString() }];
   loadFamilySection();
 }
-
 async function joinFamily() {
   const code = document.getElementById('fam-code')?.value.trim().toUpperCase();
   if (!code) return;
   const myName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
-
-  const { data: fam, error } = await sb.from('families').select('*').eq('invite_code', code).maybeSingle();
-  if (error || !fam) { showFamMsg('Code invalide ou introuvable.', 'error'); return; }
-
-  // Vérifier si déjà membre
+  const { data: fam } = await sb.from('families').select('*').eq('invite_code', code).maybeSingle();
+  if (!fam) { const el = document.getElementById('fam-msg'); if(el) el.innerHTML='<div style="font-size:12px;color:var(--red);text-align:center">Code invalide.</div>'; return; }
   const { data: existing } = await sb.from('family_members').select('id').eq('family_id', fam.id).eq('user_id', currentUser.id).maybeSingle();
-  if (existing) { showFamMsg('Tu es déjà dans cette famille.', 'error'); return; }
-
-  const { error: e2 } = await sb.from('family_members').insert({
-    family_id: fam.id, user_id: currentUser.id,
-    display_name: myName, role: 'member'
-  });
-  if (e2) { showFamMsg('Erreur lors de la jonction.', 'error'); return; }
-
+  if (existing) return;
+  await sb.from('family_members').insert({ family_id: fam.id, user_id: currentUser.id, display_name: myName, role: 'member' });
   currentFamily = fam;
   const { data: members } = await sb.from('family_members').select('*').eq('family_id', fam.id);
   familyMembers = members || [];
   loadFamilySection();
 }
-
 async function leaveFamily(dissolve) {
-  const msg = dissolve ? 'Dissoudre la famille ? Tous les membres seront retirés.' : 'Quitter la famille ?';
-  if (!confirm(msg)) return;
-
-  if (dissolve) {
-    await sb.from('families').delete().eq('id', currentFamily.id);
-  } else {
-    await sb.from('family_members').delete().eq('family_id', currentFamily.id).eq('user_id', currentUser.id);
-  }
-  currentFamily = null;
-  familyMembers = [];
+  if (!confirm(dissolve ? 'Dissoudre la famille ?' : 'Quitter la famille ?')) return;
+  if (dissolve) await sb.from('families').delete().eq('id', currentFamily.id);
+  else await sb.from('family_members').delete().eq('family_id', currentFamily.id).eq('user_id', currentUser.id);
+  currentFamily = null; familyMembers = [];
   loadFamilySection();
-}
-
-function copyCode(code) {
-  navigator.clipboard.writeText(code).then(() => alert('Code copié : ' + code));
-}
-
-function showFamMsg(msg, type) {
-  const el = document.getElementById('fam-msg');
-  if (el) el.innerHTML = `<div style="font-size:12px;color:var(--${type==='error'?'red':'green'});text-align:center;padding:6px">${msg}</div>`;
 }
 
 // ===== HELPERS =====
 function getCatIcon(cat) {
-  const icons = { Alimentation:'🛒', Logement:'🏠', Transport:'🚗', Loisirs:'🎮', Santé:'💊', Épargne:'💰', Divers:'📦', Revenus:'💼', Salaire:'💼', Freelance:'💻', Allocations:'🏛️', Cadeau:'🎁', Investissement:'📈' };
+  const icons = { Alimentation:'🛒', Logement:'🏠', Transport:'🚗', Loisirs:'🎮', Santé:'💊', Épargne:'💰', Divers:'📦', Salaire:'💼', Freelance:'💻', Allocations:'🏛️', Cadeau:'🎁', Investissement:'📈' };
   return icons[cat] || '💸';
 }
 function formatDate(d) {
@@ -769,7 +1169,6 @@ function setType(t) {
   const exp = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Divers'];
   const inc = ['Salaire','Freelance','Allocations','Loyer reçu','Cadeau','Investissement','Autre'];
   catSel.innerHTML = (t === 'income' ? inc : exp).map(c => `<option>${c}</option>`).join('');
-  // Masquer le champ description pour les revenus
   const labelWrap = document.getElementById('f-label-wrap');
   if (labelWrap) labelWrap.style.display = t === 'income' ? 'none' : 'block';
   if (t === 'income') document.getElementById('f-label').value = '';
@@ -780,11 +1179,13 @@ function showView(name, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   document.querySelector('.content').scrollTop = 0;
-  if (name === 'stats')     loadStats();
-  if (name === 'profile')   loadProfile();
+  if (name === 'stats') loadStats();
+  if (name === 'profile') loadProfile();
+  if (name === 'projects') loadProjects();
   if (name === 'dashboard') { loadDashboard(); loadTransactions(); }
+  if (name === 'add') loadAiTip();
 }
 
 // ===== INIT =====
