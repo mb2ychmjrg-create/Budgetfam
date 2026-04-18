@@ -1,5 +1,3 @@
-console.log("🚀 App chargée OK");
-
 const sb = supabase.createClient(
 "https://nyywcxcahalxazienuav.supabase.co",
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM"
@@ -13,15 +11,22 @@ async function login() {
 const email = document.getElementById("email").value;
 const password = document.getElementById("password").value;
 
+document.getElementById("authMsg").innerText = "Connexion...";
+
 const { data, error } = await sb.auth.signInWithPassword({
 email,
 password
 });
 
-if (error) return alert(error.message);
+if (error) {
+document.getElementById("authMsg").innerHTML = "<span class='error'>" + error.message + "</span>";
+return;
+}
 
 user = data.user;
-enterApp();
+enter();
+
+document.getElementById("authMsg").innerHTML = "<span class='success'>Connecté ✔</span>";
 }
 
 /* ================= SIGNUP ================= */
@@ -30,46 +35,41 @@ async function signup() {
 const email = document.getElementById("email").value;
 const password = document.getElementById("password").value;
 
-const { error } = await sb.auth.signUp({
-email,
-password
-});
+const { error } = await sb.auth.signUp({ email, password });
 
-if (error) return alert(error.message);
+if (error) {
+document.getElementById("authMsg").innerHTML = "<span class='error'>" + error.message + "</span>";
+return;
+}
 
-alert("Compte créé ✔ connecte-toi");
+document.getElementById("authMsg").innerHTML =
+"<span class='success'>Compte créé ✔ Connecte-toi</span>";
 }
 
 /* ================= ENTER APP ================= */
 
-function enterApp() {
+function enter() {
 document.getElementById("auth").style.display = "none";
 document.getElementById("app").style.display = "block";
 loadTx();
 }
 
-/* ================= ADD TX ================= */
+/* ================= TRANSACTIONS ================= */
 
 async function addTx() {
-if (!user) return alert("Non connecté");
-
 const label = document.getElementById("label").value;
 const amount = document.getElementById("amount").value;
 const cat = document.getElementById("cat").value;
 
-const { error } = await sb.from("transactions").insert({
+await sb.from("transactions").insert({
 user_id: user.id,
 label,
 amount: +amount,
 category: cat
 });
 
-if (error) return alert(error.message);
-
 loadTx();
 }
-
-/* ================= LOAD TX ================= */
 
 async function loadTx() {
 const list = document.getElementById("list");
@@ -78,25 +78,35 @@ list.innerHTML = "";
 const { data, error } = await sb
 .from("transactions")
 .select("*")
+.eq("user_id", user.id)
 .order("id", { ascending: false });
 
-if (error) return console.log(error);
+if (error) {
+list.innerHTML = "<span class='error'>Erreur chargement</span>";
+return;
+}
 
 data.forEach(tx => {
 const div = document.createElement("div");
 div.className = "tx";
-div.innerHTML = `<b>${tx.label}</b><br>${tx.amount} ₪ - ${tx.category}`;
+div.innerHTML = `
+<b>${tx.label}</b><br>
+${tx.amount} ₪ - ${tx.category}
+`;
 list.appendChild(div);
 });
 }
 
-/* ================= PDF IMPORT ================= */
+/* ================= PDF ================= */
 
 async function handleFile(input) {
 const file = input.files[0];
 if (!file) return;
 
-alert("📄 PDF en cours...");
+document.getElementById("pdfStatus").innerText = "Lecture du PDF...";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 const buffer = await file.arrayBuffer();
 const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
@@ -109,33 +119,58 @@ const content = await page.getTextContent();
 text += content.items.map(i => i.str).join(" ") + "\n";
 }
 
-console.log("PDF TEXT:", text);
+document.getElementById("pdfStatus").innerText = "PDF lu ✔ Analyse IA...";
 
-/* extraction simple des montants */
-const matches = text.match(/-?\d+[.,]?\d*/g);
+const result = await askClaude(text.slice(0, 6000));
 
-if (!matches) {
-alert("Aucun montant détecté");
-return;
+document.getElementById("pdfStatus").innerText = "Analyse terminée ✔";
+
+document.getElementById("pdfResult").innerText =
+typeof result === "string" ? result : JSON.stringify(result, null, 2);
 }
 
-let count = 0;
+/* ================= CLAUDE ================= */
 
-for (let m of matches.slice(0, 20)) {
-const amount = parseFloat(m.replace(",", "."));
-if (isNaN(amount)) continue;
+async function askClaude(text) {
+try {
+const r = await fetch("https://api.anthropic.com/v1/messages", {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+"x-api-key": "YOUR_CLAUDE_KEY",
+"anthropic-version": "2023-06-01"
+},
+body: JSON.stringify({
+model: "claude-sonnet-4-20250514",
+max_tokens: 1500,
+messages: [{
+role: "user",
+content: `
+Analyse ce relevé bancaire.
 
-await sb.from("transactions").insert({
-user_id: user.id,
-label: "Import PDF",
-amount,
-category: "Import"
+Retourne JSON:
+[
+{"date":"YYYY-MM-DD","label":"merchant","amount":-123}
+]
+
+TEXTE:
+${text}
+`
+}]
+})
 });
 
-count++;
+const d = await r.json();
+
+if (!d?.content?.[0]?.text) {
+console.log("Erreur Claude:", d);
+return "Erreur analyse IA";
 }
 
-alert("✔ " + count + " transactions importées");
+return d.content[0].text;
 
-loadTx();
+} catch (e) {
+console.log("Erreur API:", e);
+return "Erreur API Claude";
+}
 }
