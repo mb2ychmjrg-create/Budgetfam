@@ -1,155 +1,146 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FinanceAI SaaS V10</title>
+const sb = supabase.createClient(
+"https://nyywcxcahalxazienuav.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM"
+);
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+let user=null;
+let chart=null;
 
-<style>
-body{
-margin:0;
-font-family:system-ui;
-background:#0b0f14;
-color:#e5e7eb;
+// NAV
+function go(p){
+document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+document.getElementById(p).classList.add("active");
 }
 
-header{
-background:#0f172a;
-padding:18px;
-text-align:center;
-font-weight:800;
+// AUTH
+async function login(){
+const email=document.getElementById("email").value;
+const password=document.getElementById("password").value;
+
+const {data,error}=await sb.auth.signInWithPassword({email,password});
+if(error) return;
+
+user=data.user;
+go("home");
+loadTx();
 }
 
-.page{display:none;padding:14px;}
-.active{display:block;}
+async function signup(){
+const email=document.getElementById("email").value;
+const password=document.getElementById("password").value;
 
-.card{
-background:#111827;
-padding:14px;
-border-radius:14px;
-margin-bottom:12px;
-border:1px solid #1f2937;
+await sb.auth.signUp({email,password});
 }
 
-input,select,button{
-width:100%;
-padding:12px;
-margin-top:10px;
-border-radius:10px;
-border:none;
+// ADD TX
+async function addTx(){
+
+const label=document.getElementById("label").value;
+const amount=document.getElementById("amount").value;
+const type=document.getElementById("type").value;
+
+const signed = type==="income" ? +amount : -Math.abs(amount);
+
+await sb.from("transactions").insert({
+user_id:user.id,
+label,
+amount:signed,
+type
+});
+
+loadTx();
 }
 
-input,select{
-background:#0b1220;
-color:white;
-border:1px solid #1f2937;
+// LOAD
+async function loadTx(){
+
+const {data}=await sb
+.from("transactions")
+.select("*")
+.eq("user_id",user.id);
+
+render(data);
+analysis(data);
+draw(data);
 }
 
-button{
-background:#3b82f6;
-color:white;
-font-weight:700;
+// RENDER
+function render(data){
+
+let list=document.getElementById("list");
+list.innerHTML="";
+
+data.forEach(t=>{
+
+list.innerHTML+=`
+<div class="tx">
+<b>${t.label}</b><br>
+${t.amount} ₪
+</div>
+`;
+});
 }
 
-.tx{
-padding:10px 0;
-border-bottom:1px solid #1f2937;
+// IA FINANCE CORE
+function analysis(data){
+
+let income=0;
+let expense=0;
+
+data.forEach(t=>{
+if(t.amount>=0) income+=t.amount;
+else expense+=Math.abs(t.amount);
+});
+
+let balance = income - expense;
+let savingsRate = income>0 ? ((balance/income)*100).toFixed(1) : 0;
+
+// IA INSIGHT LOGIC
+let advice="";
+
+if(balance < 0){
+advice="🚨 Tu dépenses plus que tu gagnes";
+}
+else if(savingsRate < 20){
+advice="⚠️ Faible taux d'épargne (<20%)";
+}
+else{
+advice="📈 Bonne santé financière";
 }
 
-.nav{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-display:flex;
-background:#0f172a;
-border-top:1px solid #1f2937;
+document.getElementById("summary").innerHTML=`
+💚 Revenus: ${income} ₪<br>
+❤️ Dépenses: ${expense} ₪<br>
+💰 Balance: ${balance} ₪<br>
+📊 Épargne: ${savingsRate}%<br>
+`;
+
+document.getElementById("ai").innerHTML=advice;
 }
 
-.nav div{
-flex:1;
-text-align:center;
-padding:12px;
-font-size:12px;
-cursor:pointer;
+// CHART
+function draw(data){
+
+let income=0;
+let expense=0;
+
+data.forEach(t=>{
+if(t.amount>=0) income+=t.amount;
+else expense+=Math.abs(t.amount);
+});
+
+const ctx=document.getElementById("chart").getContext("2d");
+
+if(chart) chart.destroy();
+
+chart=new Chart(ctx,{
+type:"bar",
+data:{
+labels:["Revenus","Dépenses"],
+datasets:[{
+data:[income,expense],
+backgroundColor:["#22c55e","#ef4444"]
+}]
 }
-
-canvas{
-background:#111827;
-border-radius:12px;
-padding:10px;
+});
 }
-</style>
-</head>
-
-<body>
-
-<header>🚀 FinanceAI SaaS V10</header>
-
-<!-- LOGIN -->
-<div id="login" class="page active">
-<div class="card">
-<h3>Connexion SaaS</h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<button onclick="signup()">Signup</button>
-</div>
-</div>
-
-<!-- DASHBOARD -->
-<div id="home" class="page">
-
-<div class="card">
-<h3>📊 Dashboard SaaS</h3>
-<div id="summary"></div>
-</div>
-
-<div class="card">
-<canvas id="chart"></canvas>
-</div>
-
-<div class="card">
-<h3>🧠 IA Finance</h3>
-<div id="ai"></div>
-</div>
-
-<div class="card">
-<h3>📄 Transactions</h3>
-<div id="list"></div>
-</div>
-
-</div>
-
-<!-- ADD -->
-<div id="add" class="page">
-
-<div class="card">
-<h3>➕ Ajouter transaction</h3>
-
-<input id="label" placeholder="Description">
-<input id="amount" type="number" placeholder="Montant">
-
-<select id="type">
-<option value="income">Revenu</option>
-<option value="expense">Dépense</option>
-</select>
-
-<button onclick="addTx()">Ajouter</button>
-</div>
-
-</div>
-
-<!-- NAV -->
-<div class="nav">
-<div onclick="go('home')">🏠 Home</div>
-<div onclick="go('add')">➕ Add</div>
-<div onclick="loadTx()">🔄 Refresh</div>
-</div>
-
-<script src="script.js"></script>
-</body>
-</html>
