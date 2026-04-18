@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam Pro 🚀</title>
+<title>BudgetFam PRO 🚀</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -18,11 +18,10 @@ color:#fff;
 }
 
 header{
-padding:22px;
-font-size:24px;
-font-weight:900;
+padding:20px;
 text-align:center;
-letter-spacing:1px;
+font-size:22px;
+font-weight:900;
 }
 
 .container{
@@ -32,13 +31,12 @@ padding-bottom:40px;
 }
 
 .card{
-background:rgba(255,255,255,0.04);
-backdrop-filter: blur(10px);
+background:rgba(255,255,255,0.05);
 border:1px solid rgba(255,255,255,0.08);
 margin:12px;
 padding:16px;
 border-radius:16px;
-box-shadow:0 10px 30px rgba(0,0,0,0.3);
+backdrop-filter: blur(10px);
 }
 
 input,select{
@@ -48,7 +46,7 @@ margin-top:8px;
 border-radius:10px;
 border:none;
 background:#0f1722;
-color:#fff;
+color:white;
 outline:none;
 }
 
@@ -64,28 +62,21 @@ font-weight:700;
 cursor:pointer;
 }
 
-button:hover{
-opacity:0.9;
-}
+button:hover{opacity:0.9}
 
 .tx{
 padding:10px 0;
 border-bottom:1px solid rgba(255,255,255,0.08);
 }
 
-.small{
-font-size:12px;
-color:#aaa;
-margin-top:6px;
-}
+.small{font-size:12px;color:#aaa}
 
-.title{
-font-size:16px;
+.hidden{display:none}
+
+#stats{
 font-weight:700;
-margin-bottom:8px;
+font-size:14px;
 }
-
-.hidden{display:none;}
 
 </style>
 </head>
@@ -98,20 +89,24 @@ margin-bottom:8px;
 
 <!-- AUTH -->
 <div id="auth" class="card">
-<div class="title">Connexion</div>
+<h3>Connexion</h3>
 
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Mot de passe">
 
-<button onclick="login()">Se connecter</button>
-<button onclick="signup()" style="background:#2ecc71">Créer un compte</button>
+<button onclick="login()">Login</button>
+<button onclick="signup()" style="background:#2ecc71">Signup</button>
 </div>
 
 <!-- APP -->
 <div id="app" class="hidden">
 
 <div class="card">
-<div class="title">Ajouter une dépense</div>
+<div id="stats">Total dépenses: 0 ₪</div>
+</div>
+
+<div class="card">
+<h3>Ajouter dépense</h3>
 
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
@@ -128,13 +123,13 @@ margin-bottom:8px;
 </div>
 
 <div class="card">
-<div class="title">Importer PDF</div>
+<h3>Importer PDF</h3>
 <input type="file" onchange="handleFile(this)">
-<div class="small">Analyse automatique du relevé bancaire</div>
+<div class="small">Analyse relevé bancaire</div>
 </div>
 
 <div class="card">
-<div class="title">Transactions</div>
+<h3>Transactions</h3>
 <div id="list"></div>
 </div>
 
@@ -142,7 +137,131 @@ margin-bottom:8px;
 
 </div>
 
-<script src="script.js"></script>
+<script>
+console.log("BudgetFam loaded");
+
+// ================= SUPABASE =================
+const sb = supabase.createClient(
+"https://nyywcxcahalxazienuav.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM"
+);
+
+let user=null;
+
+// ================= LOGIN =================
+async function login(){
+
+const email=document.getElementById("email").value;
+const password=document.getElementById("password").value;
+
+const {data,error}=await sb.auth.signInWithPassword({
+email,password
+});
+
+if(error){
+alert(error.message);
+return;
+}
+
+user=data.user;
+enter();
+}
+
+// ================= SIGNUP =================
+async function signup(){
+
+const email=document.getElementById("email").value;
+const password=document.getElementById("password").value;
+
+const {error}=await sb.auth.signUp({email,password});
+
+if(error){
+alert(error.message);
+return;
+}
+
+alert("Compte créé");
+}
+
+// ================= ENTER APP =================
+function enter(){
+document.getElementById("auth").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+loadTx();
+calcStats();
+}
+
+// ================= ADD =================
+async function addTx(){
+
+await sb.from("transactions").insert({
+user_id:user.id,
+label:label.value,
+amount:+amount.value,
+category:cat.value
+});
+
+loadTx();
+calcStats();
+}
+
+// ================= LOAD =================
+async function loadTx(){
+
+list.innerHTML="";
+
+const {data}=await sb
+.from("transactions")
+.select("*")
+.eq("user_id",user.id)
+.order("id",{ascending:false});
+
+data?.forEach(t=>{
+const div=document.createElement("div");
+div.className="tx";
+div.innerHTML=`<b>${t.label}</b><br>${t.amount} ₪ • ${t.category}`;
+list.appendChild(div);
+});
+}
+
+// ================= STATS =================
+async function calcStats(){
+
+const {data}=await sb
+.from("transactions")
+.select("amount")
+.eq("user_id",user.id);
+
+const total=data?.reduce((a,b)=>a+(b.amount||0),0)||0;
+
+stats.innerText="Total dépenses: "+total+" ₪";
+}
+
+// ================= PDF =================
+async function handleFile(input){
+
+const file=input.files[0];
+if(!file)return;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const buffer=await file.arrayBuffer();
+const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+
+let text="";
+
+for(let i=1;i<=pdf.numPages;i++){
+const page=await pdf.getPage(i);
+const content=await page.getTextContent();
+text+=content.items.map(x=>x.str).join(" ")+"\n";
+}
+
+console.log("PDF:",text.slice(0,500));
+
+alert("PDF chargé ✔ (debug)");
+}
+</script>
 
 </body>
 </html>
