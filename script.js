@@ -1,4 +1,4 @@
-console.log("🚀 Script chargé OK");
+console.log("🚀 App chargée OK");
 
 const sb = supabase.createClient(
 "https://nyywcxcahalxazienuav.supabase.co",
@@ -10,8 +10,6 @@ let user = null;
 /* ================= LOGIN ================= */
 
 async function login() {
-console.log("➡️ login click");
-
 const email = document.getElementById("email").value;
 const password = document.getElementById("password").value;
 
@@ -20,11 +18,7 @@ email,
 password
 });
 
-if (error) {
-console.log(error);
-alert(error.message);
-return;
-}
+if (error) return alert(error.message);
 
 user = data.user;
 enterApp();
@@ -41,12 +35,9 @@ email,
 password
 });
 
-if (error) {
-alert(error.message);
-return;
-}
+if (error) return alert(error.message);
 
-alert("Compte créé ✔ connecte-toi maintenant");
+alert("Compte créé ✔ connecte-toi");
 }
 
 /* ================= ENTER APP ================= */
@@ -60,7 +51,7 @@ loadTx();
 /* ================= ADD TX ================= */
 
 async function addTx() {
-if (!user) return alert("Pas connecté");
+if (!user) return alert("Non connecté");
 
 const label = document.getElementById("label").value;
 const amount = document.getElementById("amount").value;
@@ -73,11 +64,7 @@ amount: +amount,
 category: cat
 });
 
-if (error) {
-console.log(error);
-alert(error.message);
-return;
-}
+if (error) return alert(error.message);
 
 loadTx();
 }
@@ -93,18 +80,12 @@ const { data, error } = await sb
 .select("*")
 .order("id", { ascending: false });
 
-if (error) {
-console.log(error);
-return;
-}
+if (error) return console.log(error);
 
 data.forEach(tx => {
 const div = document.createElement("div");
 div.className = "tx";
-div.innerHTML = `
-<b>${tx.label}</b><br>
-${tx.amount} ₪ - ${tx.category}
-`;
+div.innerHTML = `<b>${tx.label}</b><br>${tx.amount} ₪ - ${tx.category}`;
 list.appendChild(div);
 });
 }
@@ -115,7 +96,7 @@ async function handleFile(input) {
 const file = input.files[0];
 if (!file) return;
 
-alert("📄 PDF chargé");
+alert("📄 PDF en cours...");
 
 const buffer = await file.arrayBuffer();
 const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
@@ -128,9 +109,33 @@ const content = await page.getTextContent();
 text += content.items.map(i => i.str).join(" ") + "\n";
 }
 
-console.log("📄 TEXTE PDF :", text);
+console.log("PDF TEXT:", text);
 
-window.pdfText = text;
+/* extraction simple des montants */
+const matches = text.match(/-?\d+[.,]?\d*/g);
 
-alert("PDF analysé ✔ (regarde console)");
+if (!matches) {
+alert("Aucun montant détecté");
+return;
+}
+
+let count = 0;
+
+for (let m of matches.slice(0, 20)) {
+const amount = parseFloat(m.replace(",", "."));
+if (isNaN(amount)) continue;
+
+await sb.from("transactions").insert({
+user_id: user.id,
+label: "Import PDF",
+amount,
+category: "Import"
+});
+
+count++;
+}
+
+alert("✔ " + count + " transactions importées");
+
+loadTx();
 }
