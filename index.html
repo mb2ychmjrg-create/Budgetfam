@@ -11,25 +11,23 @@
 <style>
 body{
 margin:0;
-font-family:system-ui,-apple-system;
-background:linear-gradient(135deg,#0A0F14,#111A2E);
+font-family:system-ui;
+background:linear-gradient(135deg,#0A0F14,#111827);
 color:#fff;
 }
 
 header{
 padding:20px;
 font-size:22px;
-font-weight:800;
+font-weight:900;
 text-align:center;
-letter-spacing:0.5px;
 }
 
 .card{
-background:rgba(255,255,255,0.06);
-backdrop-filter: blur(10px);
+background:#161C26;
 margin:12px;
 padding:16px;
-border-radius:16px;
+border-radius:14px;
 box-shadow:0 10px 30px rgba(0,0,0,0.3);
 }
 
@@ -37,37 +35,38 @@ input,button,select{
 width:100%;
 padding:12px;
 margin-top:10px;
-border-radius:12px;
+border-radius:10px;
 border:none;
 font-size:14px;
 }
 
-input,select{
-background:#0f172a;
-color:#fff;
-}
-
 button{
-background:linear-gradient(135deg,#4F8EF7,#6C5CE7);
+background:#4F8EF7;
 color:#fff;
 font-weight:700;
 cursor:pointer;
 }
 
-button:hover{
-opacity:0.9;
-transform:scale(1.02);
-}
+button:hover{opacity:0.9}
+
+#app{display:none}
 
 .tx{
-padding:10px 0;
-border-bottom:1px solid rgba(255,255,255,0.1);
+padding:10px;
+border-bottom:1px solid #222;
 }
 
-.small{
-font-size:12px;
-color:#aaa;
-margin-top:6px;
+.small{font-size:12px;color:#aaa}
+
+.success{color:#2ECC8A}
+.error{color:#ff5c5c}
+
+pre{
+white-space:pre-wrap;
+background:#0f172a;
+padding:10px;
+border-radius:10px;
+margin-top:10px;
 }
 </style>
 </head>
@@ -82,12 +81,13 @@ margin-top:6px;
 <input id="password" type="password" placeholder="Mot de passe">
 <button onclick="login()">Login</button>
 <button onclick="signup()" style="background:#2ECC8A">Signup</button>
+<div id="authMsg" class="small"></div>
 </div>
 
-<div id="app" style="display:none">
+<div id="app">
 
 <div class="card">
-<h3>Ajouter</h3>
+<h3>Ajouter transaction</h3>
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
 <select id="cat">
@@ -101,9 +101,12 @@ margin-top:6px;
 </div>
 
 <div class="card">
-<h3>Import PDF</h3>
-<input type="file" onchange="handleFile(this)">
-<div class="small">PDF bancaire (mode debug)</div>
+<h3>Import PDF bancaire</h3>
+<input type="file" id="file" onchange="handleFile(this)">
+<div class="small">Upload PDF → extraction automatique</div>
+
+<div id="pdfStatus" class="small"></div>
+<pre id="pdfResult"></pre>
 </div>
 
 <div class="card">
@@ -114,6 +117,5 @@ margin-top:6px;
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
