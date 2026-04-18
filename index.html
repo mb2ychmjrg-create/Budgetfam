@@ -3,43 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam Clean V3</title>
+<title>BudgetFam V4</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body{
 margin:0;
-font-family:Arial;
-background:#f4f6fb;
-color:#111;
+font-family:system-ui;
+background:#f5f7fb;
 }
 
-.topbar{
+header{
 background:#111827;
 color:white;
 padding:18px;
-font-size:18px;
-font-weight:bold;
+font-weight:800;
+text-align:center;
 }
 
-.container{
-padding:15px;
-}
+.page{display:none;padding:15px;}
+.active{display:block;}
 
-.box{
+.card{
 background:white;
-border-radius:12px;
-padding:15px;
+border-radius:14px;
+padding:14px;
 margin-bottom:12px;
 box-shadow:0 5px 15px rgba(0,0,0,0.08);
 }
 
-input,button,select{
+input,select,button{
 width:100%;
 padding:12px;
 margin-top:10px;
-border-radius:8px;
+border-radius:10px;
 border:1px solid #ddd;
 }
 
@@ -47,26 +45,41 @@ button{
 background:#2563eb;
 color:white;
 border:none;
-font-weight:bold;
+font-weight:700;
 }
 
-.hidden{display:none;}
-
 .tx{
-padding:8px 0;
+padding:10px 0;
 border-bottom:1px solid #eee;
+}
+
+.bottom-nav{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+display:flex;
+background:white;
+border-top:1px solid #ddd;
+}
+
+.nav-btn{
+flex:1;
+padding:12px;
+text-align:center;
+font-size:12px;
+cursor:pointer;
 }
 
 #debug{
 position:fixed;
-bottom:0;
+bottom:60px;
 left:0;
 right:0;
 background:black;
 color:#00ff88;
 font-size:11px;
-padding:6px;
-height:80px;
+height:60px;
 overflow:auto;
 }
 </style>
@@ -74,42 +87,59 @@ overflow:auto;
 
 <body>
 
-<div class="topbar">💰 BudgetFam CLEAN V3</div>
+<header>💰 BudgetFam V4</header>
 
-<div class="container">
+<div id="debug">DEBUG READY</div>
 
-<div id="auth" class="box">
+<!-- LOGIN -->
+<div id="loginPage" class="page active">
+<div class="card">
 <h3>Connexion</h3>
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
 <button onclick="signup()">Signup</button>
 </div>
-
-<div id="app" class="hidden">
-
-<div class="box">
-<h3>Ajouter transaction</h3>
-<input id="label" placeholder="Label">
-<input id="amount" type="number" placeholder="Amount">
-<select id="cat">
-<option>Food</option>
-<option>Transport</option>
-<option>Other</option>
-</select>
-<button onclick="addTx()">Add</button>
 </div>
 
-<div class="box">
-<h3>Transactions</h3>
+<!-- DASHBOARD -->
+<div id="homePage" class="page">
+
+<div class="card">
+<h3>Résumé</h3>
+<div id="summary">Chargement...</div>
+</div>
+
+<div class="card">
+<h3>Dernières transactions</h3>
 <div id="list"></div>
 </div>
 
 </div>
 
+<!-- ADD -->
+<div id="addPage" class="page">
+
+<div class="card">
+<h3>Ajouter</h3>
+<input id="label" placeholder="Description">
+<input id="amount" type="number" placeholder="Montant">
+<select id="cat">
+<option>Food</option>
+<option>Transport</option>
+<option>Other</option>
+</select>
+<button onclick="addTx()">Ajouter</button>
 </div>
 
-<div id="debug">DEBUG START</div>
+</div>
+
+<!-- NAV -->
+<div class="bottom-nav">
+<div class="nav-btn" onclick="go('homePage')">🏠 Home</div>
+<div class="nav-btn" onclick="go('addPage')">➕ Add</div>
+<div class="nav-btn" onclick="loadTx()">🔄 Refresh</div>
+</div>
 
 <script src="script.js"></script>
 
