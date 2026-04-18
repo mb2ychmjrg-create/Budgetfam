@@ -1,11 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-<title>TEST APP</title>
-</head>
-<body style="background:red;color:white;font-size:30px">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BudgetFam Clean V3</title>
 
-<h1>SI TU VOIS CA → LE FICHIER EST OK</h1>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#f4f6fb;
+color:#111;
+}
+
+.topbar{
+background:#111827;
+color:white;
+padding:18px;
+font-size:18px;
+font-weight:bold;
+}
+
+.container{
+padding:15px;
+}
+
+.box{
+background:white;
+border-radius:12px;
+padding:15px;
+margin-bottom:12px;
+box-shadow:0 5px 15px rgba(0,0,0,0.08);
+}
+
+input,button,select{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:8px;
+border:1px solid #ddd;
+}
+
+button{
+background:#2563eb;
+color:white;
+border:none;
+font-weight:bold;
+}
+
+.hidden{display:none;}
+
+.tx{
+padding:8px 0;
+border-bottom:1px solid #eee;
+}
+
+#debug{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:black;
+color:#00ff88;
+font-size:11px;
+padding:6px;
+height:80px;
+overflow:auto;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">💰 BudgetFam CLEAN V3</div>
+
+<div class="container">
+
+<div id="auth" class="box">
+<h3>Connexion</h3>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="signup()">Signup</button>
+</div>
+
+<div id="app" class="hidden">
+
+<div class="box">
+<h3>Ajouter transaction</h3>
+<input id="label" placeholder="Label">
+<input id="amount" type="number" placeholder="Amount">
+<select id="cat">
+<option>Food</option>
+<option>Transport</option>
+<option>Other</option>
+</select>
+<button onclick="addTx()">Add</button>
+</div>
+
+<div class="box">
+<h3>Transactions</h3>
+<div id="list"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="debug">DEBUG START</div>
+
+<script src="script.js"></script>
 
 </body>
 </html>
