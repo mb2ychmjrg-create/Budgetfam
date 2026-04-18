@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam V4.1</title>
+<title>BudgetFam V6</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -12,26 +12,26 @@
 body{
 margin:0;
 font-family:system-ui;
-background:#f4f6fb;
+background:#0b0f14;
+color:#e5e7eb;
 }
 
 header{
-background:#111827;
-color:white;
+background:#0f172a;
 padding:18px;
 text-align:center;
 font-weight:800;
 }
 
-.page{display:none;padding:12px;}
+.page{display:none;padding:14px;}
 .active{display:block;}
 
 .card{
-background:white;
+background:#111827;
 padding:14px;
 border-radius:14px;
 margin-bottom:12px;
-box-shadow:0 5px 15px rgba(0,0,0,0.08);
+border:1px solid #1f2937;
 }
 
 input,select,button{
@@ -39,32 +39,49 @@ width:100%;
 padding:12px;
 margin-top:10px;
 border-radius:10px;
-border:1px solid #ddd;
+border:none;
+font-size:14px;
+}
+
+input,select{
+background:#0b1220;
+color:white;
+border:1px solid #1f2937;
 }
 
 button{
-background:#2563eb;
+background:#3b82f6;
 color:white;
-border:none;
 font-weight:700;
 }
 
 .tx{
-padding:8px 0;
-border-bottom:1px solid #eee;
+padding:10px 0;
+border-bottom:1px solid #1f2937;
 }
 
-.bottom{
+.badge{
+display:inline-block;
+padding:4px 8px;
+border-radius:6px;
+font-size:11px;
+margin-left:6px;
+}
+
+.income{background:#16a34a;}
+.expense{background:#dc2626;}
+
+.nav{
 position:fixed;
 bottom:0;
 left:0;
 right:0;
 display:flex;
-background:white;
-border-top:1px solid #ddd;
+background:#0f172a;
+border-top:1px solid #1f2937;
 }
 
-.bottom div{
+.nav div{
 flex:1;
 text-align:center;
 padding:12px;
@@ -78,7 +95,7 @@ bottom:60px;
 left:0;
 right:0;
 background:black;
-color:#00ff88;
+color:#22c55e;
 font-size:11px;
 height:70px;
 overflow:auto;
@@ -89,7 +106,7 @@ padding:6px;
 
 <body>
 
-<header>💰 BudgetFam V4.1</header>
+<header>💰 BudgetFam V6</header>
 
 <div id="debug">DEBUG READY</div>
 
@@ -108,12 +125,12 @@ padding:6px;
 <div id="home" class="page">
 
 <div class="card">
-<h3>Résumé</h3>
-<div id="summary">Chargement...</div>
+<h3>📊 Dashboard</h3>
+<div id="summary">...</div>
 </div>
 
 <div class="card">
-<h3>Transactions PDF</h3>
+<h3>📄 Transactions</h3>
 <div id="list"></div>
 </div>
 
@@ -123,26 +140,28 @@ padding:6px;
 <div id="add" class="page">
 
 <div class="card">
-<h3>Ajouter transaction</h3>
+<h3>➕ Ajouter transaction</h3>
+
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
-<select id="cat">
-<option>Food</option>
-<option>Transport</option>
-<option>Other</option>
+
+<select id="type">
+<option value="expense">Dépense</option>
+<option value="income">Revenu</option>
 </select>
+
 <button onclick="addTx()">Ajouter</button>
 </div>
 
 <div class="card">
-<h3>Importer PDF</h3>
+<h3>📥 Import PDF</h3>
 <input type="file" onchange="handleFile(this)">
 </div>
 
 </div>
 
 <!-- NAV -->
-<div class="bottom">
+<div class="nav">
 <div onclick="go('home')">🏠 Home</div>
 <div onclick="go('add')">➕ Add</div>
 <div onclick="loadTx()">🔄 Refresh</div>
