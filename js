@@ -1,41 +1,84 @@
 const sb = supabase.createClient(
 "https://nyywcxcahalxazienuav.supabase.co",
-"YOUR_ANON_KEY"
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM"
 );
 
-let user=null;
+let user = null;
 
-async function login(){
-const {data,error}=await sb.auth.signInWithPassword({
-email:email.value,
-password:password.value
+// LOGIN
+async function login() {
+const email = document.getElementById("email").value;
+const password = document.getElementById("password").value;
+
+const { data, error } = await sb.auth.signInWithPassword({
+email,
+password
 });
-if(error)return alert(error.message);
-user=data.user;
+
+if (error) return alert(error.message);
+
+user = data.user;
 enter();
 }
 
-async function signup(){
-const {error}=await sb.auth.signUp({
-email:email.value,
-password:password.value
+// SIGNUP
+async function signup() {
+const email = document.getElementById("email").value;
+const password = document.getElementById("password").value;
+
+const { error } = await sb.auth.signUp({
+email,
+password
 });
-if(error)return alert(error.message);
-alert("Compte créé");
+
+if (error) return alert(error.message);
+
+alert("Compte créé, connecte-toi !");
 }
 
-function enter(){
-auth.style.display="none";
-app.style.display="block";
+// ENTER APP
+function enter() {
+document.getElementById("auth").style.display = "none";
+document.getElementById("app").style.display = "block";
 loadTx();
 }
 
-async function addTx(){
+// ADD TRANSACTION
+async function addTx() {
+const label = document.getElementById("label").value;
+const amount = document.getElementById("amount").value;
+const cat = document.getElementById("cat").value;
+
 await sb.from("transactions").insert({
-user_id:user.id,
-label:label.value,
-amount:+amount.value,
-category:cat.value
+user_id: user.id,
+label,
+amount: +amount,
+category: cat
 });
+
 loadTx();
+}
+
+// LOAD TRANSACTIONS
+async function loadTx() {
+const list = document.getElementById("list");
+list.innerHTML = "";
+
+const { data } = await sb
+.from("transactions")
+.select("*")
+.eq("user_id", user.id)
+.order("id", { ascending: false });
+
+if (!data) return;
+
+data.forEach(tx => {
+const div = document.createElement("div");
+div.className = "tx";
+div.innerHTML = `
+<b>${tx.label}</b><br>
+${tx.amount} ₪ - ${tx.category}
+`;
+list.appendChild(div);
+});
 }
