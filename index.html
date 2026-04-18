@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam STARTUP AI V2</title>
+<title>BudgetFam V2 🚀</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -12,73 +12,58 @@
 body{
 margin:0;
 font-family:system-ui;
-background:linear-gradient(135deg,#0A0F14,#111A2E);
-color:white;
+background:#0b0f14;
+color:#fff;
 }
 
 header{
-padding:20px;
+padding:18px;
 font-size:22px;
 font-weight:800;
 text-align:center;
 }
 
 .card{
-background:#161C26;
+background:#161c26;
 margin:12px;
-padding:15px;
-border-radius:16px;
-box-shadow:0 10px 25px rgba(0,0,0,0.3);
+padding:14px;
+border-radius:14px;
 }
 
 input,button,select{
 width:100%;
 padding:12px;
-margin-top:10px;
+margin-top:8px;
 border-radius:10px;
 border:none;
 }
 
 button{
-background:#4F8EF7;
+background:#4f8ef7;
 color:white;
 font-weight:700;
 cursor:pointer;
 }
-
-button:hover{opacity:0.9}
 
 .tx{
 padding:8px 0;
 border-bottom:1px solid #222;
 }
 
-.small{
-font-size:12px;
-color:#aaa;
-}
-
-#debug{
-white-space:pre-wrap;
-font-size:12px;
-color:#7CFFB2;
-margin:10px;
-}
+.small{font-size:12px;color:#aaa}
 </style>
 </head>
 
 <body>
 
-<header>🚀 BudgetFam STARTUP AI V2</header>
-
-<div id="debug">Debug ready...</div>
+<header>💰 BudgetFam V2</header>
 
 <div id="auth" class="card">
 <h3>Connexion</h3>
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Mot de passe">
 <button onclick="login()">Login</button>
-<button onclick="signup()" style="background:#2ECC8A">Signup</button>
+<button onclick="signup()" style="background:#2ecc71">Signup</button>
 </div>
 
 <div id="app" style="display:none">
@@ -98,9 +83,9 @@ margin:10px;
 </div>
 
 <div class="card">
-<h3>Import PDF bancaire</h3>
+<h3>Import PDF</h3>
 <input type="file" onchange="handleFile(this)">
-<div class="small">PDF → analyse automatique AI</div>
+<div class="small">Upload relevé bancaire PDF</div>
 </div>
 
 <div class="card">
