@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam V6</title>
+<title>FinanceAI SaaS V10</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
@@ -40,7 +40,6 @@ padding:12px;
 margin-top:10px;
 border-radius:10px;
 border:none;
-font-size:14px;
 }
 
 input,select{
@@ -60,17 +59,6 @@ padding:10px 0;
 border-bottom:1px solid #1f2937;
 }
 
-.badge{
-display:inline-block;
-padding:4px 8px;
-border-radius:6px;
-font-size:11px;
-margin-left:6px;
-}
-
-.income{background:#16a34a;}
-.expense{background:#dc2626;}
-
 .nav{
 position:fixed;
 bottom:0;
@@ -89,31 +77,22 @@ font-size:12px;
 cursor:pointer;
 }
 
-#debug{
-position:fixed;
-bottom:60px;
-left:0;
-right:0;
-background:black;
-color:#22c55e;
-font-size:11px;
-height:70px;
-overflow:auto;
-padding:6px;
+canvas{
+background:#111827;
+border-radius:12px;
+padding:10px;
 }
 </style>
 </head>
 
 <body>
 
-<header>💰 BudgetFam V6</header>
-
-<div id="debug">DEBUG READY</div>
+<header>🚀 FinanceAI SaaS V10</header>
 
 <!-- LOGIN -->
 <div id="login" class="page active">
 <div class="card">
-<h3>Connexion</h3>
+<h3>Connexion SaaS</h3>
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
@@ -121,12 +100,21 @@ padding:6px;
 </div>
 </div>
 
-<!-- HOME -->
+<!-- DASHBOARD -->
 <div id="home" class="page">
 
 <div class="card">
-<h3>📊 Dashboard</h3>
-<div id="summary">...</div>
+<h3>📊 Dashboard SaaS</h3>
+<div id="summary"></div>
+</div>
+
+<div class="card">
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<h3>🧠 IA Finance</h3>
+<div id="ai"></div>
 </div>
 
 <div class="card">
@@ -146,16 +134,11 @@ padding:6px;
 <input id="amount" type="number" placeholder="Montant">
 
 <select id="type">
-<option value="expense">Dépense</option>
 <option value="income">Revenu</option>
+<option value="expense">Dépense</option>
 </select>
 
 <button onclick="addTx()">Ajouter</button>
-</div>
-
-<div class="card">
-<h3>📥 Import PDF</h3>
-<input type="file" onchange="handleFile(this)">
 </div>
 
 </div>
