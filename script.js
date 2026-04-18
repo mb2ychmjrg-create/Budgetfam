@@ -1,146 +1,175 @@
-// ================= SUPABASE =================
+// =======================
+// CONFIG SUPABASE
+// =======================
+const SUPABASE_URL = "https://nyywcxcahalxazienuav.supabase.co";
+const SUPABASE_ANON_KEY = "COLLE_ICI_TA_ANON_KEY_SUPABASE";
 
-const sb = supabase.createClient(
-"https://nyywcxcahalxazienuav.supabase.co",
-"TON_SUPABASE_ANON_KEY"
-);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// =======================
+// DEBUG TOOL
+// =======================
+function log(msg){
+document.getElementById("debug").innerText += "\n" + msg;
+console.log(msg);
+}
+
+// =======================
+// STATE
+// =======================
 let user = null;
-let chart = null;
 
-// ================= LOGIN =================
-
+// =======================
+// LOGIN
+// =======================
 async function login(){
+log("Login attempt...");
+
 const email = document.getElementById("email").value;
 const password = document.getElementById("password").value;
 
-const { data, error } = await sb.auth.signInWithPassword({email,password});
+const { data, error } = await sb.auth.signInWithPassword({
+email,
+password
+});
 
 if(error){
-document.getElementById("msg").innerText = error.message;
+log("LOGIN ERROR: " + error.message);
+alert(error.message);
 return;
 }
 
 user = data.user;
+log("LOGIN OK: " + user.email);
 enter();
 }
 
+// =======================
+// SIGNUP
+// =======================
 async function signup(){
+log("Signup attempt...");
+
 const email = document.getElementById("email").value;
 const password = document.getElementById("password").value;
 
-const { error } = await sb.auth.signUp({email,password});
+const { error } = await sb.auth.signUp({
+email,
+password
+});
 
 if(error){
-document.getElementById("msg").innerText = error.message;
+log("SIGNUP ERROR: " + error.message);
+alert(error.message);
 return;
 }
 
-document.getElementById("msg").innerText = "Compte créé ✔";
+alert("Compte créé → connecte-toi");
+log("SIGNUP OK");
 }
 
-// ================= ENTER =================
-
+// =======================
+// ENTER APP
+// =======================
 function enter(){
-document.getElementById("auth").style.display="none";
-document.getElementById("app").style.display="block";
+document.getElementById("auth").style.display = "none";
+document.getElementById("app").style.display = "block";
 loadTx();
 }
 
-// ================= ADD =================
-
+// =======================
+// ADD TX
+// =======================
 async function addTx(){
+log("Adding transaction...");
 
-await sb.from("transactions").insert({
-user_id:user.id,
-label:label.value,
-amount:+amount.value,
-category:cat.value
+const label = document.getElementById("label").value;
+const amount = document.getElementById("amount").value;
+const cat = document.getElementById("cat").value;
+
+const { error } = await sb.from("transactions").insert({
+user_id: user.id,
+label,
+amount: +amount,
+category: cat
 });
 
+if(error){
+log("DB ERROR: " + error.message);
+alert(error.message);
+return;
+}
+
+log("Transaction added");
 loadTx();
 }
 
-// ================= LOAD =================
-
+// =======================
+// LOAD TX
+// =======================
 async function loadTx(){
+log("Loading transactions...");
 
-const { data } = await sb
+const list = document.getElementById("list");
+list.innerHTML = "";
+
+const { data, error } = await sb
 .from("transactions")
 .select("*")
-.eq("user_id",user.id);
+.eq("user_id", user.id)
+.order("id", { ascending:false });
 
-render(data);
-stats(data);
-drawChart(data);
+if(error){
+log("LOAD ERROR: " + error.message);
+return;
 }
 
-// ================= UI =================
-
-function render(data){
-const list=document.getElementById("list");
-list.innerHTML="";
-
-data.forEach(t=>{
-list.innerHTML+=`
-<div class="tx">
-<b>${t.label}</b><br>
-${t.amount} ₪ - ${t.category}
-</div>
+data.forEach(tx=>{
+const div = document.createElement("div");
+div.className = "tx";
+div.innerHTML = `
+<b>${tx.label}</b><br>
+${tx.amount} ₪ - ${tx.category}
 `;
+list.appendChild(div);
 });
 }
 
-// ================= STATS =================
-
-function stats(data){
-let total=data.reduce((a,b)=>a+Number(b.amount),0);
-
-document.getElementById("total").innerText=total;
-document.getElementById("count").innerText=data.length;
-}
-
-// ================= CHART =================
-
-function drawChart(data){
-
-let c={};
-
-data.forEach(t=>{
-c[t.category]=(c[t.category]||0)+Number(t.amount);
-});
-
-if(chart)chart.destroy();
-
-chart=new Chart(document.getElementById("chart"),{
-type:"doughnut",
-data:{
-labels:Object.keys(c),
-datasets:[{data:Object.values(c)}]
-}
-});
-}
-
-// ================= PDF =================
-
+// =======================
+// PDF HANDLER
+// =======================
 async function handleFile(input){
+const file = input.files[0];
+if(!file) return;
 
-const file=input.files[0];
-if(!file)return;
+log("PDF uploaded: " + file.name);
+
+if(file.name.endsWith(".pdf")){
+await parsePDF(file);
+}else{
+alert("CSV non activé encore");
+}
+}
+
+async function parsePDF(file){
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const buffer=await file.arrayBuffer();
-const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+const buffer = await file.arrayBuffer();
+const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 
-let text="";
+let text = "";
 
 for(let i=1;i<=pdf.numPages;i++){
-const page=await pdf.getPage(i);
-const content=await page.getTextContent();
-text+=content.items.map(x=>x.str).join(" ")+"\n";
+const page = await pdf.getPage(i);
+const content = await page.getTextContent();
+text += content.items.map(x=>x.str).join(" ") + "\n";
 }
 
-document.getElementById("pdfOut").innerText=text.slice(0,2000);
+log("PDF parsed, sending AI...");
+
+// ⚠️ Claude API (OPTIONNEL)
+log("TEXT SAMPLE: " + text.slice(0,200));
+alert("PDF analysé ✔ (voir debug)");
 }
