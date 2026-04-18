@@ -22,11 +22,7 @@ const password=document.getElementById("password").value;
 
 const {data,error}=await sb.auth.signInWithPassword({email,password});
 
-if(error){
-log(error.message);
-alert(error.message);
-return;
-}
+if(error){log(error.message);return;}
 
 user=data.user;
 log("connected");
@@ -40,38 +36,36 @@ const password=document.getElementById("password").value;
 
 const {error}=await sb.auth.signUp({email,password});
 
-if(error){
-log(error.message);
-return;
-}
+if(error){log(error.message);return;}
 
 alert("account created");
 }
 
-// ADD TX
+// ADD TX (REVENU / DEPENSE)
 async function addTx(){
+
 const label=document.getElementById("label").value;
 const amount=document.getElementById("amount").value;
-const cat=document.getElementById("cat").value;
+const type=document.getElementById("type").value;
+
+let signedAmount = type === "income" ? +amount : -Math.abs(amount);
 
 const {error}=await sb.from("transactions").insert({
 user_id:user.id,
 label,
-amount:+amount,
-category:cat
+amount:signedAmount,
+type
 });
 
-if(error){
-log(error.message);
-return;
-}
+if(error){log(error.message);return;}
 
 loadTx();
 go("home");
 }
 
-// LOAD TX
+// LOAD TX + DASHBOARD CLEAN
 async function loadTx(){
+
 if(!user) return;
 
 const list=document.getElementById("list");
@@ -83,28 +77,41 @@ const {data,error}=await sb
 .eq("user_id",user.id)
 .order("id",{ascending:false});
 
-if(error){
-log(error.message);
-return;
-}
+if(error){log(error.message);return;}
 
-let total=0;
+let income=0;
+let expense=0;
 
 data.forEach(tx=>{
-total+=tx.amount;
+
+if(tx.amount>=0) income+=tx.amount;
+else expense+=Math.abs(tx.amount);
 
 const div=document.createElement("div");
 div.className="tx";
-div.innerHTML=`<b>${tx.label}</b><br>${tx.amount} ₪`;
+
+const badge = tx.amount>=0
+? `<span class="badge income">Revenu</span>`
+: `<span class="badge expense">Dépense</span>`;
+
+div.innerHTML=`
+<b>${tx.label}</b> ${badge}<br>
+${tx.amount} ₪
+`;
+
 list.appendChild(div);
 });
 
-document.getElementById("summary").innerHTML =
-"Total: " + total + " ₪";
+document.getElementById("summary").innerHTML=`
+💚 Revenus: ${income} ₪<br>
+❤️ Dépenses: ${expense} ₪<br>
+💰 Balance: ${income-expense} ₪
+`;
 }
 
-// PDF HANDLER
+// PDF
 async function handleFile(input){
+
 const file=input.files[0];
 if(!file) return;
 
@@ -121,57 +128,74 @@ const content=await page.getTextContent();
 text += content.items.map(x=>x.str).join(" ") + "\n";
 }
 
-log("PDF raw extracted");
+log("PDF extracted");
 
-// CLEAN STEP
-const parsed = parsePDF(text);
+// simple parse
+const parsed=parsePDF(text);
 
-log("PDF parsed: "+parsed.length);
+log("parsed: "+parsed.length);
 
 displayPDF(parsed);
 }
 
-// PARSER (IMPORTANT)
+// PARSER
 function parsePDF(text){
 
 let lines=text.split(/\n|\r/);
-
-let result=[];
+let res=[];
 
 lines.forEach(l=>{
 
-let amountMatch=l.match(/-?\d+[.,]?\d*/);
-if(!amountMatch) return;
+let m=l.match(/-?\d+[.,]?\d*/);
+if(!m) return;
 
-let amount=parseFloat(amountMatch[0].replace(",","."));
+let amount=parseFloat(m[0].replace(",","."));
 if(isNaN(amount)) return;
 
-let label=l.replace(amountMatch[0],"").trim();
+let label=l.replace(m[0],"").trim();
 if(label.length<2) return;
 
-result.push({label,amount});
+res.push({
+label,
+amount: amount < 0 ? amount : -amount
+});
 });
 
-return result;
+return res;
 }
 
-// DISPLAY PDF CLEAN
+// DISPLAY PDF
 function displayPDF(data){
 
 const list=document.getElementById("list");
 list.innerHTML="";
 
-let total=0;
+let income=0;
+let expense=0;
 
 data.forEach(t=>{
-total+=t.amount;
+
+if(t.amount>=0) income+=t.amount;
+else expense+=Math.abs(t.amount);
 
 const div=document.createElement("div");
 div.className="tx";
-div.innerHTML=`<b>${t.label}</b><br>${t.amount} ₪`;
+
+const badge = t.amount>=0
+? `<span class="badge income">Revenu</span>`
+: `<span class="badge expense">Dépense</span>`;
+
+div.innerHTML=`
+<b>${t.label}</b> ${badge}<br>
+${t.amount} ₪
+`;
+
 list.appendChild(div);
 });
 
-document.getElementById("summary").innerHTML =
-"PDF total: " + total + " ₪";
+document.getElementById("summary").innerHTML=`
+📄 Revenus: ${income} ₪<br>
+📄 Dépenses: ${expense} ₪<br>
+📊 Balance: ${income-expense} ₪
+`;
 }
