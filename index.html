@@ -9,13 +9,66 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
-body{margin:0;font-family:system-ui;background:#0A0F14;color:#fff}
-header{padding:18px;font-size:20px;font-weight:800}
-.card{background:#161C26;margin:10px;padding:14px;border-radius:14px}
-input,button,select{width:100%;padding:12px;margin-top:8px;border-radius:10px;border:none}
-button{background:#4F8EF7;color:#fff;font-weight:700}
-.tx{padding:8px 0;border-bottom:1px solid #222}
-.small{font-size:12px;color:#aaa}
+body{
+margin:0;
+font-family:system-ui,-apple-system;
+background:linear-gradient(135deg,#0A0F14,#111A2E);
+color:#fff;
+}
+
+header{
+padding:20px;
+font-size:22px;
+font-weight:800;
+text-align:center;
+letter-spacing:0.5px;
+}
+
+.card{
+background:rgba(255,255,255,0.06);
+backdrop-filter: blur(10px);
+margin:12px;
+padding:16px;
+border-radius:16px;
+box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+input,button,select{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:12px;
+border:none;
+font-size:14px;
+}
+
+input,select{
+background:#0f172a;
+color:#fff;
+}
+
+button{
+background:linear-gradient(135deg,#4F8EF7,#6C5CE7);
+color:#fff;
+font-weight:700;
+cursor:pointer;
+}
+
+button:hover{
+opacity:0.9;
+transform:scale(1.02);
+}
+
+.tx{
+padding:10px 0;
+border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+.small{
+font-size:12px;
+color:#aaa;
+margin-top:6px;
+}
 </style>
 </head>
 
