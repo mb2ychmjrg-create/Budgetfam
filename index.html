@@ -1,3 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FinanceAI V11 Israel</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+background:#07070c;
+color:white;
+padding-bottom:90px;
+}
+
+header{
+padding:18px;
+font-size:24px;
+font-weight:800;
+background:linear-gradient(90deg,#5b21b6,#7c3aed,#9333ea);
+text-align:center;
+box-shadow:0 0 20px rgba(139,92,246,.4);
+}
+
+.page{
+display:none;
+padding:14px;
+}
+
+.active{
+display:block;
+}
+
+.card{
+background:#11111a;
+border:1px solid #232336;
+border-radius:18px;
+padding:16px;
+margin-bottom:14px;
+box-shadow:0 0 18px rgba(124,58,237,.12);
+}
+
+.title{
+font-size:18px;
+font-weight:700;
+margin-bottom:10px;
+}
+
+.stats{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-top:10px;
+}
+
+.box{
+background:#191927;
+padding:12px;
+border-radius:14px;
+text-align:center;
+}
+
+.big{
+font-size:22px;
+font-weight:800;
+margin-top:6px;
+}
+
+.green{color:#22c55e}
+.red{color:#ef4444}
+.purple{color:#a855f7}
+
+input,select,button{
+width:100%;
+padding:14px;
+margin-top:10px;
+border:none;
+border-radius:14px;
+font-size:16px;
+}
+
+input,select{
+background:#191927;
+color:white;
+}
+
+button{
+background:linear-gradient(90deg,#7c3aed,#9333ea);
+color:white;
+font-weight:700;
+}
+
+.tx{
+padding:12px 0;
+border-bottom:1px solid #222236;
+}
+
+.small{
+font-size:13px;
+opacity:.7;
+}
+
+.nav{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+height:72px;
+display:flex;
+background:#0d0d14;
+border-top:1px solid #232336;
+}
+
+.nav div{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:15px;
+font-weight:700;
+color:#cfcfe8;
+}
+
+canvas{
+max-height:260px;
+}
+
+.tag{
+display:inline-block;
+padding:4px 8px;
+font-size:11px;
+border-radius:999px;
+background:#27273c;
+margin-top:6px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🚀 FinanceAI V11</header>
+
+<!-- LOGIN -->
+<div id="login" class="page active">
+
+<div class="card">
+<div class="title">Connexion</div>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">Login</button>
+<button onclick="signup()">Créer compte</button>
+</div>
+
+</div>
+
+<!-- HOME -->
+<div id="home" class="page">
+
+<div class="card">
+<div class="title">Dashboard</div>
+
+<div class="stats">
+<div class="box">
+<div class="small">Revenus</div>
+<div class="big green" id="income">0 ₪</div>
+</div>
+
+<div class="box">
+<div class="small">Dépenses</div>
+<div class="big red" id="expense">0 ₪</div>
+</div>
+
+<div class="box">
+<div class="small">Balance</div>
+<div class="big purple" id="balance">0 ₪</div>
+</div>
+
+<div class="box">
+<div class="small">Transactions</div>
+<div class="big" id="count">0</div>
+</div>
+</div>
+
+</div>
+
+<div class="card">
+<div class="title">Catégories</div>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<div class="title">IA Finance</div>
+<div id="ai">Analyse en attente...</div>
+</div>
+
+<div class="card">
+<div class="title">Transactions</div>
+<div id="list"></div>
+</div>
+
+</div>
+
+<!-- ADD -->
+<div id="add" class="page">
+
+<div class="card">
+<div class="title">Ajouter transaction</div>
+
+<select id="type">
+<option value="income">Revenu</option>
+<option value="expense">Dépense</option>
+</select>
+
+<select id="category">
+<option value="Salaire">Salaire</option>
+<option value="Courses">Courses</option>
+<option value="Transport">Transport</option>
+<option value="Santé">Santé</option>
+<option value="Restaurant">Restaurant</option>
+<option value="Shopping">Shopping</option>
+<option value="Maison">Maison</option>
+<option value="Divers">Divers</option>
+</select>
+
+<input id="amount" type="number" placeholder="Montant ₪">
+<input id="label" placeholder="Description">
+
+<button onclick="addTx()">Ajouter</button>
+
+</div>
+
+</div>
+
+<!-- STATS -->
+<div id="statsPage" class="page">
+
+<div class="card">
+<div class="title">Résumé</div>
+<div id="resume"></div>
+</div>
+
+</div>
+
+<!-- SETTINGS -->
+<div id="settings" class="page">
+
+<div class="card">
+<div class="title">Paramètres</div>
+Mode Israël 🇮🇱<br><br>
+Devise : ₪
+</div>
+
+</div>
+
+<!-- NAV -->
+<div class="nav">
+<div onclick="go('home')">🏠 Home</div>
+<div onclick="go('add')">➕ Add</div>
+<div onclick="go('statsPage')">📊 Stats</div>
+<div onclick="go('settings')">⚙️</div>
+</div>
+
+<script>
 const sb = supabase.createClient(
 "https://nyywcxcahalxazienuav.supabase.co",
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM"
@@ -6,141 +277,196 @@ const sb = supabase.createClient(
 let user=null;
 let chart=null;
 
-// NAV
-function go(p){
-document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-document.getElementById(p).classList.add("active");
+function go(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
-// AUTH
+async function signup(){
+const email=emailEl().value;
+const password=passEl().value;
+await sb.auth.signUp({email,password});
+alert("Compte créé");
+}
+
 async function login(){
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
+const email=emailEl().value;
+const password=passEl().value;
 
 const {data,error}=await sb.auth.signInWithPassword({email,password});
-if(error) return;
+
+if(error){
+alert(error.message);
+return;
+}
 
 user=data.user;
 go("home");
 loadTx();
 }
 
-async function signup(){
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
+function emailEl(){return document.getElementById("email")}
+function passEl(){return document.getElementById("password")}
 
-await sb.auth.signUp({email,password});
-}
-
-// ADD TX
 async function addTx(){
 
-const label=document.getElementById("label").value;
-const amount=document.getElementById("amount").value;
-const type=document.getElementById("type").value;
+const type = val("type");
+const category = val("category");
+const amount = Number(val("amount"));
+const label = val("label");
 
-const signed = type==="income" ? +amount : -Math.abs(amount);
+const signed = type==="income" ? amount : -Math.abs(amount);
 
 await sb.from("transactions").insert({
 user_id:user.id,
-label,
+label:label || category,
 amount:signed,
-type
+type,
+category
 });
 
 loadTx();
+go("home");
 }
 
-// LOAD
+function val(id){
+return document.getElementById(id).value;
+}
+
 async function loadTx(){
 
-const {data}=await sb
+const {data,error}=await sb
 .from("transactions")
 .select("*")
-.eq("user_id",user.id);
+.eq("user_id",user.id)
+.order("id",{ascending:false});
 
-render(data);
-analysis(data);
-draw(data);
+if(error){
+alert(error.message);
+return;
 }
 
-// RENDER
+render(data);
+}
+
 function render(data){
 
-let list=document.getElementById("list");
-list.innerHTML="";
+let income=0;
+let expense=0;
+let list="";
+let cats={};
 
 data.forEach(t=>{
 
-list.innerHTML+=`
+if(t.amount>=0) income+=t.amount;
+else expense+=Math.abs(t.amount);
+
+let cat=t.category || detectIsraelCategory(t.label);
+
+cats[cat]=(cats[cat]||0)+Math.abs(t.amount);
+
+const color=t.amount>=0?"green":"red";
+const sign=t.amount>=0?"+":"";
+
+list+=`
 <div class="tx">
 <b>${t.label}</b><br>
-${t.amount} ₪
+<span class="${color}">${sign}${t.amount} ₪</span>
+<div class="tag">${cat}</div>
 </div>
 `;
 });
+
+document.getElementById("list").innerHTML=list || "Aucune transaction";
+
+document.getElementById("income").innerHTML=income+" ₪";
+document.getElementById("expense").innerHTML=expense+" ₪";
+document.getElementById("balance").innerHTML=(income-expense)+" ₪";
+document.getElementById("count").innerHTML=data.length;
+
+makeChart(cats);
+makeAI(income,expense,cats);
+makeResume(income,expense,data.length);
 }
 
-// IA FINANCE CORE
-function analysis(data){
-
-let income=0;
-let expense=0;
-
-data.forEach(t=>{
-if(t.amount>=0) income+=t.amount;
-else expense+=Math.abs(t.amount);
-});
-
-let balance = income - expense;
-let savingsRate = income>0 ? ((balance/income)*100).toFixed(1) : 0;
-
-// IA INSIGHT LOGIC
-let advice="";
-
-if(balance < 0){
-advice="🚨 Tu dépenses plus que tu gagnes";
-}
-else if(savingsRate < 20){
-advice="⚠️ Faible taux d'épargne (<20%)";
-}
-else{
-advice="📈 Bonne santé financière";
+function makeResume(i,e,c){
+document.getElementById("resume").innerHTML=
+"Revenus : "+i+" ₪<br>Dépenses : "+e+" ₪<br>Total transactions : "+c;
 }
 
-document.getElementById("summary").innerHTML=`
-💚 Revenus: ${income} ₪<br>
-❤️ Dépenses: ${expense} ₪<br>
-💰 Balance: ${balance} ₪<br>
-📊 Épargne: ${savingsRate}%<br>
-`;
+function makeAI(i,e,cats){
 
-document.getElementById("ai").innerHTML=advice;
+let txt="";
+
+if(e>i) txt+="🚨 Dépenses supérieures aux revenus<br>";
+else txt+="📈 Situation saine<br>";
+
+let maxCat="";
+let maxVal=0;
+
+for(let k in cats){
+if(cats[k]>maxVal){
+maxVal=cats[k];
+maxCat=k;
+}
 }
 
-// CHART
-function draw(data){
+if(maxCat){
+txt+="💡 Plus gros poste : "+maxCat+" ("+maxVal+" ₪)";
+}
 
-let income=0;
-let expense=0;
+document.getElementById("ai").innerHTML=txt;
+}
 
-data.forEach(t=>{
-if(t.amount>=0) income+=t.amount;
-else expense+=Math.abs(t.amount);
-});
+function makeChart(cats){
 
 const ctx=document.getElementById("chart").getContext("2d");
 
 if(chart) chart.destroy();
 
 chart=new Chart(ctx,{
-type:"bar",
+type:"doughnut",
 data:{
-labels:["Revenus","Dépenses"],
+labels:Object.keys(cats),
 datasets:[{
-data:[income,expense],
-backgroundColor:["#22c55e","#ef4444"]
+data:Object.values(cats),
+backgroundColor:[
+"#8b5cf6",
+"#22c55e",
+"#ef4444",
+"#3b82f6",
+"#f59e0b",
+"#ec4899",
+"#14b8a6",
+"#a3e635"
+]
 }]
+},
+options:{
+plugins:{
+legend:{
+labels:{color:"white"}
+}
+}
 }
 });
 }
+
+function detectIsraelCategory(txt){
+
+if(!txt) return "Divers";
+
+txt=txt.toLowerCase();
+
+if(txt.includes("שופרסל") || txt.includes("רמי") || txt.includes("ויקטורי")) return "Courses";
+if(txt.includes("gett") || txt.includes("rav") || txt.includes("אגד")) return "Transport";
+if(txt.includes("wolt") || txt.includes("tenbis") || txt.includes("aroma")) return "Restaurant";
+if(txt.includes("משכורת") || txt.includes("salary")) return "Salaire";
+if(txt.includes("super pharm")) return "Santé";
+
+return "Divers";
+}
+</script>
+
+</body>
+</html>
