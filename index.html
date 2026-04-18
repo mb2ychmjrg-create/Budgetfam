@@ -3,32 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam PRO 💰</title>
+<title>BudgetFam Pro 💳</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
 margin:0;
 font-family:system-ui;
-background:linear-gradient(135deg,#0A0F14,#111827);
-color:#fff;
+background:#0b1220;
+color:white;
 }
 
 header{
 padding:20px;
 font-size:22px;
-font-weight:900;
+font-weight:800;
 text-align:center;
 }
 
+.container{
+max-width:900px;
+margin:auto;
+padding:10px;
+}
+
 .card{
-background:#161C26;
-margin:12px;
+background:#151c2c;
 padding:16px;
-border-radius:14px;
-box-shadow:0 10px 30px rgba(0,0,0,0.3);
+border-radius:16px;
+margin-bottom:12px;
 }
 
 input,button,select{
@@ -37,57 +43,64 @@ padding:12px;
 margin-top:10px;
 border-radius:10px;
 border:none;
-font-size:14px;
 }
 
 button{
-background:#4F8EF7;
-color:#fff;
+background:#4f8ef7;
+color:white;
 font-weight:700;
 cursor:pointer;
 }
 
-button:hover{opacity:0.9}
-
-#app{display:none}
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
 
 .tx{
+background:#0f172a;
 padding:10px;
-border-bottom:1px solid #222;
+margin-top:8px;
+border-radius:10px;
 }
 
 .small{font-size:12px;color:#aaa}
 
-.success{color:#2ECC8A}
-.error{color:#ff5c5c}
-
-pre{
-white-space:pre-wrap;
-background:#0f172a;
-padding:10px;
-border-radius:10px;
-margin-top:10px;
-}
+#app{display:none}
 </style>
 </head>
 
 <body>
 
-<header>💰 BudgetFam PRO</header>
+<header>💳 BudgetFam PRO</header>
 
+<div class="container">
+
+<!-- LOGIN -->
 <div id="auth" class="card">
 <h3>Connexion</h3>
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Mot de passe">
 <button onclick="login()">Login</button>
-<button onclick="signup()" style="background:#2ECC8A">Signup</button>
-<div id="authMsg" class="small"></div>
+<button onclick="signup()" style="background:#2ecc8a">Signup</button>
+<div id="msg" class="small"></div>
 </div>
 
+<!-- APP -->
 <div id="app">
 
 <div class="card">
-<h3>Ajouter transaction</h3>
+<h3>💰 Résumé</h3>
+<div class="grid">
+<div>Total dépenses: <b id="total">0</b> ₪</div>
+<div>Transactions: <b id="count">0</b></div>
+</div>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<h3>➕ Ajouter</h3>
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
 <select id="cat">
@@ -101,17 +114,17 @@ margin-top:10px;
 </div>
 
 <div class="card">
-<h3>Import PDF bancaire</h3>
-<input type="file" id="file" onchange="handleFile(this)">
-<div class="small">Upload PDF → extraction automatique</div>
-
-<div id="pdfStatus" class="small"></div>
-<pre id="pdfResult"></pre>
+<h3>📄 PDF Bank</h3>
+<input type="file" onchange="handleFile(this)">
+<div class="small">Analyse automatique IA</div>
+<pre id="pdfOut"></pre>
 </div>
 
 <div class="card">
-<h3>Transactions</h3>
+<h3>📜 Transactions</h3>
 <div id="list"></div>
+</div>
+
 </div>
 
 </div>
