@@ -9,45 +9,36 @@ function log(t){
 document.getElementById("debug").innerHTML += "<br>"+t;
 }
 
-// LOGIN
+// NAV
+function go(page){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(page).classList.add("active");
+}
+
+// AUTH
 async function login(){
-log("login...");
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
+const email=emailInput().value;
+const password=passInput().value;
 
 const {data,error}=await sb.auth.signInWithPassword({email,password});
 
-if(error){
-log(error.message);
-alert(error.message);
-return;
-}
+if(error){log(error.message);return;}
 
 user=data.user;
-log("OK logged");
-enter();
+log("connected");
+go("homePage");
+loadTx();
 }
 
-// SIGNUP
 async function signup(){
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
+const email=emailInput().value;
+const password=passInput().value;
 
 const {error}=await sb.auth.signUp({email,password});
 
-if(error){
-log(error.message);
-return;
-}
+if(error){log(error.message);return;}
 
 alert("account created");
-}
-
-// ENTER
-function enter(){
-document.getElementById("auth").classList.add("hidden");
-document.getElementById("app").classList.remove("hidden");
-loadTx();
 }
 
 // ADD
@@ -63,33 +54,42 @@ amount:+amount,
 category:cat
 });
 
-if(error){
-log(error.message);
-return;
-}
+if(error){log(error.message);return;}
 
 loadTx();
+go("homePage");
 }
 
 // LOAD
 async function loadTx(){
+if(!user) return;
+
 const list=document.getElementById("list");
 list.innerHTML="";
 
 const {data,error}=await sb
 .from("transactions")
 .select("*")
-.eq("user_id",user.id);
+.eq("user_id",user.id)
+.order("id",{ascending:false});
 
-if(error){
-log(error.message);
-return;
-}
+if(error){log(error.message);return;}
+
+let total=0;
 
 data.forEach(tx=>{
+total+=tx.amount;
+
 const div=document.createElement("div");
 div.className="tx";
-div.innerHTML=`${tx.label} - ${tx.amount}`;
+div.innerHTML=`<b>${tx.label}</b><br>${tx.amount} ₪`;
 list.appendChild(div);
 });
+
+document.getElementById("summary").innerHTML =
+"Total: " + total + " ₪";
 }
+
+// helpers
+function emailInput(){return document.getElementById("email");}
+function passInput(){return document.getElementById("password");}
