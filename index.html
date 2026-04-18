@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -195,11 +196,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div id="bank-instructions" style="font-size:12px;color:var(--muted);line-height:1.8"></div>
   </div>
 
-  <!-- Import CSV -->
+  <!-- Import PDF / CSV -->
   <div class="card fu fu3">
     <div class="syne sec-title">📤 Importer le fichier</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Formats acceptés : CSV, Excel (.xlsx), TXT</div>
-    <input type="file" accept=".csv,.xlsx,.xls,.txt" id="csv-file" onchange="handleCSVImport(this)" style="width:100%;color:var(--muted);font-size:13px;padding:12px;background:var(--divider);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">✅ PDF · CSV · Excel — tous formats acceptés</div>
+
+    <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;background:var(--divider);border:2px dashed var(--border);border-radius:16px;cursor:pointer;margin-bottom:12px;transition:all .2s" onclick="document.getElementById('file-input').click()">
+      <div style="font-size:36px;margin-bottom:8px">📄</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Appuie ici pour choisir ton relevé</div>
+      <div style="font-size:11px;color:var(--muted)">Relevé PDF · fichier CSV · Excel</div>
+    </label>
+    <input type="file" accept=".pdf,.csv,.xlsx,.xls,.txt" id="file-input" onchange="handleFileImport(this)" style="display:none">
+
     <div id="csv-status"></div>
   </div>
 
@@ -486,100 +494,214 @@ function showBankInstructions(bank) {
   el.innerHTML = steps[bank] ? `<div style="padding:10px 0">${steps[bank]}</div>` : '';
 }
 
-// ── CSV IMPORT AVEC AUTO-CATÉGORISATION ───────────────────────
-async function handleCSVImport(input) {
+// ── IMPORT UNIVERSEL : PDF + CSV + Excel ──────────────────────
+async function handleFileImport(input) {
   const file = input.files[0];
   if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'pdf') {
+    await handlePDFImport(file);
+  } else {
+    await handleCSVImport(file);
+  }
+  input.value = '';
+}
+
+// ── PDF IMPORT via PDF.js + Claude ───────────────────────────
+async function handlePDFImport(file) {
   const statusEl = document.getElementById('csv-status');
-  statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--accent-soft);border-radius:12px;font-size:12px;color:var(--accent)"><div class="spinner" style="margin:0;flex-shrink:0"></div>Lecture du fichier...</div>`;
+  statusEl.innerHTML = showProgress('📄 Lecture du PDF...');
+
+  try {
+    // Set PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // Read file as ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    // Extract all text from all pages
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      // Join items with spaces, preserve line structure
+      const pageText = content.items.map(item => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+
+    if (!fullText.trim()) {
+      statusEl.innerHTML = showError('Le PDF est vide ou scanné (image). Essaie de télécharger le PDF depuis ton espace en ligne, pas un scan papier.');
+      return;
+    }
+
+    statusEl.innerHTML = showProgress(`🤖 Claude analyse ton relevé PDF (${pdf.numPages} page${pdf.numPages>1?'s':''})...`);
+
+    // Send to Claude to extract transactions
+    const transactions = await claudeParsePDF(fullText, file.name);
+
+    if (!transactions || transactions.length === 0) {
+      statusEl.innerHTML = showError('Aucune transaction trouvée. Assure-toi que c\'est bien un relevé de compte (תנועות בחשבון).');
+      return;
+    }
+
+    await saveTransactions(transactions, file.name, statusEl);
+
+  } catch (err) {
+    console.error(err);
+    statusEl.innerHTML = showError('Erreur lecture PDF: ' + err.message);
+  }
+}
+
+// ── Claude extrait les transactions du texte PDF ──────────────
+async function claudeParsePDF(pdfText, fileName) {
+  // Truncate if too long (keep first 6000 chars — enough for ~3 months)
+  const text = pdfText.substring(0, 6000);
+
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: `Voici le texte brut d'un relevé bancaire israélien (PDF). Extrais TOUTES les transactions.
+
+TEXTE DU RELEVÉ:
+${text}
+
+Réponds UNIQUEMENT avec un JSON valide, sans texte avant ou après:
+[
+  {"date": "2024-03-15", "label": "SHUFERSAL", "amount": -342.50},
+  {"date": "2024-03-14", "label": "SALARY", "amount": 12500.00}
+]
+
+Règles importantes:
+- amount négatif = dépense (חיוב / זכות לטובת)  
+- amount positif = revenu/crédit (זכות / הפקדה)
+- date au format YYYY-MM-DD
+- label = nom du marchand/description exacte du relevé
+- Inclure TOUTES les lignes avec un montant
+- Si tu ne trouves pas de transactions, retourne []`
+      }]
+    })
+  });
+
+  const d = await r.json();
+  const raw = d.content?.[0]?.text || '[]';
+
+  try {
+    // Strip any markdown code blocks if present
+    const clean = raw.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(clean);
+  } catch {
+    return [];
+  }
+}
+
+// ── CSV IMPORT ────────────────────────────────────────────────
+async function handleCSVImport(file) {
+  const statusEl = document.getElementById('csv-status');
+  statusEl.innerHTML = showProgress('Lecture du fichier...');
 
   const reader = new FileReader();
   reader.onload = async e => {
     const text = e.target.result;
-    const lines = text.split('\n').filter(l=>l.trim());
-    if (lines.length < 2) { statusEl.innerHTML='<div style="color:var(--red);font-size:12px;padding:8px">Fichier vide ou non reconnu.</div>'; return; }
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { statusEl.innerHTML = showError('Fichier vide ou non reconnu.'); return; }
 
-    // Detect separator
+    statusEl.innerHTML = showProgress(`🤖 Catégorisation IA de ${lines.length - 1} lignes...`);
+
     const sep = text.includes(';') ? ';' : ',';
     const toInsert = [];
     let aiCount = 0;
 
-    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--accent-soft);border-radius:12px;font-size:12px;color:var(--accent)"><div class="spinner" style="margin:0;flex-shrink:0"></div>🤖 Catégorisation IA de ${lines.length-1} transactions...</div>`;
-
-    for (let i=1; i<lines.length; i++) {
-      const cols = lines[i].split(sep).map(c=>c.trim().replace(/^"|"$/g,''));
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
       if (cols.length < 2) continue;
-
-      // Try multiple column layouts (banks differ)
-      let dateStr = '', desc = '', amount = 0;
-
-      // Layout 1: Date | Description | Amount
-      // Layout 2: Date | Description | Debit | Credit
-      dateStr = cols[0] || '';
-      desc = cols[1] || cols[2] || '';
-
-      // Find amount — last numeric column
-      for (let c=cols.length-1; c>=1; c--) {
-        const val = parseFloat(cols[c].replace(/,/,'.').replace(/[^\d\-\.]/g,''));
+      const dateStr = cols[0] || '';
+      const desc = cols[1] || cols[2] || '';
+      let amount = 0;
+      for (let c = cols.length - 1; c >= 1; c--) {
+        const val = parseFloat(cols[c].replace(/,/, '.').replace(/[^\d\-\.]/g, ''));
         if (!isNaN(val) && val !== 0) { amount = val; break; }
       }
+      if (!amount || isNaN(amount) || !desc || desc.length < 2) continue;
 
-      if (!amount || isNaN(amount)) continue;
-      if (!desc || desc.length < 2) continue;
-
-      // Categorize — local first, Claude for unknowns (max 20 AI calls per import)
       let category = localCategorize(desc, amount);
-      if ((category==='Divers'||category==='Salaire') && aiCount < 20) {
+      if ((category === 'Divers' || category === 'Salaire') && aiCount < 20) {
         category = await claudeCategorize(desc, amount);
         aiCount++;
       }
 
-      // Parse date
       let txDate = new Date();
       try {
         if (dateStr) {
-          // Handle DD/MM/YYYY or YYYY-MM-DD
           const parts = dateStr.includes('/') ? dateStr.split('/').reverse().join('-') : dateStr;
           const parsed = new Date(parts);
           if (!isNaN(parsed)) txDate = parsed;
         }
       } catch {}
 
-      toInsert.push({
-        user_id: currentUser.id,
-        label: desc.substring(0,120),
-        amount: amount,
-        category: category,
-        created_at: txDate.toISOString(),
-      });
+      toInsert.push({ user_id: currentUser.id, label: desc.substring(0, 120), amount, category, created_at: txDate.toISOString() });
     }
 
-    if (!toInsert.length) {
-      statusEl.innerHTML='<div style="color:var(--red);font-size:12px;padding:8px">⚠️ Aucune transaction reconnue. Vérifie le format du fichier.</div>';
-      return;
-    }
-
-    const { error } = await sb.from('transactions').insert(toInsert);
-    if (error) { statusEl.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px">Erreur: ${error.message}</div>`; return; }
-
-    // Save import history
-    const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-    history.unshift({ date: new Date().toISOString(), count: toInsert.length, file: file.name, aiCount });
-    localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,10)));
-
-    statusEl.innerHTML=`
-      <div style="text-align:center;padding:16px;background:var(--green-soft);border-radius:12px;border:1px solid var(--green)">
-        <div style="font-size:28px;margin-bottom:8px">✅</div>
-        <div style="font-weight:700;color:var(--green);font-size:15px">${toInsert.length} transactions importées !</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px">${aiCount} catégorisées par Claude IA · ${toInsert.length-aiCount} reconnues instantanément</div>
-      </div>`;
-
-    input.value = '';
-    await loadDashboard();
-    await loadTransactions();
-    loadImportHistory();
+    if (!toInsert.length) { statusEl.innerHTML = showError('Aucune transaction reconnue dans ce fichier.'); return; }
+    await saveTransactions(toInsert, file.name, statusEl);
   };
   reader.readAsText(file, 'UTF-8');
+}
+
+// ── Sauvegarde + affichage résultat ──────────────────────────
+async function saveTransactions(transactions, fileName, statusEl) {
+  // If coming from PDF (has date/label/amount but no category yet)
+  const toInsert = await Promise.all(transactions.map(async t => {
+    // If already has user_id it's from CSV path
+    if (t.user_id) return t;
+    // PDF path — add category
+    let category = localCategorize(t.label, t.amount);
+    if (category === 'Divers' || category === 'Salaire') {
+      category = await claudeCategorize(t.label, t.amount);
+    }
+    return {
+      user_id: currentUser.id,
+      label: (t.label || '').substring(0, 120),
+      amount: parseFloat(t.amount) || 0,
+      category,
+      created_at: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
+    };
+  }));
+
+  const valid = toInsert.filter(t => t.amount !== 0 && t.label);
+  if (!valid.length) { statusEl.innerHTML = showError('Aucune transaction valide à enregistrer.'); return; }
+
+  const { error } = await sb.from('transactions').insert(valid);
+  if (error) { statusEl.innerHTML = showError('Erreur enregistrement: ' + error.message); return; }
+
+  // Save history
+  const history = JSON.parse(localStorage.getItem('budgetfam_imports_' + currentUser.id) || '[]');
+  history.unshift({ date: new Date().toISOString(), count: valid.length, file: fileName });
+  localStorage.setItem('budgetfam_imports_' + currentUser.id, JSON.stringify(history.slice(0, 10)));
+
+  statusEl.innerHTML = `
+    <div style="text-align:center;padding:16px;background:var(--green-soft);border-radius:12px;border:1px solid var(--green)">
+      <div style="font-size:28px;margin-bottom:8px">✅</div>
+      <div style="font-weight:700;color:var(--green);font-size:15px">${valid.length} transactions importées !</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Depuis : ${fileName}</div>
+    </div>`;
+
+  await loadDashboard();
+  await loadTransactions();
+  loadImportHistory();
+}
+
+// ── UI helpers ────────────────────────────────────────────────
+function showProgress(msg) {
+  return `<div style="display:flex;align-items:center;gap:10px;padding:14px;background:var(--accent-soft);border-radius:12px;font-size:12px;color:var(--accent)"><div class="spinner" style="margin:0;flex-shrink:0"></div>${msg}</div>`;
+}
+function showError(msg) {
+  return `<div style="padding:12px;background:var(--red-soft);border-radius:12px;font-size:12px;color:var(--red)">⚠️ ${msg}</div>`;
 }
 
 function loadImportHistory() {
