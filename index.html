@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam PRO 🚀</title>
+<title>BudgetFam V5 🚀</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -18,7 +18,7 @@ color:#fff;
 }
 
 header{
-padding:20px;
+padding:22px;
 text-align:center;
 font-size:22px;
 font-weight:900;
@@ -27,7 +27,7 @@ font-weight:900;
 .container{
 max-width:520px;
 margin:auto;
-padding-bottom:40px;
+padding-bottom:50px;
 }
 
 .card{
@@ -69,12 +69,12 @@ padding:10px 0;
 border-bottom:1px solid rgba(255,255,255,0.08);
 }
 
-.small{font-size:12px;color:#aaa}
-
 .hidden{display:none}
 
-#stats{
-font-weight:700;
+.small{font-size:12px;color:#aaa}
+
+#statsBox{
+font-weight:800;
 font-size:14px;
 }
 
@@ -83,11 +83,11 @@ font-size:14px;
 
 <body>
 
-<header>💰 BudgetFam PRO</header>
+<header>💰 BudgetFam V5</header>
 
 <div class="container">
 
-<!-- AUTH -->
+<!-- LOGIN -->
 <div id="auth" class="card">
 <h3>Connexion</h3>
 
@@ -102,7 +102,7 @@ font-size:14px;
 <div id="app" class="hidden">
 
 <div class="card">
-<div id="stats">Total dépenses: 0 ₪</div>
+<div id="statsBox">Total: 0 ₪</div>
 </div>
 
 <div class="card">
@@ -123,9 +123,9 @@ font-size:14px;
 </div>
 
 <div class="card">
-<h3>Importer PDF</h3>
+<h3>Import PDF bancaire</h3>
 <input type="file" onchange="handleFile(this)">
-<div class="small">Analyse relevé bancaire</div>
+<div class="small">Analyse automatique + insertion DB</div>
 </div>
 
 <div class="card">
@@ -138,7 +138,8 @@ font-size:14px;
 </div>
 
 <script>
-console.log("BudgetFam loaded");
+
+console.log("V5 loaded");
 
 // ================= SUPABASE =================
 const sb = supabase.createClient(
@@ -151,11 +152,9 @@ let user=null;
 // ================= LOGIN =================
 async function login(){
 
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
-
 const {data,error}=await sb.auth.signInWithPassword({
-email,password
+email:email.value,
+password:password.value
 });
 
 if(error){
@@ -170,10 +169,10 @@ enter();
 // ================= SIGNUP =================
 async function signup(){
 
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
-
-const {error}=await sb.auth.signUp({email,password});
+const {error}=await sb.auth.signUp({
+email:email.value,
+password:password.value
+});
 
 if(error){
 alert(error.message);
@@ -183,15 +182,15 @@ return;
 alert("Compte créé");
 }
 
-// ================= ENTER APP =================
+// ================= ENTER =================
 function enter(){
-document.getElementById("auth").classList.add("hidden");
-document.getElementById("app").classList.remove("hidden");
+auth.classList.add("hidden");
+app.classList.remove("hidden");
 loadTx();
-calcStats();
+calc();
 }
 
-// ================= ADD =================
+// ================= ADD TX =================
 async function addTx(){
 
 await sb.from("transactions").insert({
@@ -202,7 +201,7 @@ category:cat.value
 });
 
 loadTx();
-calcStats();
+calc();
 }
 
 // ================= LOAD =================
@@ -217,15 +216,16 @@ const {data}=await sb
 .order("id",{ascending:false});
 
 data?.forEach(t=>{
-const div=document.createElement("div");
-div.className="tx";
-div.innerHTML=`<b>${t.label}</b><br>${t.amount} ₪ • ${t.category}`;
-list.appendChild(div);
+list.innerHTML+=`
+<div class="tx">
+<b>${t.label}</b><br>
+${t.amount} ₪ • ${t.category}
+</div>`;
 });
 }
 
 // ================= STATS =================
-async function calcStats(){
+async function calc(){
 
 const {data}=await sb
 .from("transactions")
@@ -234,7 +234,7 @@ const {data}=await sb
 
 const total=data?.reduce((a,b)=>a+(b.amount||0),0)||0;
 
-stats.innerText="Total dépenses: "+total+" ₪";
+statsBox.innerText="Total: "+total+" ₪";
 }
 
 // ================= PDF =================
@@ -257,10 +257,10 @@ const content=await page.getTextContent();
 text+=content.items.map(x=>x.str).join(" ")+"\n";
 }
 
-console.log("PDF:",text.slice(0,500));
-
-alert("PDF chargé ✔ (debug)");
+alert("PDF chargé ✔ (mode debug)");
+console.log(text.slice(0,500));
 }
+
 </script>
 
 </body>
