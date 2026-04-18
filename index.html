@@ -3,38 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam Startup 💳</title>
+<title>BudgetFam STARTUP AI V2</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
 body{
 margin:0;
 font-family:system-ui;
-background:#0a0f1a;
+background:linear-gradient(135deg,#0A0F14,#111A2E);
 color:white;
 }
 
 header{
 padding:20px;
-text-align:center;
 font-size:22px;
 font-weight:800;
-}
-
-.container{
-max-width:900px;
-margin:auto;
-padding:10px;
+text-align:center;
 }
 
 .card{
-background:#141c2b;
-padding:16px;
-border-radius:14px;
-margin-bottom:12px;
+background:#161C26;
+margin:12px;
+padding:15px;
+border-radius:16px;
+box-shadow:0 10px 25px rgba(0,0,0,0.3);
 }
 
 input,button,select{
@@ -46,61 +40,51 @@ border:none;
 }
 
 button{
-background:#4f8ef7;
+background:#4F8EF7;
 color:white;
 font-weight:700;
 cursor:pointer;
 }
 
-#app{display:none}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-}
+button:hover{opacity:0.9}
 
 .tx{
-background:#0e1625;
-padding:10px;
-margin-top:8px;
-border-radius:10px;
+padding:8px 0;
+border-bottom:1px solid #222;
 }
 
-.small{font-size:12px;color:#aaa}
+.small{
+font-size:12px;
+color:#aaa;
+}
+
+#debug{
+white-space:pre-wrap;
+font-size:12px;
+color:#7CFFB2;
+margin:10px;
+}
 </style>
 </head>
 
 <body>
 
-<header>💳 BudgetFam Startup</header>
+<header>🚀 BudgetFam STARTUP AI V2</header>
 
-<div class="container">
+<div id="debug">Debug ready...</div>
 
-<!-- AUTH -->
 <div id="auth" class="card">
 <h3>Connexion</h3>
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Mot de passe">
 <button onclick="login()">Login</button>
-<button onclick="signup()" style="background:#2ecc8a">Signup</button>
-<div id="msg" class="small"></div>
+<button onclick="signup()" style="background:#2ECC8A">Signup</button>
 </div>
 
-<!-- APP -->
-<div id="app">
+<div id="app" style="display:none">
 
 <div class="card">
-<h3>📊 Dashboard</h3>
-<div class="grid">
-<div>Total: <b id="total">0</b> ₪</div>
-<div>Transactions: <b id="count">0</b></div>
-</div>
-<canvas id="chart"></canvas>
-</div>
-
-<div class="card">
-<h3>➕ Ajouter</h3>
+<h3>Ajouter transaction</h3>
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
 <select id="cat">
@@ -114,20 +98,19 @@ border-radius:10px;
 </div>
 
 <div class="card">
-<h3>📄 Import PDF</h3>
+<h3>Import PDF bancaire</h3>
 <input type="file" onchange="handleFile(this)">
-<pre id="pdfOut"></pre>
+<div class="small">PDF → analyse automatique AI</div>
 </div>
 
 <div class="card">
-<h3>📜 Transactions</h3>
+<h3>Transactions</h3>
 <div id="list"></div>
 </div>
 
 </div>
 
-</div>
-
 <script src="script.js"></script>
+
 </body>
 </html>
