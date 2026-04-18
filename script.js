@@ -5,50 +5,41 @@ const sb = supabase.createClient(
 
 let user=null;
 
-// ================= LOGIN =================
+// LOGIN
 async function login(){
-const email=emailInput.value;
-const password=passwordInput.value;
+const email=email.value;
+const password=password.value;
 
-const {data,error}=await sb.auth.signInWithPassword({
-email,password
-});
+const {data,error}=await sb.auth.signInWithPassword({email,password});
 
-if(error){
-alert(error.message);
-return;
-}
+if(error) return alert(error.message);
 
 user=data.user;
 enter();
 }
 
-// ================= SIGNUP =================
+// SIGNUP
 async function signup(){
-const email=emailInput.value;
-const password=passwordInput.value;
+const {error}=await sb.auth.signUp({
+email:email.value,
+password:password.value
+});
 
-const {error}=await sb.auth.signUp({email,password});
-
-if(error){
-alert(error.message);
-return;
-}
+if(error) return alert(error.message);
 
 alert("Compte créé");
 }
 
-// ================= ENTER =================
+// ENTER
 function enter(){
 auth.style.display="none";
 app.style.display="block";
 loadTx();
-calcStats();
+stats();
 }
 
-// ================= ADD TX =================
+// ADD TX
 async function addTx(){
-
 await sb.from("transactions").insert({
 user_id:user.id,
 label:label.value,
@@ -57,12 +48,11 @@ category:cat.value
 });
 
 loadTx();
-calcStats();
+stats();
 }
 
-// ================= LOAD =================
+// LOAD TX
 async function loadTx(){
-
 list.innerHTML="";
 
 const {data}=await sb
@@ -72,16 +62,16 @@ const {data}=await sb
 .order("id",{ascending:false});
 
 data?.forEach(t=>{
-const div=document.createElement("div");
-div.className="tx";
-div.innerHTML=`${t.label} — ${t.amount} ₪`;
-list.appendChild(div);
+list.innerHTML+=`
+<div class="tx">
+<b>${t.label}</b><br>
+${t.amount} ₪ • ${t.category}
+</div>`;
 });
 }
 
-// ================= STATS =================
-async function calcStats(){
-
+// STATS
+async function stats(){
 const {data}=await sb
 .from("transactions")
 .select("amount")
@@ -89,14 +79,14 @@ const {data}=await sb
 
 const total=data?.reduce((a,b)=>a+(b.amount||0),0)||0;
 
-stats.innerText="Total dépenses: "+total+" ₪";
+statsBox.innerText="Total: "+total+" ₪";
 }
 
-// ================= PDF =================
+// PDF + IA + INSERT AUTO
 async function handleFile(input){
 
 const file=input.files[0];
-if(!file)return;
+if(!file) return;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -112,7 +102,7 @@ const content=await page.getTextContent();
 text+=content.items.map(x=>x.str).join(" ")+"\n";
 }
 
-// envoi vers backend (CLAUDE sécurisé)
+// SEND TO BACKEND AI
 const res=await fetch("https://TON_SUPABASE_FUNCTION/analyze-pdf",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -121,6 +111,26 @@ body:JSON.stringify({text:text.slice(0,6000)})
 
 const json=await res.json();
 
-console.log("AI RESULT:",json);
-alert("PDF analysé ✔ (voir console)");
+try{
+const content=json.content[0].text;
+const transactions=JSON.parse(content);
+
+// INSERT AUTO DB
+for(const t of transactions){
+await sb.from("transactions").insert({
+user_id:user.id,
+label:t.label,
+amount:t.amount,
+category:t.category
+});
+}
+
+alert("PDF importé + analysé ✔");
+loadTx();
+stats();
+
+}catch(e){
+console.log("Parse error",json);
+alert("Erreur IA parsing");
+}
 }
