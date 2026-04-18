@@ -1,116 +1,94 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam V5 🚀</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BudgetFam V2</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
-
 body{
 margin:0;
 font-family:system-ui;
-background:linear-gradient(180deg,#0b0f14,#0f1722);
+background:#0b0f17;
 color:#fff;
 }
 
 header{
-padding:22px;
-text-align:center;
+padding:20px;
 font-size:22px;
-font-weight:900;
-}
-
-.container{
-max-width:520px;
-margin:auto;
-padding-bottom:50px;
+font-weight:800;
+background:#111827;
 }
 
 .card{
-background:rgba(255,255,255,0.05);
-border:1px solid rgba(255,255,255,0.08);
+background:#161c2a;
 margin:12px;
-padding:16px;
-border-radius:16px;
-backdrop-filter: blur(10px);
+padding:14px;
+border-radius:14px;
 }
 
-input,select{
-width:100%;
-padding:12px;
-margin-top:8px;
-border-radius:10px;
-border:none;
-background:#0f1722;
-color:white;
-outline:none;
-}
-
-button{
+input,select,button{
 width:100%;
 padding:12px;
 margin-top:10px;
 border-radius:10px;
 border:none;
-background:linear-gradient(90deg,#4f8ef7,#6a5cff);
-color:white;
-font-weight:700;
-cursor:pointer;
-}
-
-button:hover{opacity:0.9}
-
-.tx{
-padding:10px 0;
-border-bottom:1px solid rgba(255,255,255,0.08);
-}
-
-.hidden{display:none}
-
-.small{font-size:12px;color:#aaa}
-
-#statsBox{
-font-weight:800;
 font-size:14px;
 }
 
+button{
+background:#4f8ef7;
+color:white;
+font-weight:700;
+}
+
+button.green{
+background:#22c55e;
+}
+
+.tx{
+padding:8px 0;
+border-bottom:1px solid #2a2f3a;
+}
+
+.small{font-size:12px;color:#aaa}
+
+#debug{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#000;
+color:#0f0;
+font-size:11px;
+padding:6px;
+height:90px;
+overflow:auto;
+}
 </style>
 </head>
 
 <body>
 
-<header>💰 BudgetFam V5</header>
+<header>💰 BudgetFam V2</header>
 
-<div class="container">
-
-<!-- LOGIN -->
 <div id="auth" class="card">
 <h3>Connexion</h3>
-
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Mot de passe">
-
 <button onclick="login()">Login</button>
-<button onclick="signup()" style="background:#2ecc71">Signup</button>
+<button onclick="signup()" class="green">Signup</button>
 </div>
 
-<!-- APP -->
-<div id="app" class="hidden">
+<div id="app" style="display:none">
 
 <div class="card">
-<div id="statsBox">Total: 0 ₪</div>
-</div>
-
-<div class="card">
-<h3>Ajouter dépense</h3>
-
+<h3>Ajouter transaction</h3>
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
-
 <select id="cat">
 <option>Alimentation</option>
 <option>Transport</option>
@@ -118,14 +96,13 @@ font-size:14px;
 <option>Santé</option>
 <option>Logement</option>
 </select>
-
 <button onclick="addTx()">Ajouter</button>
 </div>
 
 <div class="card">
-<h3>Import PDF bancaire</h3>
-<input type="file" onchange="handleFile(this)">
-<div class="small">Analyse automatique + insertion DB</div>
+<h3>Importer PDF</h3>
+<input type="file" id="file" onchange="handleFile(this)">
+<div class="small">Upload relevé bancaire PDF</div>
 </div>
 
 <div class="card">
@@ -135,133 +112,8 @@ font-size:14px;
 
 </div>
 
-</div>
+<div id="debug">DEBUG: prêt</div>
 
-<script>
-
-console.log("V5 loaded");
-
-// ================= SUPABASE =================
-const sb = supabase.createClient(
-"https://nyywcxcahalxazienuav.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM"
-);
-
-let user=null;
-
-// ================= LOGIN =================
-async function login(){
-
-const {data,error}=await sb.auth.signInWithPassword({
-email:email.value,
-password:password.value
-});
-
-if(error){
-alert(error.message);
-return;
-}
-
-user=data.user;
-enter();
-}
-
-// ================= SIGNUP =================
-async function signup(){
-
-const {error}=await sb.auth.signUp({
-email:email.value,
-password:password.value
-});
-
-if(error){
-alert(error.message);
-return;
-}
-
-alert("Compte créé");
-}
-
-// ================= ENTER =================
-function enter(){
-auth.classList.add("hidden");
-app.classList.remove("hidden");
-loadTx();
-calc();
-}
-
-// ================= ADD TX =================
-async function addTx(){
-
-await sb.from("transactions").insert({
-user_id:user.id,
-label:label.value,
-amount:+amount.value,
-category:cat.value
-});
-
-loadTx();
-calc();
-}
-
-// ================= LOAD =================
-async function loadTx(){
-
-list.innerHTML="";
-
-const {data}=await sb
-.from("transactions")
-.select("*")
-.eq("user_id",user.id)
-.order("id",{ascending:false});
-
-data?.forEach(t=>{
-list.innerHTML+=`
-<div class="tx">
-<b>${t.label}</b><br>
-${t.amount} ₪ • ${t.category}
-</div>`;
-});
-}
-
-// ================= STATS =================
-async function calc(){
-
-const {data}=await sb
-.from("transactions")
-.select("amount")
-.eq("user_id",user.id);
-
-const total=data?.reduce((a,b)=>a+(b.amount||0),0)||0;
-
-statsBox.innerText="Total: "+total+" ₪";
-}
-
-// ================= PDF =================
-async function handleFile(input){
-
-const file=input.files[0];
-if(!file)return;
-
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-const buffer=await file.arrayBuffer();
-const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
-
-let text="";
-
-for(let i=1;i<=pdf.numPages;i++){
-const page=await pdf.getPage(i);
-const content=await page.getTextContent();
-text+=content.items.map(x=>x.str).join(" ")+"\n";
-}
-
-alert("PDF chargé ✔ (mode debug)");
-console.log(text.slice(0,500));
-}
-
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
