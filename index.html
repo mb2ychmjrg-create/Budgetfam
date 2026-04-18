@@ -3,75 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam V2 🚀</title>
+<title>BudgetFam Pro 🚀</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
+
 body{
 margin:0;
 font-family:system-ui;
-background:#0b0f14;
+background:linear-gradient(180deg,#0b0f14,#0f1722);
 color:#fff;
 }
 
 header{
-padding:18px;
-font-size:22px;
-font-weight:800;
+padding:22px;
+font-size:24px;
+font-weight:900;
 text-align:center;
+letter-spacing:1px;
+}
+
+.container{
+max-width:520px;
+margin:auto;
+padding-bottom:40px;
 }
 
 .card{
-background:#161c26;
+background:rgba(255,255,255,0.04);
+backdrop-filter: blur(10px);
+border:1px solid rgba(255,255,255,0.08);
 margin:12px;
-padding:14px;
-border-radius:14px;
+padding:16px;
+border-radius:16px;
+box-shadow:0 10px 30px rgba(0,0,0,0.3);
 }
 
-input,button,select{
+input,select{
 width:100%;
 padding:12px;
 margin-top:8px;
 border-radius:10px;
 border:none;
+background:#0f1722;
+color:#fff;
+outline:none;
 }
 
 button{
-background:#4f8ef7;
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:10px;
+border:none;
+background:linear-gradient(90deg,#4f8ef7,#6a5cff);
 color:white;
 font-weight:700;
 cursor:pointer;
 }
 
-.tx{
-padding:8px 0;
-border-bottom:1px solid #222;
+button:hover{
+opacity:0.9;
 }
 
-.small{font-size:12px;color:#aaa}
+.tx{
+padding:10px 0;
+border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.small{
+font-size:12px;
+color:#aaa;
+margin-top:6px;
+}
+
+.title{
+font-size:16px;
+font-weight:700;
+margin-bottom:8px;
+}
+
+.hidden{display:none;}
+
 </style>
 </head>
 
 <body>
 
-<header>💰 BudgetFam V2</header>
+<header>💰 BudgetFam PRO</header>
 
+<div class="container">
+
+<!-- AUTH -->
 <div id="auth" class="card">
-<h3>Connexion</h3>
+<div class="title">Connexion</div>
+
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Mot de passe">
-<button onclick="login()">Login</button>
-<button onclick="signup()" style="background:#2ecc71">Signup</button>
+
+<button onclick="login()">Se connecter</button>
+<button onclick="signup()" style="background:#2ecc71">Créer un compte</button>
 </div>
 
-<div id="app" style="display:none">
+<!-- APP -->
+<div id="app" class="hidden">
 
 <div class="card">
-<h3>Ajouter transaction</h3>
+<div class="title">Ajouter une dépense</div>
+
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
+
 <select id="cat">
 <option>Alimentation</option>
 <option>Transport</option>
@@ -79,18 +123,21 @@ border-bottom:1px solid #222;
 <option>Santé</option>
 <option>Logement</option>
 </select>
+
 <button onclick="addTx()">Ajouter</button>
 </div>
 
 <div class="card">
-<h3>Import PDF</h3>
+<div class="title">Importer PDF</div>
 <input type="file" onchange="handleFile(this)">
-<div class="small">Upload relevé bancaire PDF</div>
+<div class="small">Analyse automatique du relevé bancaire</div>
 </div>
 
 <div class="card">
-<h3>Transactions</h3>
+<div class="title">Transactions</div>
 <div id="list"></div>
+</div>
+
 </div>
 
 </div>
