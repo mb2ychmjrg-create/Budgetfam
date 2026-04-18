@@ -1,3 +1,8 @@
+function debug(msg){
+  const el = document.getElementById("debug");
+  if(el) el.innerText += "\n" + msg;
+  console.log(msg);
+}
 // =======================
 // CONFIG SUPABASE
 // =======================
