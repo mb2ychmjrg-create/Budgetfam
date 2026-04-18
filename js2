@@ -1,0 +1,66 @@
+async function handleFile(input){
+const file=input.files[0];
+if(!file)return;
+
+if(file.name.endsWith(".pdf")){
+await parsePDF(file);
+}else{
+const text=await file.text();
+alert("CSV prêt (upgrade futur)");
+}
+}
+
+async function parsePDF(file){
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const buffer=await file.arrayBuffer();
+const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+
+let text="";
+
+for(let i=1;i<=pdf.numPages;i++){
+const page=await pdf.getPage(i);
+const content=await page.getTextContent();
+text+=content.items.map(i=>i.str).join(" ")+"\n";
+}
+
+const result=await askClaude(text.slice(0,6000));
+
+alert("PDF analysé ✔");
+console.log(result);
+}
+
+async function askClaude(text){
+
+const r=await fetch("https://api.anthropic.com/v1/messages",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"x-api-key":"YOUR_CLAUDE_KEY",
+"anthropic-version":"2023-06-01"
+},
+body:JSON.stringify({
+model:"claude-sonnet-4-20250514",
+max_tokens:1500,
+messages:[{
+role:"user",
+content:`
+Analyse ce relevé bancaire.
+
+Retourne JSON:
+[
+{"date":"YYYY-MM-DD","label":"merchant","amount":-123}
+]
+
+TEXTE:
+${text}
+`
+}]
+})
+});
+
+const d=await r.json();
+return d.content?.[0]?.text;
+}
