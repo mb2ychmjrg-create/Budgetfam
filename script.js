@@ -1,136 +1,150 @@
 const sb = supabase.createClient(
 "https://nyywcxcahalxazienuav.supabase.co",
-"TON_ANON_KEY"
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM"
 );
 
-let user=null;
+let user = null;
+
+function log(msg){
+document.getElementById("debug").innerText += "\n" + msg;
+}
 
 // LOGIN
 async function login(){
-const email=email.value;
-const password=password.value;
+log("login...");
 
-const {data,error}=await sb.auth.signInWithPassword({email,password});
+const email = document.getElementById("email").value;
+const password = document.getElementById("password").value;
 
-if(error) return alert(error.message);
+const { data, error } = await sb.auth.signInWithPassword({
+email,
+password
+});
 
-user=data.user;
+if(error){
+log("ERROR LOGIN: " + error.message);
+alert(error.message);
+return;
+}
+
+user = data.user;
+log("connected: " + user.email);
 enter();
 }
 
 // SIGNUP
 async function signup(){
-const {error}=await sb.auth.signUp({
-email:email.value,
-password:password.value
+const email = document.getElementById("email").value;
+const password = document.getElementById("password").value;
+
+const { error } = await sb.auth.signUp({
+email,
+password
 });
 
-if(error) return alert(error.message);
-
-alert("Compte créé");
+if(error){
+log("ERROR SIGNUP: " + error.message);
+alert(error.message);
+return;
 }
 
-// ENTER
+alert("Compte créé → login maintenant");
+}
+
+// ENTER APP
 function enter(){
-auth.style.display="none";
-app.style.display="block";
+document.getElementById("auth").style.display="none";
+document.getElementById("app").style.display="block";
 loadTx();
-stats();
 }
 
 // ADD TX
 async function addTx(){
-await sb.from("transactions").insert({
-user_id:user.id,
-label:label.value,
-amount:+amount.value,
-category:cat.value
+if(!user) return log("no user");
+
+const label = document.getElementById("label").value;
+const amount = document.getElementById("amount").value;
+const cat = document.getElementById("cat").value;
+
+const { error } = await sb.from("transactions").insert({
+user_id: user.id,
+label,
+amount: +amount,
+category: cat
 });
 
+if(error){
+log("INSERT ERROR: " + error.message);
+return;
+}
+
+log("transaction added");
 loadTx();
-stats();
 }
 
 // LOAD TX
 async function loadTx(){
-list.innerHTML="";
 
-const {data}=await sb
+if(!user) return;
+
+const list = document.getElementById("list");
+list.innerHTML = "";
+
+const { data, error } = await sb
 .from("transactions")
 .select("*")
-.eq("user_id",user.id)
-.order("id",{ascending:false});
+.eq("user_id", user.id)
+.order("id", { ascending:false });
 
-data?.forEach(t=>{
-list.innerHTML+=`
-<div class="tx">
-<b>${t.label}</b><br>
-${t.amount} ₪ • ${t.category}
-</div>`;
+if(error){
+log("LOAD ERROR: " + error.message);
+return;
+}
+
+data.forEach(tx=>{
+const div = document.createElement("div");
+div.className="tx";
+div.innerHTML = `
+<b>${tx.label}</b><br>
+${tx.amount} ₪ - ${tx.category}
+`;
+list.appendChild(div);
 });
 }
 
-// STATS
-async function stats(){
-const {data}=await sb
-.from("transactions")
-.select("amount")
-.eq("user_id",user.id);
+// PDF UPLOAD
+async function handleFile(input){
+const file = input.files[0];
+if(!file) return;
 
-const total=data?.reduce((a,b)=>a+(b.amount||0),0)||0;
+log("file loaded: " + file.name);
 
-statsBox.innerText="Total: "+total+" ₪";
+if(file.name.endsWith(".pdf")){
+await parsePDF(file);
+} else {
+log("CSV not implemented yet");
+}
 }
 
-// PDF + IA + INSERT AUTO
-async function handleFile(input){
-
-const file=input.files[0];
-if(!file) return;
+async function parsePDF(file){
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const buffer=await file.arrayBuffer();
-const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+const buffer = await file.arrayBuffer();
+const pdf = await pdfjsLib.getDocument({data:buffer}).promise;
 
-let text="";
+let text = "";
 
 for(let i=1;i<=pdf.numPages;i++){
-const page=await pdf.getPage(i);
-const content=await page.getTextContent();
-text+=content.items.map(x=>x.str).join(" ")+"\n";
+const page = await pdf.getPage(i);
+const content = await page.getTextContent();
+text += content.items.map(x=>x.str).join(" ") + "\n";
 }
 
-// SEND TO BACKEND AI
-const res=await fetch("https://TON_SUPABASE_FUNCTION/analyze-pdf",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({text:text.slice(0,6000)})
-});
+log("PDF text extracted");
 
-const json=await res.json();
+log(text.slice(0,300));
 
-try{
-const content=json.content[0].text;
-const transactions=JSON.parse(content);
-
-// INSERT AUTO DB
-for(const t of transactions){
-await sb.from("transactions").insert({
-user_id:user.id,
-label:t.label,
-amount:t.amount,
-category:t.category
-});
-}
-
-alert("PDF importé + analysé ✔");
-loadTx();
-stats();
-
-}catch(e){
-console.log("Parse error",json);
-alert("Erreur IA parsing");
-}
+alert("PDF chargé ✔ (debug visible en bas)");
 }
