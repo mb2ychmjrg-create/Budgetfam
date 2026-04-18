@@ -9,49 +9,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
-body{
-margin:0;
-font-family:system-ui;
-background:#0A0F14;
-color:#fff;
-}
-
-header{
-padding:18px;
-font-size:20px;
-font-weight:800;
-}
-
-.card{
-background:#161C26;
-margin:10px;
-padding:14px;
-border-radius:14px;
-}
-
-input,button,select{
-width:100%;
-padding:12px;
-margin-top:8px;
-border-radius:10px;
-border:none;
-}
-
-button{
-background:#4F8EF7;
-color:#fff;
-font-weight:700;
-}
-
-.tx{
-padding:8px 0;
-border-bottom:1px solid #222;
-}
-
-.small{
-font-size:12px;
-color:#aaa;
-}
+body{margin:0;font-family:system-ui;background:#0A0F14;color:#fff}
+header{padding:18px;font-size:20px;font-weight:800}
+.card{background:#161C26;margin:10px;padding:14px;border-radius:14px}
+input,button,select{width:100%;padding:12px;margin-top:8px;border-radius:10px;border:none}
+button{background:#4F8EF7;color:#fff;font-weight:700}
+.tx{padding:8px 0;border-bottom:1px solid #222}
+.small{font-size:12px;color:#aaa}
 </style>
 </head>
 
@@ -70,7 +34,7 @@ color:#aaa;
 <div id="app" style="display:none">
 
 <div class="card">
-<h3>Ajouter transaction</h3>
+<h3>Ajouter</h3>
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
 <select id="cat">
@@ -86,7 +50,7 @@ color:#aaa;
 <div class="card">
 <h3>Import PDF</h3>
 <input type="file" id="file" onchange="handleFile(this)">
-<div class="small">Analyse PDF bancaire automatique</div>
+<div class="small">PDF bancaire</div>
 </div>
 
 <div class="card">
@@ -96,7 +60,7 @@ color:#aaa;
 
 </div>
 
-<script src="script.js"></script>
+<script src="js.js"></script>
 
 </body>
 </html>
