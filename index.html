@@ -3,32 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BudgetFam V4</title>
+<title>BudgetFam V4.1</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
 body{
 margin:0;
 font-family:system-ui;
-background:#f5f7fb;
+background:#f4f6fb;
 }
 
 header{
 background:#111827;
 color:white;
 padding:18px;
-font-weight:800;
 text-align:center;
+font-weight:800;
 }
 
-.page{display:none;padding:15px;}
+.page{display:none;padding:12px;}
 .active{display:block;}
 
 .card{
 background:white;
-border-radius:14px;
 padding:14px;
+border-radius:14px;
 margin-bottom:12px;
 box-shadow:0 5px 15px rgba(0,0,0,0.08);
 }
@@ -49,11 +50,11 @@ font-weight:700;
 }
 
 .tx{
-padding:10px 0;
+padding:8px 0;
 border-bottom:1px solid #eee;
 }
 
-.bottom-nav{
+.bottom{
 position:fixed;
 bottom:0;
 left:0;
@@ -63,10 +64,10 @@ background:white;
 border-top:1px solid #ddd;
 }
 
-.nav-btn{
+.bottom div{
 flex:1;
-padding:12px;
 text-align:center;
+padding:12px;
 font-size:12px;
 cursor:pointer;
 }
@@ -79,20 +80,21 @@ right:0;
 background:black;
 color:#00ff88;
 font-size:11px;
-height:60px;
+height:70px;
 overflow:auto;
+padding:6px;
 }
 </style>
 </head>
 
 <body>
 
-<header>💰 BudgetFam V4</header>
+<header>💰 BudgetFam V4.1</header>
 
 <div id="debug">DEBUG READY</div>
 
 <!-- LOGIN -->
-<div id="loginPage" class="page active">
+<div id="login" class="page active">
 <div class="card">
 <h3>Connexion</h3>
 <input id="email" placeholder="Email">
@@ -102,8 +104,8 @@ overflow:auto;
 </div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="homePage" class="page">
+<!-- HOME -->
+<div id="home" class="page">
 
 <div class="card">
 <h3>Résumé</h3>
@@ -111,17 +113,17 @@ overflow:auto;
 </div>
 
 <div class="card">
-<h3>Dernières transactions</h3>
+<h3>Transactions PDF</h3>
 <div id="list"></div>
 </div>
 
 </div>
 
 <!-- ADD -->
-<div id="addPage" class="page">
+<div id="add" class="page">
 
 <div class="card">
-<h3>Ajouter</h3>
+<h3>Ajouter transaction</h3>
 <input id="label" placeholder="Description">
 <input id="amount" type="number" placeholder="Montant">
 <select id="cat">
@@ -132,16 +134,20 @@ overflow:auto;
 <button onclick="addTx()">Ajouter</button>
 </div>
 
+<div class="card">
+<h3>Importer PDF</h3>
+<input type="file" onchange="handleFile(this)">
+</div>
+
 </div>
 
 <!-- NAV -->
-<div class="bottom-nav">
-<div class="nav-btn" onclick="go('homePage')">🏠 Home</div>
-<div class="nav-btn" onclick="go('addPage')">➕ Add</div>
-<div class="nav-btn" onclick="loadTx()">🔄 Refresh</div>
+<div class="bottom">
+<div onclick="go('home')">🏠 Home</div>
+<div onclick="go('add')">➕ Add</div>
+<div onclick="loadTx()">🔄 Refresh</div>
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
