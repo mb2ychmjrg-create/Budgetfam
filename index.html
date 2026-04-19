@@ -333,15 +333,27 @@ const COLORS=['#8b5cf6','#22c55e','#ef4444','#3b82f6','#f59e0b','#ec4899','#14b8
 
 // ── CATÉGORISATION LOCALE (marchands israéliens) ──────────────
 const RULES=[
-  [/rami.?levy|shufersal|שפרסל|victory|ויקטורי|yochananof|יוחננוף|mega|מגה|osher.?ad|אושר עד|tiv.?taam|טיב טעם|freshmarket|co.?op|makolet|מכולת|shuk|שוק|super.?market|beit.?hashita|אמהרט|am.?pm food|yellow.?store/i,'Alimentation'],
-  [/super.?pharm|סופר.?פארם|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|בית.?מרקחת|doctor|רופא|dentist|hospital|hadassah|ichilov|sheba|beilinson|terem|טרם|urgent|clinic|מרפאה|optician|optica|eyecare/i,'Santé'],
-  [/gett|גט|bolt|uber|yango|אגד|eged|dan.?bus|דן |רכבת|israel.?rail|kavim|קווים|fuel|דלק|sonol|paz|delek|ten.?bibi|petrol|yellow.?cab|parking|חניה|taxi|מונית|alon|סונול|פז/i,'Transport'],
-  [/netflix|spotify|apple.?itunes|google.?play|steam|wolt|ten.?bis|תן.?ביס|restaurant|מסעדה|café|coffee|aroma|café|joe|קפה|bar |pub|cinema|סינמה|yes.?planet|rav.?chen|gym|fitness|bowling|escape|sport.?club|pool|בריכה|zoo|concert/i,'Loisirs'],
-  [/arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|mortgage|mashkanta|משכנתא|rent|שכירות|electric|חשמל|water|מים|amisragas|גז|hot.?net|yes.?cable|building/i,'Logement'],
-  [/hot.?mobile|partner|cellcom|019|012|amazon|microsoft|adobe|icloud|google.?one|dropbox|subscription|מנוי|חבילה|openai|claude|chatgpt/i,'Abonnements'],
-  [/university|אוניברסיטה|college|מכללה|ulpan|אולפן|school|בית.?ספר|kindergarten|גן.?ילדים|tutor|שיעורים|books|ספרים/i,'Éducation'],
-  [/pension|פנסיה|insurance|ביטוח|savings|חיסכון|investment|השקעה|bank.?fee|עמלת|loan|הלוואה|gemel|גמל|hishtalmut|השתלמות/i,'Épargne'],
-  [/salary|משכורת|payroll|bituach.?leumi|ביטוח.?לאומי|zikuy|זיכוי|maasik|מעסיק/i,'Salaire'],
+  [/rami.?levy|shufersal|שפרסל|victory|ויקטורי|yochananof|יוחננוף|mega|מגה|osher.?ad|tiv.?taam|freshmarket|makolet|מכולת|שוק|supermarket/i,'Alimentation'],
+  [/super.?pharm|סופר.?פארם|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|בית.?מרקחת|רופא|dentist|hospital|hadassah|ichilov|terem|טרם|clinic|מרפאה|הפניקס|phoenix/i,'Santé'],
+  [/gett|גט|bolt|uber|yango|אגד|eged|רכבת|דלק|sonol|paz|delek|parking|חניה|taxi|מונית/i,'Transport'],
+  [/netflix|spotify|apple|google.?play|wolt|ten.?bis|תן.?ביס|restaurant|מסעדה|coffee|קפה|cinema|סינמה|yes.?planet|gym|fitness/i,'Loisirs'],
+  // Logement: משכנתא, ועד בית, ארנונה
+  [/טפחות.?משכנתא|משכנתא|arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|שכירות|חשמל|מים|amisragas|גז|hot.?net/i,'Logement'],
+  // Carte de crédit (paiement mensuel Hapoalim)
+  [/כרטיסי.?אשראי|credit.?card|max|cal|isracard|visa|mastercard/i,'Carte crédit'],
+  // Prêt bancaire: הלואה קרן + רבית + בנק דיסקונט למשכנתא
+  [/הו"ק.?הלו|הלואה.?קרן|הלואה.?רבית|הלוואה|בנק.?דיסקונט.?למ|הלוואה.?קרן.?כללי/i,'Prêt'],
+  // Épargne: חיסכון, פקדון, ני"ע (titres)
+  [/הו"ק.?ת.?חסכון|הפקדה.?לפקדון|פרעון.?פקדון|ריבית.?מפקדון|זכוי.?מת.?חסכון|חסכון|פקדון|ני"ע|השתלמות|pension|פנסיה|gemel|גמל|ביטוח/i,'Épargne'],
+  // Domiciliations / frais bancaires
+  [/הוראת.?קבע|הו"ק|ע.מפעולות|עמ.?הקצאת|עמלת|partner|cellcom|hot.?mobile|019|012|amazon|microsoft|adobe|icloud|מנוי/i,'Abonnements'],
+  // Revenus: salaires (מרכז קהילתי, מצודת אגסי = employeurs de Samuel)
+  [/מרכז.?קהילתי|מצודת.?אגסי|bit.?העברת|משכורת|salary|שכר/i,'Salaire'],
+  // Virements reçus / transferts
+  [/העב.?לאחר.?נייד|זיכוי.?מלאומי|מלאומי/i,'Virement reçu'],
+  // Allocations état
+  [/ביטוח.?לאומי|בטוח.?לאומי|קצבת.?ילדים|קצבה/i,'Allocations'],
+  [/university|אוניברסיטה|college|מכללה|ulpan|school|בית.?ספר|kindergarten|גן.?ילדים/i,'Éducation'],
 ];
 function localCat(label,amount){
   if(!label)return amount>0?'Salaire':'Divers';
@@ -524,98 +536,166 @@ async function handleFileImport(file){
   }
 }
 
-// ── PDF IMPORT — Rendu visuel + Claude Vision ─────────────────
-// Approche : PDF.js rend chaque page en image → Claude "voit" le relevé
-// Bien plus fiable que l'extraction de texte pour l'hébreu/tableaux
+// ── PDF IMPORT — Extraction texte + Parseur direct + Claude fallback ──
+// Le PDF Hapoalim est numérique → texte extractible directement, pas besoin de vision
 async function importPDF(file, statusEl) {
-  setStatus(statusEl, 'loading', `📄 Ouverture de "${file.name}"...`);
+  setStatus(statusEl, 'loading', `📄 Lecture de "${file.name}"...`);
   try {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     const numPages = pdf.numPages;
-    const maxPages = Math.min(numPages, 6); // max 6 pages pour éviter timeout
 
-    setStatus(statusEl, 'loading', `🖼️ Conversion du PDF en images (${maxPages} page${maxPages > 1 ? 's' : ''})...`);
+    setStatus(statusEl, 'loading', `📋 Extraction du texte (${numPages} page${numPages > 1 ? 's' : ''})...`);
 
-    // 1. Rendre chaque page en image base64 via canvas
-    const pageImages = [];
-    for (let i = 1; i <= maxPages; i++) {
+    // 1. Extraire le texte de chaque page en préservant l'ordre lignes
+    let allLines = [];
+    for (let i = 1; i <= numPages; i++) {
       const page = await pdf.getPage(i);
-      // Scale 1.5x pour meilleure lisibilité par Claude
-      const viewport = page.getViewport({ scale: 1.5 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d');
-      // Fond blanc (important pour les PDFs avec fond transparent)
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      // Convertir en JPEG base64 (qualité 0.85 = bon équilibre taille/qualité)
-      const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-      pageImages.push(b64);
-      setStatus(statusEl, 'loading', `🖼️ Page ${i}/${maxPages} convertie...`);
+      const content = await page.getTextContent();
+
+      // Grouper les items par ligne (même position Y ± 4px)
+      const byY = {};
+      for (const item of content.items) {
+        if (!item.str.trim()) continue;
+        const y = Math.round(item.transform[5] / 4) * 4; // arrondi 4px
+        if (!byY[y]) byY[y] = [];
+        byY[y].push({ x: item.transform[4], str: item.str });
+      }
+
+      // Trier par Y décroissant (haut de page en premier), puis X croissant
+      const sortedYs = Object.keys(byY).map(Number).sort((a, b) => b - a);
+      for (const y of sortedYs) {
+        const line = byY[y].sort((a, b) => a.x - b.x).map(i => i.str).join(' ');
+        if (line.trim()) allLines.push(line.trim());
+      }
     }
 
-    setStatus(statusEl, 'loading', `🤖 Claude lit le relevé bancaire (${maxPages} page${maxPages > 1 ? 's' : ''})...`);
+    const fullText = allLines.join('\n');
 
-    // 2. Envoyer toutes les images à Claude Vision en une seule requête
-    const transactions = await claudeVisionExtract(pageImages);
-
-    if (!transactions || transactions.length === 0) {
-      setStatus(statusEl, 'error',
-        'Claude n\'a trouvé aucune transaction. Vérifie que c\'est bien un relevé de compte bancaire (תנועות בחשבון) et non un autre document.'
-      );
+    if (!fullText || fullText.length < 30) {
+      setStatus(statusEl, 'error', 'PDF illisible. Assure-toi de télécharger le PDF depuis bankhapoalim.co.il (pas un scan papier).');
       return;
     }
 
-    setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions détectées — catégorisation IA...`);
+    setStatus(statusEl, 'loading', '🔍 Analyse du relevé...');
+
+    // 2. Parseur direct — format Bank Hapoalim / banques israéliennes
+    let transactions = parseIsraeliStatement(fullText);
+
+    // 3. Fallback Claude si parseur ne trouve rien
+    if (transactions.length === 0) {
+      setStatus(statusEl, 'loading', '🤖 Claude analyse le relevé...');
+      transactions = await claudeParseText(fullText);
+    }
+
+    if (!transactions || transactions.length === 0) {
+      setStatus(statusEl, 'error', 'Aucune transaction trouvée. Vérifie que c\'est bien un relevé de compte (תנועות בחשבון).');
+      return;
+    }
+
+    setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions — catégorisation IA...`);
     await saveImportedTx(transactions, file.name, statusEl);
 
   } catch (err) {
     console.error('PDF error:', err);
-    setStatus(statusEl, 'error',
-      'Erreur: ' + err.message + '<br>Essaie de télécharger le relevé en format Excel depuis le site de ta banque.'
-    );
+    setStatus(statusEl, 'error', 'Erreur lecture PDF: ' + err.message);
   }
 }
 
-// ── Claude Vision — lit les images du relevé ─────────────────
-async function claudeVisionExtract(pageImages) {
-  // Construire le message avec toutes les images
-  const content = [];
+// ── Parseur direct format Bank Hapoalim ──────────────────────
+// Format des lignes: DD/MM/YYYY [description hébreu] [montant] ₪[±solde]
+// La direction (débit/crédit) est déterminée par la variation du solde
+function parseIsraeliStatement(text) {
+  const transactions = [];
+  const lines = text.split('\n');
 
-  // Ajouter chaque image
-  pageImages.forEach((b64, i) => {
-    content.push({
-      type: 'image',
-      source: { type: 'base64', media_type: 'image/jpeg', data: b64 }
-    });
-    content.push({
-      type: 'text',
-      text: i === 0 ? `Page ${i + 1} du relevé bancaire israélien (${selectedBank || 'banque israélienne'}) :` : `Page ${i + 1} :`
-    });
-  });
+  // Regex: date DD/MM/YYYY + texte hébreu/latin + montant + ₪solde
+  const TXN_RE = /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d,]+\.?\d*)\s+[₪ש](-?[\d,]+\.?\d*)/;
+  // Alternative sans signe ₪ explicite (certaines versions du PDF)
+  const TXN_RE2 = /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d,]+\.?\d*)\s+(-?[\d,]+\.?\d*)/;
 
-  // Instruction finale
-  content.push({
-    type: 'text',
-    text: `TÂCHE : Extrais TOUTES les transactions de ce relevé bancaire israélien.
+  let prevBalance = null;
 
-RÈGLES ABSOLUES :
-- amount NÉGATIF = débit (חיוב / sortie d'argent / dépense)
-- amount POSITIF = crédit (זכות / entrée d'argent / revenu)
-- date au format YYYY-MM-DD (convertis DD/MM/YYYY → YYYY-MM-DD)
-- label = nom exact du marchand ou description telle qu'elle apparaît
-- IGNORER : lignes de solde, totaux, en-têtes de colonnes, informations du compte
-- INCLURE : chaque ligne avec un montant et une description de transaction
+  for (const line of lines) {
+    let m = line.match(TXN_RE) || line.match(TXN_RE2);
+    if (!m) continue;
 
-RÉPONSE : JSON uniquement, zéro texte avant ou après, zéro markdown :
-[{"date":"2024-03-15","label":"SHUFERSAL DEAL","amount":-342.50},{"date":"2024-03-01","label":"SALARY EMPLOYER","amount":12500.00}]
+    const [, dateStr, rawLabel, amtStr, balStr] = m;
 
-Si aucune transaction trouvée : []`
-  });
+    // Nettoyer le label (supprimer les chiffres parasites en fin)
+    const label = rawLabel.replace(/^\d+\s+/, '').replace(/\s+\d+$/, '').trim();
+    if (label.length < 1) continue;
 
+    // Ignorer les lignes d'en-tête ou de totaux
+    if (/תאריך|פעולה|חובה|זכות|יתרה|סה"כ|total|solde|balance/i.test(label)) continue;
+
+    const txAmt = parseFloat(amtStr.replace(/,/g, ''));
+    const balance = parseFloat(balStr.replace(/,/g, ''));
+    if (isNaN(txAmt) || isNaN(balance) || txAmt === 0) continue;
+
+    // Déterminer débit ou crédit via la variation du solde
+    // Les transactions sont du plus récent au plus ancien
+    // prevBalance = solde de la ligne PLUS RÉCENTE (au-dessus)
+    let signedAmt;
+    if (prevBalance !== null) {
+      // balance actuelle = solde AVANT la transaction précédente (plus récente)
+      // Donc: prevBalance - balance ≈ montant de la transaction précédente
+      // Pour la transaction ACTUELLE: la prochaine ligne dira
+      // On doit regarder: balance (ligne N) vs balance (ligne N-1)
+      // balance(N-1) - balance(N) = effet de la transaction N-1
+      // Mais on ne sait pas encore la ligne N+1...
+      // Approche: utiliser le montant de la ligne précédente avec son propre calcul
+      signedAmt = txAmt; // placeholder, sera recalculé ci-dessous
+    } else {
+      signedAmt = txAmt;
+    }
+
+    // Calcul réel: on regarde la différence entre le solde ACTUEL et le PRÉCÉDENT
+    // Puisque transactions = plus récent en premier:
+    // ligne 0 (la plus récente): balance0
+    // ligne 1 (avant): balance1
+    // L'effet de ligne 0 = balance0 - balance1
+    // Donc: si balance0 > balance1 → ligne 0 est un crédit
+    //       si balance0 < balance1 → ligne 0 est un débit
+    //
+    // On stocke le solde de la ligne PRÉCÉDENTE (déjà traitée = plus récente)
+    // et on corrige le signe de la transaction PRÉCÉDENTE maintenant qu'on connaît balance actuelle
+
+    if (prevBalance !== null && transactions.length > 0) {
+      const lastTx = transactions[transactions.length - 1];
+      const diff = prevBalance - balance; // diff positive = la tx précédente a augmenté le solde = crédit
+      const absExpected = Math.abs(lastTx.amount);
+      // Vérifier que la différence correspond approximativement au montant
+      if (Math.abs(Math.abs(diff) - absExpected) < 2) {
+        lastTx.amount = diff > 0 ? absExpected : -absExpected;
+      }
+    }
+
+    // Convertir la date DD/MM/YYYY → YYYY-MM-DD
+    const [day, month, year] = dateStr.split('/');
+    const isoDate = `${year}-${month}-${day}`;
+
+    transactions.push({ date: isoDate, label, amount: txAmt }); // signe provisoire
+    prevBalance = balance;
+  }
+
+  // Corriger la dernière transaction (on n'a pas de balance suivante)
+  // Pour la dernière ligne (la plus ancienne), on doit deviner par le contexte
+  if (transactions.length > 0) {
+    const last = transactions[transactions.length - 1];
+    // Si le label ressemble à un revenu, mettre positif
+    const creditKeywords = /משכורת|שכר|זיכוי|קצבת|ביטוח.?לאומי|מענק|זכות|מרכז|מצודת|bit.*העברת|הפניקס|פרעון.?פקדון|ריבית.?מפקדון|דיבידנד|מלאומי|ילדים/;
+    if (creditKeywords.test(last.label) && last.amount < 0) {
+      last.amount = Math.abs(last.amount);
+    }
+  }
+
+  return transactions;
+}
+
+// ── Fallback : Claude parse le texte brut ─────────────────────
+async function claudeParseText(text) {
+  const excerpt = text.substring(0, 6000);
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -623,21 +703,35 @@ Si aucune transaction trouvée : []`
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
-        messages: [{ role: 'user', content }]
+        messages: [{
+          role: 'user',
+          content: `Voici le texte extrait d'un relevé bancaire Bank Hapoalim (Israel).
+
+Format des colonnes (droite vers gauche en hébreu):
+יתרה בש"ח (solde) | זכות (crédit/entrée) | חובה (débit/sortie) | פעולה (description) | תאריך (date DD/MM/YYYY)
+
+RÈGLES:
+- Si le montant apparaît dans la colonne "חובה" → amount NÉGATIF (dépense)
+- Si le montant apparaît dans la colonne "זכות" → amount POSITIF (revenu)
+- Pour déterminer: si le solde augmente après la transaction → crédit (positif), sinon → débit (négatif)
+- date format YYYY-MM-DD
+
+TEXTE:
+${excerpt}
+
+Réponds UNIQUEMENT avec du JSON valide, sans markdown:
+[{"date":"2026-04-16","label":"ני\"ע-דמי ניהול","amount":-0.35},{"date":"2026-04-12","label":"בטוח לאומי","amount":3676.00}]
+
+Si aucune transaction: []`
+        }]
       })
     });
     const d = await r.json();
-    if (d.error) {
-      console.error('Claude API error:', d.error);
-      return [];
-    }
-    const raw = (d.content?.[0]?.text || '[]')
-      .replace(/```json\n?|\n?```/g, '')
-      .trim();
+    const raw = (d.content?.[0]?.text || '[]').replace(/```json\n?|\n?```/g, '').trim();
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
-    console.error('Claude vision parse error:', e);
+    console.error('Claude text parse error:', e);
     return [];
   }
 }
