@@ -576,45 +576,56 @@ async function importPDF(file, statusEl) {
 
     setStatus(statusEl, 'loading', `📋 Analyse de ${lines.length} lignes...`);
 
-    // ── Parseur direct ────────────────────────────────────────
-    // Format de chaque ligne de transaction:
-    // ₪[solde]  [montant]  [DD/MM/YYYY]  [description]
-    // Puis "1" (crédit) ou "2" (débit) sur la ligne suivante
+    // ── Parseur ancré sur la DATE (fiable sur tous les devices) ──
+    // Problème précédent: le signe ₪ peut être encodé différemment
+    // Solution: chercher uniquement la date DD/MM/YYYY, toujours présente
     //
-    // IMPORTANT: le montant peut commencer par "." ex: ".35" = 0.35₪
-    // Regex: ₪[solde]  [montant avec ou sans 0 initial]  [date]  [description]
-    const TX_RE = /[₪ש]\S*\s+(\.?\d[\d,]*\.?\d*)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/;
+    // Format ligne Hapoalim extrait par PDF.js:
+    // "[balance]  [montant]  [DD/MM/YYYY]  [description hébraïque]"
+    // Ligne suivante: "1"=crédit (argent reçu), "2"=débit (argent sorti)
 
     const transactions = [];
+    const DATE_IN_LINE = /(\d{2}\/\d{2}\/\d{4})/;
+
     for (let i = 0; i < lines.length; i++) {
-      const m = lines[i].match(TX_RE);
+      const line = lines[i];
+
+      // Cette ligne contient-elle une date ?
+      if (!DATE_IN_LINE.test(line)) continue;
+
+      // Extraire: [quelque chose] [montant] [date] [description]
+      // Le montant est le dernier nombre avant la date
+      const m = line.match(/([\d,]+\.?\d*|\.[\d]+)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/);
       if (!m) continue;
 
       const [, amtStr, dateStr, rawDesc] = m;
       const amt = parseFloat(amtStr.replace(/,/g, ''));
-      if (!amt || isNaN(amt)) continue;
+      if (!amt || isNaN(amt) || amt === 0) continue;
 
-      // Nettoyer la description
-      const desc = rawDesc.replace(/^##\s*/, '').replace(/\s*\d+$/, '').trim();
-      if (desc.length < 1) continue;
+      // Nettoyer description (enlever ## et chiffres parasites)
+      const desc = rawDesc.replace(/^#+\s*/, '').replace(/\s+\d+$/, '').trim();
+      if (!desc || desc.length < 1) continue;
 
-      // La ligne suivante indique le type: "1"=crédit, "2"=débit
-      const next = (lines[i + 1] || '').trim();
-      const signedAmt = (next === '1') ? +Math.abs(amt) : -Math.abs(amt);
+      // Ignorer les lignes d'en-tête hébreu
+      if (/תאריך|פעולה|חובה|זכות|יתרה|תקופה/.test(line)) continue;
 
-      // Date DD/MM/YYYY → YYYY-MM-DD
+      // Ignorer la ligne de période "20/10/2025 – 18/04/2026"
+      if (/–|-/.test(line) && !/[א-ת]/.test(line) && !/[\d,]+\.?\d*\s+\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
+
+      // Signe: ligne suivante "1"=crédit, "2"=débit
+      const nextLine = (lines[i + 1] || '').trim();
+      const signedAmt = (nextLine === '1') ? +Math.abs(amt) : -Math.abs(amt);
+
+      // DD/MM/YYYY → YYYY-MM-DD
       const [dd, mm, yyyy] = dateStr.split('/');
-      transactions.push({
-        date: `${yyyy}-${mm}-${dd}`,
-        label: desc,
-        amount: signedAmt
-      });
+      transactions.push({ date: `${yyyy}-${mm}-${dd}`, label: desc, amount: signedAmt });
     }
 
     if (transactions.length === 0) {
-      setStatus(statusEl, 'error', `Parseur direct: 0 résultat sur ${lines.length} lignes. Format inattendu.`);
+      setStatus(statusEl, 'error', `0 transaction sur ${lines.length} lignes. Aperçu du texte:<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">${lines.slice(0,20).join('<br>').replace(/</g,'&lt;')}</div>`);
       return;
     }
+
 
     setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions — catégorisation...`);
     await saveImportedTx(transactions, file.name, statusEl);
