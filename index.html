@@ -536,78 +536,82 @@ async function handleFileImport(file){
   }
 }
 
-// ── PDF IMPORT — Approche robuste avec debug visible ──────────
+// ── PDF IMPORT — Parseur direct format Hapoalim ───────────────
+// Format extrait par PDF.js (lignes RTL inversées):
+// "₪-5,073.50  .35  16/04/2026  ני"ע-דמי ניהול"
+// Ligne suivante: "2" = débit (négatif), "1" = crédit (positif)
 async function importPDF(file, statusEl) {
-
-  // Étape 1 : vérifier que PDF.js est chargé
   if (typeof pdfjsLib === 'undefined') {
-    setStatus(statusEl, 'error', 'PDF.js non chargé. Recharge la page et réessaie.');
+    setStatus(statusEl, 'error', 'PDF.js non chargé. Recharge la page.');
     return;
   }
-
-  setStatus(statusEl, 'loading', '📄 Ouverture du PDF...');
-
+  setStatus(statusEl, 'loading', '📄 Lecture du PDF...');
   try {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     const numPages = pdf.numPages;
 
-    setStatus(statusEl, 'loading', `📋 Lecture de ${numPages} page(s)...`);
-
-    // Extraire tout le texte brut, page par page
-    // Grouper les items par position Y pour reconstruire les lignes
-    const allText = [];
+    // Extraire toutes les lignes de texte page par page
+    const lines = [];
     for (let p = 1; p <= numPages; p++) {
       const page = await pdf.getPage(p);
       const tc = await page.getTextContent();
-
-      // Grouper par Y arrondi à 5px
       const byY = {};
       for (const item of tc.items) {
-        const s = item.str;
-        if (!s || !s.trim()) continue;
+        if (!item.str || !item.str.trim()) continue;
         const y = Math.round(item.transform[5] / 5) * 5;
         if (!byY[y]) byY[y] = [];
-        byY[y].push({ x: item.transform[4], s: s.trim() });
+        byY[y].push({ x: item.transform[4], s: item.str.trim() });
       }
-
-      // Trier Y décroissant (haut→bas de page)
       Object.keys(byY).map(Number).sort((a,b)=>b-a).forEach(y => {
         const line = byY[y].sort((a,b)=>a.x-b.x).map(i=>i.s).join(' ');
-        if (line.trim()) allText.push(line.trim());
+        if (line.trim()) lines.push(line.trim());
       });
     }
 
-    const rawText = allText.join('\n');
-
-    // Étape 2 : afficher un aperçu du texte extrait (debug)
-    if (!rawText || rawText.length < 20) {
-      setStatus(statusEl, 'error',
-        'PDF illisible — aucun texte extrait. Ce PDF est peut-être un scan (image). ' +
-        'Télécharge le PDF depuis <b>bankhapoalim.co.il</b> → connexion → עסקאות → PDF.'
-      );
+    if (lines.length < 3) {
+      setStatus(statusEl, 'error', 'PDF illisible. Télécharge le PDF numérique depuis bankhapoalim.co.il (pas un scan).');
       return;
     }
 
-    // Afficher aperçu pour debug
-    statusEl.innerHTML = `
-      <div class="status-loading"><div class="spinner"></div>
-        🤖 Claude analyse ${numPages} page(s)... (${rawText.length} caractères extraits)
-      </div>
-      <div style="margin-top:8px;padding:10px;background:#0a0a14;border:1px solid #333;border-radius:10px;font-size:10px;color:#666;max-height:80px;overflow:hidden;font-family:monospace">
-        ${rawText.substring(0,300).replace(/</g,'&lt;').replace(/\n/g,'↵ ')}...
-      </div>`;
+    setStatus(statusEl, 'loading', `📋 Analyse de ${lines.length} lignes...`);
 
-    // Étape 3 : envoyer à Claude par morceaux
-    const transactions = await claudeParseHapoalim(rawText, statusEl);
+    // ── Parseur direct ────────────────────────────────────────
+    // Format de chaque ligne de transaction:
+    // ₪[solde]  [montant]  [DD/MM/YYYY]  [description]
+    // Puis "1" (crédit) ou "2" (débit) sur la ligne suivante
+    //
+    // Regex: ₪[solde optionnel]  [montant]  [date]  [description]
+    const TX_RE = /[₪ש]\S*\s+([\d,]+\.?\d*)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/;
 
-    if (!transactions || transactions.length === 0) {
-      statusEl.innerHTML = `
-        <div class="status-err">⚠️ Claude n'a trouvé aucune transaction.<br><br>
-        <b>Texte extrait (début) :</b><br>
-        <div style="font-size:10px;font-family:monospace;margin-top:6px;line-height:1.6;color:#aaa">
-          ${rawText.substring(0,400).replace(/</g,'&lt;').replace(/\n/g,'<br>')}
-        </div></div>`;
+    const transactions = [];
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(TX_RE);
+      if (!m) continue;
+
+      const [, amtStr, dateStr, rawDesc] = m;
+      const amt = parseFloat(amtStr.replace(/,/g, ''));
+      if (!amt || isNaN(amt)) continue;
+
+      // Nettoyer la description
+      const desc = rawDesc.replace(/^##\s*/, '').replace(/\s*\d+$/, '').trim();
+      if (desc.length < 1) continue;
+
+      // La ligne suivante indique le type: "1"=crédit, "2"=débit
+      const next = (lines[i + 1] || '').trim();
+      const signedAmt = (next === '1') ? +Math.abs(amt) : -Math.abs(amt);
+
+      // Date DD/MM/YYYY → YYYY-MM-DD
+      const [dd, mm, yyyy] = dateStr.split('/');
+      transactions.push({
+        date: `${yyyy}-${mm}-${dd}`,
+        label: desc,
+        amount: signedAmt
+      });
+    }
+
+    if (transactions.length === 0) {
+      setStatus(statusEl, 'error', `Parseur direct: 0 résultat sur ${lines.length} lignes. Format inattendu.`);
       return;
     }
 
@@ -616,99 +620,10 @@ async function importPDF(file, statusEl) {
 
   } catch (err) {
     console.error('PDF error:', err);
-    statusEl.innerHTML = `<div class="status-err">
-      ❌ Erreur technique: <b>${err.message}</b><br><br>
-      Solutions:<br>
-      1. Recharge la page et réessaie<br>
-      2. Ou télécharge le relevé en format <b>Excel/CSV</b> depuis ta banque
-    </div>`;
+    setStatus(statusEl, 'error', 'Erreur: ' + err.message);
   }
 }
 
-// ── Claude analyse le relevé Hapoalim ────────────────────────
-async function claudeParseHapoalim(rawText, statusEl) {
-  const CHUNK = 5000;
-  const chunks = [];
-  for (let i = 0; i < rawText.length; i += CHUNK) {
-    chunks.push(rawText.substring(i, i + CHUNK));
-  }
-
-  let all = [];
-
-  for (let i = 0; i < chunks.length; i++) {
-    if (chunks.length > 1 && statusEl) {
-      setStatus(statusEl, 'loading', `🤖 Analyse partie ${i+1}/${chunks.length}...`);
-    }
-
-    const prompt = `Tu es un expert en relevés bancaires israéliens. Analyse ce texte extrait d'un PDF Bank Hapoalim (תנועות בחשבון).
-
-Le tableau a ces colonnes (hébreu, de droite à gauche):
-תאריך = date | פעולה = description | חובה = débit (argent sorti) | זכות = crédit (argent reçu) | יתרה = solde
-
-RÈGLE DU SIGNE:
-- Montant dans חובה (débit) → amount NÉGATIF
-- Montant dans זכות (crédit) → amount POSITIF
-- Si tu vois le solde augmenter → transaction positive
-- Si tu vois le solde diminuer → transaction négative
-
-TEXTE DU RELEVÉ:
-${chunks[i]}
-
-Extrais TOUTES les transactions. Réponds UNIQUEMENT avec du JSON (pas de texte, pas de \`\`\`):
-[{"date":"2026-04-16","label":"ני\\"ע-דמי ניהול","amount":-0.35},{"date":"2026-04-12","label":"בטוח לאומי","amount":3676.00}]
-
-Règles supplémentaires:
-- date au format YYYY-MM-DD (convertis DD/MM/YYYY)
-- Ignore les lignes d'en-tête (תאריך, פעולה, חובה, זכות, יתרה)
-- Ignore les lignes de solde pur (sans description de transaction)
-- Si aucune transaction dans ce chunk: []`;
-
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-
-      if (!r.ok) {
-        console.error('API HTTP error:', r.status, await r.text());
-        continue;
-      }
-
-      const d = await r.json();
-
-      if (d.error) {
-        console.error('Claude API error:', JSON.stringify(d.error));
-        continue;
-      }
-
-      const raw = (d.content?.[0]?.text || '')
-        .replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-
-      if (!raw || raw === '[]') continue;
-
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        all = all.concat(parsed.filter(t => t.date && t.label && t.amount !== undefined));
-      }
-
-    } catch (e) {
-      console.error('Chunk error:', e);
-    }
-  }
-
-  // Dédoublonner
-  const seen = new Set();
-  return all.filter(t => {
-    const k = `${t.date}|${t.label}|${t.amount}`;
-    if (seen.has(k)) return false;
-    seen.add(k); return true;
-  });
-}
 
 // ── CSV IMPORT ────────────────────────────────────────────────
 async function importCSV(file,statusEl){
