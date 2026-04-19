@@ -15,110 +15,65 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; }
 
-        /* Header Premium */
         .app-header { padding: 20px; background: linear-gradient(135deg, #4c1d95, #7c3aed); display: flex; justify-content: space-between; align-items: center; }
-        .user-info div { font-weight: bold; font-size: 18px; }
         .deco-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 12px; font-size: 12px; }
 
-        /* Dashboard Card */
-        .dashboard-card { margin: 20px; padding: 25px; background: var(--card); border-radius: 28px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .dashboard-card { margin: 20px; padding: 25px; background: var(--card); border-radius: 28px; border: 1px solid var(--border); }
         .solde-main { font-size: 32px; font-weight: 800; margin: 10px 0; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; }
         .stat-box { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 15px; text-align: center; }
-        .stat-box span { display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
-        .stat-val { font-size: 13px; font-weight: bold; }
+        .stat-box span { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 5px; }
 
-        /* Quick Actions Icons */
         .quick-actions { display: flex; justify-content: space-around; padding: 0 10px; margin-bottom: 20px; }
-        .action-icon { background: white; padding: 15px; border-radius: 20px; text-align: center; width: 80px; }
-        .action-icon span { display: block; font-size: 11px; color: #1e3a8a; font-weight: bold; margin-top: 5px; }
+        .action-icon { background: white; padding: 15px; border-radius: 20px; text-align: center; width: 80px; color: #1e3a8a; }
+        .action-icon span { display: block; font-size: 11px; font-weight: bold; margin-top: 5px; }
 
-        /* Transactions */
         .tx-list { padding: 0 20px; }
         .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
-        .tx-left { display: flex; gap: 12px; align-items: center; }
-        .tx-icon { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; }
         .tx-details div { font-size: 14px; font-weight: 500; direction: rtl; }
-        .tx-details span { font-size: 11px; color: var(--text-muted); }
-        .tx-right { text-align: right; }
-        .delete-btn { background: rgba(239, 68, 68, 0.2); border: none; padding: 8px; border-radius: 8px; margin-left: 10px; }
 
-        /* Navigation Bar */
+        /* SECTION PROJETS REPAREE */
+        .project-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+        .project-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .progress-container { background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; margin: 15px 0; overflow: hidden; }
+        .progress-bar { background: var(--accent); height: 100%; border-radius: 4px; }
+        .project-stats { display: flex; justify-content: space-between; font-size: 12px; }
+
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); }
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 10px; cursor: pointer; text-align: center; }
         .nav-item.active { color: var(--accent); }
 
-        /* Forms (Ajouter) */
-        .form-group { margin: 20px; }
-        .input-field { width: 100%; padding: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: white; margin-top: 10px; }
-        .btn-submit { width: 100%; padding: 16px; background: #e2e8f0; color: #1e293b; border: none; border-radius: 15px; font-weight: bold; margin-top: 20px; }
-
-        /* Pages */
         .page { display: none; padding-bottom: 100px; }
         .page.active { display: block; }
+        .input-field { width: 100%; padding: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: white; margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div id="main-app">
     <header class="app-header">
-        <div class="user-info">
-            <div>💰 FinanceAI 🇮🇱</div>
-            <span style="font-size:12px; opacity:0.8;">Bonjour Samuel 👋</span>
-        </div>
-        <button class="deco-btn" onclick="signOut()">Déco.</button>
+        <div><b style="font-size:18px;">FinanceAI 🇮🇱</b><br><span style="font-size:12px; opacity:0.8;">Bonjour Samuel 👋</span></div>
+        <button class="deco-btn" onclick="location.reload()">Déco.</button>
     </header>
 
     <div id="page-accueil" class="page active">
         <div class="dashboard-card">
-            <div style="font-size:11px; color:var(--text-muted); letter-spacing:1px;">AVRIL 2026</div>
-            <div class="solde-main" id="total-solde">-21 472,51 ₪</div>
-            <div style="font-size:12px; color:var(--text-muted);">Solde du mois</div>
+            <div style="font-size:11px; color:var(--text-muted);">AVRIL 2026</div>
+            <div class="solde-main" id="total-solde">0 ₪</div>
             <div class="stats-grid">
-                <div class="stat-box"><span>Revenus</span><div class="stat-val" style="color:var(--green)">0 ₪</div></div>
-                <div class="stat-box"><span>Dépenses</span><div class="stat-val" style="color:var(--red)">21 472,51 ₪</div></div>
-                <div class="stat-box"><span>Épargne</span><div class="stat-val">0%</div></div>
+                <div class="stat-box"><span>Revenus</span><div id="rev-val" style="color:var(--green)">0 ₪</div></div>
+                <div class="stat-box"><span>Dépenses</span><div id="dep-val" style="color:var(--red)">0 ₪</div></div>
+                <div class="stat-box"><span>Épargne</span><div id="save-val">0%</div></div>
             </div>
         </div>
-
         <div class="quick-actions">
             <div class="action-icon">🛒<span>Courses</span></div>
             <div class="action-icon">⛽<span>Carburant</span></div>
             <div class="action-icon">🍕<span>Restaurant</span></div>
             <div class="action-icon">💊<span>Pharmacie</span></div>
         </div>
-
-        <div style="padding:0 20px; display:flex; justify-content:space-between; margin-bottom:15px;">
-            <b style="font-size:18px;">Transactions récentes</b>
-            <span style="color:var(--accent); font-size:14px;">Tout voir →</span>
-        </div>
+        <div style="padding:0 20px; font-weight:bold; margin-bottom:10px;">Transactions récentes</div>
         <div id="tx-list" class="tx-list"></div>
-    </div>
-
-    <div id="page-ajouter" class="page">
-        <div class="form-group">
-            <h2 style="font-size:24px; margin-bottom:20px;">Ajouter ➕</h2>
-            <label>Type</label>
-            <select id="add-type" class="input-field"><option value="expense">💸 Dépense</option><option value="income">💰 Revenu</option></select>
-            <label>Description</label>
-            <input type="text" id="add-desc" class="input-field" placeholder="Ex: Rami Levy, Super-Pharm...">
-            <label>Montant (₪)</label>
-            <input type="number" id="add-amount" class="input-field" placeholder="0.00">
-            <label>Catégorie</label>
-            <select id="add-cat" class="input-field"><option>Alimentation</option><option>Transport</option><option>Loisirs</option></select>
-            <button class="btn-submit" onclick="manualAdd()">Ajouter la transaction</button>
-        </div>
-    </div>
-
-    <div id="page-importer" class="page">
-        <div style="padding:20px; text-align:center;">
-            <div style="background:var(--card); padding:40px; border-radius:30px; border:2px dashed var(--border);" onclick="document.getElementById('pdf-input').click()">
-                <div style="font-size:50px;">📄</div>
-                <p style="margin-top:15px;">Cliquez pour importer votre PDF Hapoalim</p>
-                <div id="import-loader" style="display:none; margin-top:10px;">Analyse en cours...</div>
-            </div>
-            <input type="file" id="pdf-input" hidden accept="application/pdf" onchange="processPDF(this.files[0])">
-        </div>
     </div>
 
     <div id="page-projets" class="page">
@@ -126,13 +81,45 @@
             <h2>Projets 🎯</h2>
             <button class="deco-btn" style="background:var(--accent)">+ Nouveau</button>
         </div>
-        <div id="projects-list" style="padding:0 20px;">
+        <div id="projects-container" style="padding: 0 20px;">
+            <div class="project-card">
+                <div class="project-header">
+                    <span>✈️ Vacances Tokyo</span>
+                    <b>30 000 ₪</b>
+                </div>
+                <div class="project-stats">
+                    <div class="stat-box" style="flex:1; margin-right:5px;"><span>ÉPARGNÉ</span><b style="color:var(--green)">2 200 ₪</b></div>
+                    <div class="stat-box" style="flex:1; margin-right:5px;"><span>/MOIS</span><b>882 ₪</b></div>
+                    <div class="stat-box" style="flex:1;"><span>AVANCEMENT</span><b>7%</b></div>
+                </div>
+                <div class="progress-container"><div class="progress-bar" style="width: 7%;"></div></div>
+                <button class="deco-btn" style="width:100%; background:rgba(34,197,94,0.1); color:var(--green); border:1px solid var(--green)">+ Épargner</button>
             </div>
+        </div>
+    </div>
+
+    <div id="page-importer" class="page">
+        <div style="padding:40px; text-align:center; border:2px dashed var(--border); margin:20px; border-radius:20px;" onclick="document.getElementById('pdf-input').click()">
+            <div style="font-size:50px;">📄</div>
+            <p>Importer un PDF Hapoalim</p>
+        </div>
+        <input type="file" id="pdf-input" hidden accept="application/pdf" onchange="processPDF(this.files[0])">
+    </div>
+
+    <div id="page-ajouter" class="page">
+        <div style="padding:20px;">
+            <h2>Ajouter ➕</h2>
+            <input type="text" id="add-desc" class="input-field" placeholder="Description (ex: Rami Levy)">
+            <input type="number" id="add-amount" class="input-field" placeholder="Montant ₪">
+            <button class="deco-btn" style="width:100%; padding:15px; background:var(--accent)" onclick="manualAdd()">Ajouter</button>
+        </div>
     </div>
 
     <div id="page-stats" class="page">
-        <div style="padding:20px;"><h2>Statistiques 📊</h2></div>
-        <canvas id="statsChart" style="max-height:300px; margin:20px;"></canvas>
+        <div style="padding:20px;">
+            <h2>Statistiques 📊</h2>
+            <div class="dashboard-card"><canvas id="statsChart"></canvas></div>
+        </div>
     </div>
 
     <nav class="nav-bar">
@@ -145,97 +132,53 @@
 </div>
 
 <script>
-// --- CONFIGURATION ---
 const SB_URL = 'https://nyywcxcahalxazienuav.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM';
 const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// --- NAVIGATION ---
-function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + pageId).classList.add('active');
+function showPage(p) {
+    document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+    document.getElementById('page-' + p).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     event.currentTarget.classList.add('active');
 }
 
-// --- LOGIQUE IMPORT PDF (AMELIOREE) ---
+async function loadData() {
+    const { data } = await supabaseClient.from('transactions').select('*').order('created_at', {ascending: false});
+    if (!data) return;
+    let total = 0, rev = 0, dep = 0;
+    document.getElementById('tx-list').innerHTML = data.map(t => {
+        total += t.amount;
+        if(t.amount > 0) rev += t.amount; else dep += Math.abs(t.amount);
+        return `<div class="tx-item"><div><b>${t.label}</b><br><small>${new Date(t.created_at).toLocaleDateString()}</small></div><div style="color:${t.amount<0? 'var(--red)':'var(--green)'}">${t.amount.toLocaleString()} ₪</div></div>`;
+    }).join('');
+    document.getElementById('total-solde').innerText = total.toLocaleString() + ' ₪';
+    document.getElementById('rev-val').innerText = rev.toLocaleString() + ' ₪';
+    document.getElementById('dep-val').innerText = dep.toLocaleString() + ' ₪';
+    document.getElementById('save-val').innerText = rev > 0 ? Math.round(((rev - dep) / rev) * 100) + '%' : '0%';
+}
+
 async function processPDF(file) {
-    const loader = document.getElementById('import-loader');
-    loader.style.display = 'block';
-    
     const reader = new FileReader();
     reader.onload = async function() {
-        const typedarray = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument(typedarray).promise;
-        let extracted = [];
-
+        const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+        let txs = [];
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
             const text = content.items.map(item => item.str).join(' ');
-
-            // REGEX Hapoalim: Date (DD/MM/YY) + Label + Montant
             const regex = /(\d{2}\/\d{2}\/\d{2,4})\s+(.+?)\s+(-?[\d,]+\.\d{2})/g;
             let m;
             while ((m = regex.exec(text)) !== null) {
-                let amount = parseFloat(m[3].replace(/,/g, ''));
-                // Détection intelligente dépense/revenu
-                if (!/משכורת|זיכוי|הפקדה/i.test(m[2]) && amount > 0) amount = -amount;
-
-                extracted.push({
-                    label: m[2].trim(),
-                    amount: amount,
-                    category: "Auto",
-                    created_at: formatToISO(m[1])
-                });
+                let amt = parseFloat(m[3].replace(/,/g, ''));
+                if (!/משכורת|זיכוי/i.test(m[2]) && amt > 0) amt = -amt;
+                txs.push({ label: m[2].trim(), amount: amt, created_at: new Date().toISOString() });
             }
         }
-        
-        if (extracted.length > 0) {
-            await supabaseClient.from('transactions').insert(extracted);
-            alert(`✅ ${extracted.length} transactions ajoutées !`);
-            loadData();
-            showPage('accueil');
-        } else {
-            alert("❌ Format non reconnu. Vérifiez que c'est un PDF numérique.");
-        }
-        loader.style.display = 'none';
+        if (txs.length > 0) { await supabaseClient.from('transactions').insert(txs); loadData(); showPage('accueil'); }
     };
     reader.readAsArrayBuffer(file);
-}
-
-function formatToISO(d) {
-    const p = d.split('/');
-    return `${p[2].length==2?'20'+p[2]:p[2]}-${p[1]}-${p[0]}T12:00:00Z`;
-}
-
-// --- CHARGEMENT DES DONNEES ---
-async function loadData() {
-    const { data } = await supabaseClient.from('transactions').select('*').order('created_at', {ascending: false});
-    if (!data) return;
-
-    let total = 0;
-    document.getElementById('tx-list').innerHTML = data.map(t => {
-        total += t.amount;
-        return `
-            <div class="tx-item">
-                <div class="tx-left">
-                    <div class="tx-icon">💸</div>
-                    <div class="tx-details">
-                        <div>${t.label}</div>
-                        <span>${t.category} • ${new Date(t.created_at).toLocaleDateString()}</span>
-                    </div>
-                </div>
-                <div class="tx-right">
-                    <div style="color:${t.amount<0?'var(--red)':'var(--green)'}; font-weight:bold;">
-                        ${t.amount.toLocaleString()} ₪
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-    document.getElementById('total-solde').innerText = `${total.toLocaleString()} ₪`;
 }
 
 window.onload = loadData;
