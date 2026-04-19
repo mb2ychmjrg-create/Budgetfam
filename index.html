@@ -204,11 +204,11 @@ cursor:pointer;transition:all .2s;margin-bottom:12px;text-align:center
   <div class="card">
     <div class="card-title">Ta banque</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
-      <button class="bank-pill" onclick="selectBank(this,'hapoalim')">🔵 Hapoalim</button>
-      <button class="bank-pill" onclick="selectBank(this,'leumi')">🟢 Leumi</button>
-      <button class="bank-pill" onclick="selectBank(this,'discount')">🔴 Discount</button>
-      <button class="bank-pill" onclick="selectBank(this,'mizrahi')">🟡 Mizrahi</button>
-      <button class="bank-pill" onclick="selectBank(this,'other')">⚫ Autre</button>
+      <button class="bank-pill" onclick="selectBank(this,'hapoalim')" style="border-color:#ef4444;color:#ef4444">🔴 Hapoalim</button>
+      <button class="bank-pill" onclick="selectBank(this,'leumi')" style="border-color:#22c55e;color:#22c55e">🟢 Leumi</button>
+      <button class="bank-pill" onclick="selectBank(this,'discount')" style="border-color:#22c55e;color:#22c55e">🟢 Discount</button>
+      <button class="bank-pill" onclick="selectBank(this,'mizrahi')" style="border-color:#f59e0b;color:#f59e0b">🟡 Mizrahi-Tefahot</button>
+      <button class="bank-pill" onclick="selectBank(this,'other')" style="border-color:#6b7280;color:#6b7280">⚫ Autre</button>
     </div>
     <div id="bank-tip" style="font-size:11px;color:var(--muted);line-height:1.8;min-height:20px"></div>
   </div>
@@ -536,8 +536,9 @@ async function handleFileImport(file){
   }
 }
 
-// ── PDF IMPORT — Extraction texte + Parseur direct + Claude fallback ──
-// Le PDF Hapoalim est numérique → texte extractible directement, pas besoin de vision
+// ── PDF IMPORT — Claude lit tout directement ─────────────────
+// Stratégie simple et fiable : extraire TOUS les items de texte
+// dans l'ordre visuel, puis Claude fait le vrai travail d'analyse
 async function importPDF(file, statusEl) {
   setStatus(statusEl, 'loading', `📄 Lecture de "${file.name}"...`);
   try {
@@ -545,196 +546,155 @@ async function importPDF(file, statusEl) {
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     const numPages = pdf.numPages;
 
-    setStatus(statusEl, 'loading', `📋 Extraction du texte (${numPages} page${numPages > 1 ? 's' : ''})...`);
+    setStatus(statusEl, 'loading', `📋 Extraction du texte (${numPages} pages)...`);
 
-    // 1. Extraire le texte de chaque page en préservant l'ordre lignes
-    let allLines = [];
-    for (let i = 1; i <= numPages; i++) {
-      const page = await pdf.getPage(i);
+    // Extraire tous les items de toutes les pages
+    // Regrouper par ligne (position Y) pour reconstituer les lignes du tableau
+    let structured = [];
+    for (let p = 1; p <= numPages; p++) {
+      const page = await pdf.getPage(p);
       const content = await page.getTextContent();
 
-      // Grouper les items par ligne (même position Y ± 4px)
-      const byY = {};
+      // Grouper par Y (arrondi à 3px près) pour reconstruire les lignes
+      const rows = {};
       for (const item of content.items) {
         if (!item.str.trim()) continue;
-        const y = Math.round(item.transform[5] / 4) * 4; // arrondi 4px
-        if (!byY[y]) byY[y] = [];
-        byY[y].push({ x: item.transform[4], str: item.str });
+        const y = Math.round(item.transform[5] / 3) * 3;
+        if (!rows[y]) rows[y] = [];
+        rows[y].push({ x: Math.round(item.transform[4]), str: item.str.trim() });
       }
 
-      // Trier par Y décroissant (haut de page en premier), puis X croissant
-      const sortedYs = Object.keys(byY).map(Number).sort((a, b) => b - a);
+      // Trier: Y décroissant (haut→bas), puis X croissant (gauche→droite)
+      // Note: en PDF hébreu RTL, les colonnes sont en ordre inverse
+      // On garde les deux ordres pour que Claude puisse tout comprendre
+      const sortedYs = Object.keys(rows).map(Number).sort((a, b) => b - a);
       for (const y of sortedYs) {
-        const line = byY[y].sort((a, b) => a.x - b.x).map(i => i.str).join(' ');
-        if (line.trim()) allLines.push(line.trim());
+        const rowItems = rows[y].sort((a, b) => a.x - b.x);
+        // Ligne avec position X pour aider à identifier les colonnes
+        const lineStr = rowItems.map(i => i.str).join('  |  ');
+        if (lineStr.trim()) structured.push(lineStr);
       }
+      structured.push('--- page ' + p + ' ---');
     }
 
-    const fullText = allLines.join('\n');
+    const text = structured.join('\n');
 
-    if (!fullText || fullText.length < 30) {
-      setStatus(statusEl, 'error', 'PDF illisible. Assure-toi de télécharger le PDF depuis bankhapoalim.co.il (pas un scan papier).');
+    if (!text || text.length < 50) {
+      setStatus(statusEl, 'error', 'PDF illisible. Télécharge le PDF depuis bankhapoalim.co.il directement (pas un scan).');
       return;
     }
 
-    setStatus(statusEl, 'loading', '🔍 Analyse du relevé...');
+    setStatus(statusEl, 'loading', '🤖 Claude analyse le relevé en hébreu...');
 
-    // 2. Parseur direct — format Bank Hapoalim / banques israéliennes
-    let transactions = parseIsraeliStatement(fullText);
-
-    // 3. Fallback Claude si parseur ne trouve rien
-    if (transactions.length === 0) {
-      setStatus(statusEl, 'loading', '🤖 Claude analyse le relevé...');
-      transactions = await claudeParseText(fullText);
-    }
+    // Claude fait TOUT — analyse le texte hébreu, identifie débit/crédit, extrait les montants
+    const transactions = await claudeParseHapoalim(text);
 
     if (!transactions || transactions.length === 0) {
-      setStatus(statusEl, 'error', 'Aucune transaction trouvée. Vérifie que c\'est bien un relevé de compte (תנועות בחשבון).');
+      setStatus(statusEl, 'error', 'Aucune transaction trouvée. Assure-toi que c\'est un relevé de compte Hapoalim (תנועות בחשבון).');
       return;
     }
 
-    setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions — catégorisation IA...`);
+    setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions trouvées — catégorisation...`);
     await saveImportedTx(transactions, file.name, statusEl);
 
   } catch (err) {
     console.error('PDF error:', err);
-    setStatus(statusEl, 'error', 'Erreur lecture PDF: ' + err.message);
+    setStatus(statusEl, 'error', 'Erreur: ' + err.message);
   }
 }
 
-// ── Parseur direct format Bank Hapoalim ──────────────────────
-// Format des lignes: DD/MM/YYYY [description hébreu] [montant] ₪[±solde]
-// La direction (débit/crédit) est déterminée par la variation du solde
-function parseIsraeliStatement(text) {
-  const transactions = [];
-  const lines = text.split('\n');
-
-  // Regex: date DD/MM/YYYY + texte hébreu/latin + montant + ₪solde
-  const TXN_RE = /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d,]+\.?\d*)\s+[₪ש](-?[\d,]+\.?\d*)/;
-  // Alternative sans signe ₪ explicite (certaines versions du PDF)
-  const TXN_RE2 = /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d,]+\.?\d*)\s+(-?[\d,]+\.?\d*)/;
-
-  let prevBalance = null;
-
-  for (const line of lines) {
-    let m = line.match(TXN_RE) || line.match(TXN_RE2);
-    if (!m) continue;
-
-    const [, dateStr, rawLabel, amtStr, balStr] = m;
-
-    // Nettoyer le label (supprimer les chiffres parasites en fin)
-    const label = rawLabel.replace(/^\d+\s+/, '').replace(/\s+\d+$/, '').trim();
-    if (label.length < 1) continue;
-
-    // Ignorer les lignes d'en-tête ou de totaux
-    if (/תאריך|פעולה|חובה|זכות|יתרה|סה"כ|total|solde|balance/i.test(label)) continue;
-
-    const txAmt = parseFloat(amtStr.replace(/,/g, ''));
-    const balance = parseFloat(balStr.replace(/,/g, ''));
-    if (isNaN(txAmt) || isNaN(balance) || txAmt === 0) continue;
-
-    // Déterminer débit ou crédit via la variation du solde
-    // Les transactions sont du plus récent au plus ancien
-    // prevBalance = solde de la ligne PLUS RÉCENTE (au-dessus)
-    let signedAmt;
-    if (prevBalance !== null) {
-      // balance actuelle = solde AVANT la transaction précédente (plus récente)
-      // Donc: prevBalance - balance ≈ montant de la transaction précédente
-      // Pour la transaction ACTUELLE: la prochaine ligne dira
-      // On doit regarder: balance (ligne N) vs balance (ligne N-1)
-      // balance(N-1) - balance(N) = effet de la transaction N-1
-      // Mais on ne sait pas encore la ligne N+1...
-      // Approche: utiliser le montant de la ligne précédente avec son propre calcul
-      signedAmt = txAmt; // placeholder, sera recalculé ci-dessous
-    } else {
-      signedAmt = txAmt;
-    }
-
-    // Calcul réel: on regarde la différence entre le solde ACTUEL et le PRÉCÉDENT
-    // Puisque transactions = plus récent en premier:
-    // ligne 0 (la plus récente): balance0
-    // ligne 1 (avant): balance1
-    // L'effet de ligne 0 = balance0 - balance1
-    // Donc: si balance0 > balance1 → ligne 0 est un crédit
-    //       si balance0 < balance1 → ligne 0 est un débit
-    //
-    // On stocke le solde de la ligne PRÉCÉDENTE (déjà traitée = plus récente)
-    // et on corrige le signe de la transaction PRÉCÉDENTE maintenant qu'on connaît balance actuelle
-
-    if (prevBalance !== null && transactions.length > 0) {
-      const lastTx = transactions[transactions.length - 1];
-      const diff = prevBalance - balance; // diff positive = la tx précédente a augmenté le solde = crédit
-      const absExpected = Math.abs(lastTx.amount);
-      // Vérifier que la différence correspond approximativement au montant
-      if (Math.abs(Math.abs(diff) - absExpected) < 2) {
-        lastTx.amount = diff > 0 ? absExpected : -absExpected;
-      }
-    }
-
-    // Convertir la date DD/MM/YYYY → YYYY-MM-DD
-    const [day, month, year] = dateStr.split('/');
-    const isoDate = `${year}-${month}-${day}`;
-
-    transactions.push({ date: isoDate, label, amount: txAmt }); // signe provisoire
-    prevBalance = balance;
+// ── Claude analyse le relevé Hapoalim ────────────────────────
+async function claudeParseHapoalim(rawText) {
+  // Envoyer par chunks si le texte est long (max 3 pages à la fois)
+  const MAX_CHARS = 7000;
+  const chunks = [];
+  for (let i = 0; i < rawText.length; i += MAX_CHARS) {
+    chunks.push(rawText.substring(i, i + MAX_CHARS));
   }
 
-  // Corriger la dernière transaction (on n'a pas de balance suivante)
-  // Pour la dernière ligne (la plus ancienne), on doit deviner par le contexte
-  if (transactions.length > 0) {
-    const last = transactions[transactions.length - 1];
-    // Si le label ressemble à un revenu, mettre positif
-    const creditKeywords = /משכורת|שכר|זיכוי|קצבת|ביטוח.?לאומי|מענק|זכות|מרכז|מצודת|bit.*העברת|הפניקס|פרעון.?פקדון|ריבית.?מפקדון|דיבידנד|מלאומי|ילדים/;
-    if (creditKeywords.test(last.label) && last.amount < 0) {
-      last.amount = Math.abs(last.amount);
+  let allTransactions = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    if (chunks.length > 1) {
+      setStatus(document.getElementById('import-status'), 'loading',
+        `🤖 Claude analyse le relevé (partie ${i+1}/${chunks.length})...`);
     }
-  }
 
-  return transactions;
-}
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [{
+            role: 'user',
+            content: `Tu analyses un relevé de compte Bank Hapoalim Israel (תנועות בחשבון).
 
-// ── Fallback : Claude parse le texte brut ─────────────────────
-async function claudeParseText(text) {
-  const excerpt = text.substring(0, 6000);
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: `Voici le texte extrait d'un relevé bancaire Bank Hapoalim (Israel).
+Le texte ci-dessous vient d'un PDF hébreu. Les colonnes du tableau sont (de droite à gauche):
+- תאריך = date (format DD/MM/YYYY)
+- פעולה = description de la transaction en hébreu
+- חובה = montant DÉBITÉ (sortie d'argent → amount NÉGATIF)
+- זכות = montant CRÉDITÉ (entrée d'argent → amount POSITIF)
+- יתרה בש"ח = solde après transaction
 
-Format des colonnes (droite vers gauche en hébreu):
-יתרה בש"ח (solde) | זכות (crédit/entrée) | חובה (débit/sortie) | פעולה (description) | תאריך (date DD/MM/YYYY)
+RÈGLE CRITIQUE pour le signe:
+- Si la ligne a un montant dans la colonne חובה (débit) → amount NÉGATIF
+- Si la ligne a un montant dans la colonne זכות (crédit) → amount POSITIF
+- Tu peux aussi vérifier: si le solde AUGMENTE par rapport à la ligne suivante → crédit (positif)
+- Si le solde DIMINUE → débit (négatif)
 
-RÈGLES:
-- Si le montant apparaît dans la colonne "חובה" → amount NÉGATIF (dépense)
-- Si le montant apparaît dans la colonne "זכות" → amount POSITIF (revenu)
-- Pour déterminer: si le solde augmente après la transaction → crédit (positif), sinon → débit (négatif)
-- date format YYYY-MM-DD
+EXEMPLES de transactions de ce relevé:
+- "ני\"ע-דמי ניהול" avec montant en חובה → négatif (frais)
+- "בטוח לאומי" avec montant en זכות → positif (allocation)
+- "טפחות-משכנתא" avec montant en חובה → négatif (prêt immobilier)
+- "מרכז קהילתי" avec montant en זכות → positif (salaire)
+- "כרטיסי אשראי" avec montant en חובה → négatif (remboursement carte)
+- "קצבת ילדים" avec montant en זכות → positif (allocations enfants)
+- "הוראת-קבע" avec montant en חובה → négatif (prélèvement)
+- "הו\"ק-ת.חסכון" avec montant en חובה → négatif (épargne automatique)
+- "זיכוי מלאומי" avec montant en זכות → positif (remboursement)
+- "bit העברת כסף" avec montant en זכות → positif (virement reçu)
 
-TEXTE:
-${excerpt}
+TEXTE EXTRAIT DU PDF:
+${chunks[i]}
 
-Réponds UNIQUEMENT avec du JSON valide, sans markdown:
+Réponds UNIQUEMENT avec du JSON valide (pas de markdown, pas d'explication):
 [{"date":"2026-04-16","label":"ני\"ע-דמי ניהול","amount":-0.35},{"date":"2026-04-12","label":"בטוח לאומי","amount":3676.00}]
 
-Si aucune transaction: []`
-        }]
-      })
-    });
-    const d = await r.json();
-    const raw = (d.content?.[0]?.text || '[]').replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.error('Claude text parse error:', e);
-    return [];
+Si aucune transaction dans ce texte: []`
+          }]
+        })
+      });
+
+      const d = await r.json();
+      if (d.error) { console.error('Claude error:', d.error); continue; }
+
+      const raw = (d.content?.[0]?.text || '[]')
+        .replace(/```json\n?|\n?```/g, '').trim();
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) allTransactions = allTransactions.concat(parsed);
+      } catch (e) {
+        console.error('JSON parse error:', e, raw.substring(0, 200));
+      }
+
+    } catch (e) {
+      console.error('Fetch error:', e);
+    }
   }
+
+  // Dédoublonner par date+label+amount
+  const seen = new Set();
+  return allTransactions.filter(t => {
+    const key = `${t.date}|${t.label}|${t.amount}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
+
 
 // ── CSV IMPORT ────────────────────────────────────────────────
 async function importCSV(file,statusEl){
