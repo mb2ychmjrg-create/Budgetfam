@@ -576,55 +576,78 @@ async function importPDF(file, statusEl) {
 
     setStatus(statusEl, 'loading', `📋 Analyse de ${lines.length} lignes...`);
 
-    // ── Parseur ancré sur la DATE (fiable sur tous les devices) ──
-    // Problème précédent: le signe ₪ peut être encodé différemment
-    // Solution: chercher uniquement la date DD/MM/YYYY, toujours présente
-    //
-    // Format ligne Hapoalim extrait par PDF.js:
-    // "[balance]  [montant]  [DD/MM/YYYY]  [description hébraïque]"
-    // Ligne suivante: "1"=crédit (argent reçu), "2"=débit (argent sorti)
+    // ── Parseur dual-format Hapoalim ─────────────────────────
+    // PDF.js extrait les lignes dans 2 formats différents :
+    // FORMAT A: [balance] [montant] [DD/MM/YYYY] [description]
+    //   ex: "₪-5,073.50 .35 16/04/2026 ני"ע-דמי ניהול"
+    // FORMAT B: [balance] [montant] [description] [DD/MM/YYYY]
+    //   ex: "₪-4,529.30 2,642.00 הו"ק הלואה קרן 15/04/2026"
+    // Ligne suivante: "1"=crédit (positif), "2"=débit (négatif)
 
     const transactions = [];
-    const DATE_IN_LINE = /(\d{2}\/\d{2}\/\d{4})/;
+    const HEADER_RE = /תאריך|פעולה|חובה|זכות|יתרה|תקופה|בנק הפועלים|חשבון|סניף/;
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+      // Enlever le préfixe ## et espaces
+      const line = lines[i].replace(/^#+\s*/, '').trim();
 
-      // Cette ligne contient-elle une date ?
-      if (!DATE_IN_LINE.test(line)) continue;
+      // Ignorer les lignes d'en-tête et les lignes sans date
+      if (HEADER_RE.test(line)) continue;
+      if (!/\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
 
-      // Extraire: [quelque chose] [montant] [date] [description]
-      // Le montant est le dernier nombre avant la date
-      const m = line.match(/([\d,]+\.?\d*|\.[\d]+)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/);
-      if (!m) continue;
+      // Ignorer la ligne de période (ex: "20/10/2025 – 18/04/2026")
+      if (/\d{2}\/\d{2}\/\d{4}\s*[–-]\s*\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
 
-      const [, amtStr, dateStr, rawDesc] = m;
-      const amt = parseFloat(amtStr.replace(/,/g, ''));
-      if (!amt || isNaN(amt) || amt === 0) continue;
+      let date = '', desc = '', amt = 0;
 
-      // Nettoyer description (enlever ## et chiffres parasites)
-      const desc = rawDesc.replace(/^#+\s*/, '').replace(/\s+\d+$/, '').trim();
-      if (!desc || desc.length < 1) continue;
+      // ── FORMAT A: montant DATE description ───────────────
+      // Le montant peut être ".35" (sans 0) ou "2,642.00"
+      const mA = line.match(/([\d,]*\.?\d+)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/);
+      if (mA) {
+        const a = parseFloat(mA[1].replace(/,/g, ''));
+        if (a && !isNaN(a)) {
+          amt = a;
+          date = mA[2];
+          desc = mA[3].replace(/\s+\d+$/, '').trim();
+        }
+      }
 
-      // Ignorer les lignes d'en-tête hébreu
-      if (/תאריך|פעולה|חובה|זכות|יתרה|תקופה/.test(line)) continue;
+      // ── FORMAT B: montant description DATE (date en fin de ligne) ─
+      if (!amt) {
+        const mDate = line.match(/(\d{2}\/\d{2}\/\d{4})\s*$/);
+        if (mDate) {
+          date = mDate[1];
+          const before = line.substring(0, line.lastIndexOf(date)).trim();
+          // Trouver le dernier nombre suivi d'un caractère non-numérique
+          const mAmt = before.match(/([\d,]*\.?\d+)\s+([^\d].+)$/);
+          if (mAmt) {
+            const a = parseFloat(mAmt[1].replace(/,/g, ''));
+            if (a && !isNaN(a)) {
+              amt = a;
+              desc = mAmt[2].replace(/\s+\d+$/, '').trim();
+            }
+          }
+        }
+      }
 
-      // Ignorer la ligne de période "20/10/2025 – 18/04/2026"
-      if (/–|-/.test(line) && !/[א-ת]/.test(line) && !/[\d,]+\.?\d*\s+\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
+      // Valider et ajouter
+      if (!amt || !date || !desc || desc.length < 1) continue;
+      if (HEADER_RE.test(desc)) continue;
 
       // Signe: ligne suivante "1"=crédit, "2"=débit
-      const nextLine = (lines[i + 1] || '').trim();
-      const signedAmt = (nextLine === '1') ? +Math.abs(amt) : -Math.abs(amt);
+      const next = (lines[i + 1] || '').trim();
+      const signedAmt = (next === '1') ? +Math.abs(amt) : -Math.abs(amt);
 
       // DD/MM/YYYY → YYYY-MM-DD
-      const [dd, mm, yyyy] = dateStr.split('/');
+      const [dd, mm, yyyy] = date.split('/');
       transactions.push({ date: `${yyyy}-${mm}-${dd}`, label: desc, amount: signedAmt });
     }
 
     if (transactions.length === 0) {
-      setStatus(statusEl, 'error', `0 transaction sur ${lines.length} lignes. Aperçu du texte:<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">${lines.slice(0,20).join('<br>').replace(/</g,'&lt;')}</div>`);
+      setStatus(statusEl, 'error', `0 transaction sur ${lines.length} lignes.<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">${lines.slice(0,20).join('<br>').replace(/</g,'&lt;')}</div>`);
       return;
     }
+
 
 
     setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions — catégorisation...`);
