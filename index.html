@@ -524,101 +524,121 @@ async function handleFileImport(file){
   }
 }
 
-// ── PDF IMPORT — PDF.js + Claude ──────────────────────────────
-async function importPDF(file,statusEl){
-  setStatus(statusEl,'loading',`📄 Lecture du PDF "${file.name}"...`);
-  try{
-    // 1. Lire le PDF avec PDF.js
-    const buf=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-    const numPages=pdf.numPages;
+// ── PDF IMPORT — Rendu visuel + Claude Vision ─────────────────
+// Approche : PDF.js rend chaque page en image → Claude "voit" le relevé
+// Bien plus fiable que l'extraction de texte pour l'hébreu/tableaux
+async function importPDF(file, statusEl) {
+  setStatus(statusEl, 'loading', `📄 Ouverture de "${file.name}"...`);
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const numPages = pdf.numPages;
+    const maxPages = Math.min(numPages, 6); // max 6 pages pour éviter timeout
 
-    // 2. Extraire le texte page par page en préservant la structure
-    let fullText='';
-    for(let i=1;i<=numPages;i++){
-      const page=await pdf.getPage(i);
-      const content=await page.getTextContent();
-      // Reconstituer les lignes en groupant les items par position Y
-      const items=content.items;
-      let lastY=null;
-      let line='';
-      for(const item of items){
-        const y=Math.round(item.transform[5]);
-        if(lastY!==null&&Math.abs(y-lastY)>3){
-          fullText+=line.trim()+'\n';
-          line='';
-        }
-        line+=(item.str||'')+' ';
-        lastY=y;
-      }
-      if(line.trim())fullText+=line.trim()+'\n';
-      fullText+='\n--- PAGE '+i+' ---\n';
+    setStatus(statusEl, 'loading', `🖼️ Conversion du PDF en images (${maxPages} page${maxPages > 1 ? 's' : ''})...`);
+
+    // 1. Rendre chaque page en image base64 via canvas
+    const pageImages = [];
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      // Scale 1.5x pour meilleure lisibilité par Claude
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      // Fond blanc (important pour les PDFs avec fond transparent)
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      // Convertir en JPEG base64 (qualité 0.85 = bon équilibre taille/qualité)
+      const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+      pageImages.push(b64);
+      setStatus(statusEl, 'loading', `🖼️ Page ${i}/${maxPages} convertie...`);
     }
 
-    if(!fullText.trim()||fullText.length<50){
-      setStatus(statusEl,'error','PDF vide ou scanné. Télécharge le PDF numérique depuis le site de ta banque (pas un scan papier).');
+    setStatus(statusEl, 'loading', `🤖 Claude lit le relevé bancaire (${maxPages} page${maxPages > 1 ? 's' : ''})...`);
+
+    // 2. Envoyer toutes les images à Claude Vision en une seule requête
+    const transactions = await claudeVisionExtract(pageImages);
+
+    if (!transactions || transactions.length === 0) {
+      setStatus(statusEl, 'error',
+        'Claude n\'a trouvé aucune transaction. Vérifie que c\'est bien un relevé de compte bancaire (תנועות בחשבון) et non un autre document.'
+      );
       return;
     }
 
-    setStatus(statusEl,'loading',`🤖 Claude analyse le relevé (${numPages} page${numPages>1?'s':''})...`);
+    setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions détectées — catégorisation IA...`);
+    await saveImportedTx(transactions, file.name, statusEl);
 
-    // 3. Envoyer à Claude pour extraction structurée
-    const transactions=await claudeExtractFromPDF(fullText,file.name);
-
-    if(!transactions||transactions.length===0){
-      setStatus(statusEl,'error','Aucune transaction trouvée. Vérifie que c\'est bien un relevé de compte (תנועות בחשבון).');
-      return;
-    }
-
-    setStatus(statusEl,'loading',`✅ ${transactions.length} transactions trouvées — catégorisation...`);
-
-    // 4. Catégoriser et sauvegarder
-    await saveImportedTx(transactions,file.name,statusEl);
-
-  }catch(err){
-    console.error(err);
-    setStatus(statusEl,'error','Erreur lecture PDF: '+err.message+'. Essaie de télécharger un autre format (CSV/Excel) depuis ta banque.');
+  } catch (err) {
+    console.error('PDF error:', err);
+    setStatus(statusEl, 'error',
+      'Erreur: ' + err.message + '<br>Essaie de télécharger le relevé en format Excel depuis le site de ta banque.'
+    );
   }
 }
 
-// ── Claude extrait les transactions du PDF ────────────────────
-async function claudeExtractFromPDF(pdfText,fileName){
-  // Garder les 8000 premiers chars (évite les limites token)
-  const excerpt=pdfText.substring(0,8000);
+// ── Claude Vision — lit les images du relevé ─────────────────
+async function claudeVisionExtract(pageImages) {
+  // Construire le message avec toutes les images
+  const content = [];
 
-  const prompt=`Tu analyses un relevé bancaire israélien (${selectedBank||'banque israélienne'}).
+  // Ajouter chaque image
+  pageImages.forEach((b64, i) => {
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/jpeg', data: b64 }
+    });
+    content.push({
+      type: 'text',
+      text: i === 0 ? `Page ${i + 1} du relevé bancaire israélien (${selectedBank || 'banque israélienne'}) :` : `Page ${i + 1} :`
+    });
+  });
 
-TEXTE BRUT DU PDF:
-${excerpt}
+  // Instruction finale
+  content.push({
+    type: 'text',
+    text: `TÂCHE : Extrais TOUTES les transactions de ce relevé bancaire israélien.
 
-TÂCHE: Extrais TOUTES les transactions (lignes avec un montant).
+RÈGLES ABSOLUES :
+- amount NÉGATIF = débit (חיוב / sortie d'argent / dépense)
+- amount POSITIF = crédit (זכות / entrée d'argent / revenu)
+- date au format YYYY-MM-DD (convertis DD/MM/YYYY → YYYY-MM-DD)
+- label = nom exact du marchand ou description telle qu'elle apparaît
+- IGNORER : lignes de solde, totaux, en-têtes de colonnes, informations du compte
+- INCLURE : chaque ligne avec un montant et une description de transaction
 
-FORMAT DE RÉPONSE: JSON uniquement, rien d'autre, pas de markdown:
-[{"date":"2024-03-15","label":"SHUFERSAL DEAL","amount":-342.50},{"date":"2024-03-01","label":"SALARY","amount":12500.00}]
+RÉPONSE : JSON uniquement, zéro texte avant ou après, zéro markdown :
+[{"date":"2024-03-15","label":"SHUFERSAL DEAL","amount":-342.50},{"date":"2024-03-01","label":"SALARY EMPLOYER","amount":12500.00}]
 
-RÈGLES CRITIQUES:
-- amount NÉGATIF = débit / חיוב / דביט (sortie d'argent)
-- amount POSITIF = crédit / זכות / קרדיט (entrée d'argent)
-- date format YYYY-MM-DD (convertis DD/MM/YYYY si nécessaire)
-- label = nom exact du marchand/bénéficiaire du relevé
-- Ignore les lignes de solde, totaux, en-têtes
-- Si tu ne trouves pas de transactions: []`;
+Si aucune transaction trouvée : []`
+  });
 
-  try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:3000,
-        messages:[{role:'user',content:prompt}]
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content }]
       })
     });
-    const d=await r.json();
-    const raw=(d.content?.[0]?.text||'[]').replace(/```json\n?|\n?```/g,'').trim();
-    const parsed=JSON.parse(raw);
-    return Array.isArray(parsed)?parsed:[];
-  }catch(e){
-    console.error('Claude parse error:',e);
-    return[];
+    const d = await r.json();
+    if (d.error) {
+      console.error('Claude API error:', d.error);
+      return [];
+    }
+    const raw = (d.content?.[0]?.text || '[]')
+      .replace(/```json\n?|\n?```/g, '')
+      .trim();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('Claude vision parse error:', e);
+    return [];
   }
 }
 
