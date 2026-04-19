@@ -581,8 +581,9 @@ async function importPDF(file, statusEl) {
     // ₪[solde]  [montant]  [DD/MM/YYYY]  [description]
     // Puis "1" (crédit) ou "2" (débit) sur la ligne suivante
     //
-    // Regex: ₪[solde optionnel]  [montant]  [date]  [description]
-    const TX_RE = /[₪ש]\S*\s+([\d,]+\.?\d*)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/;
+    // IMPORTANT: le montant peut commencer par "." ex: ".35" = 0.35₪
+    // Regex: ₪[solde]  [montant avec ou sans 0 initial]  [date]  [description]
+    const TX_RE = /[₪ש]\S*\s+(\.?\d[\d,]*\.?\d*)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/;
 
     const transactions = [];
     for (let i = 0; i < lines.length; i++) {
