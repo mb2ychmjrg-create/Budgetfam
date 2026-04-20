@@ -333,26 +333,31 @@ const COLORS=['#8b5cf6','#22c55e','#ef4444','#3b82f6','#f59e0b','#ec4899','#14b8
 
 // ── CATÉGORISATION LOCALE (marchands israéliens) ──────────────
 const RULES=[
-  [/rami.?levy|shufersal|שפרסל|victory|ויקטורי|yochananof|יוחננוף|mega|מגה|osher.?ad|tiv.?taam|freshmarket|makolet|מכולת|שוק|supermarket/i,'Alimentation'],
-  [/super.?pharm|סופר.?פארם|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|בית.?מרקחת|רופא|dentist|hospital|hadassah|ichilov|terem|טרם|clinic|מרפאה|הפניקס|phoenix/i,'Santé'],
-  [/gett|גט|bolt|uber|yango|אגד|eged|רכבת|דלק|sonol|paz|delek|parking|חניה|taxi|מונית/i,'Transport'],
-  [/netflix|spotify|apple|google.?play|wolt|ten.?bis|תן.?ביס|restaurant|מסעדה|coffee|קפה|cinema|סינמה|yes.?planet|gym|fitness/i,'Loisirs'],
-  // Logement: משכנתא, ועד בית, ארנונה
-  [/טפחות.?משכנתא|משכנתא|arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|שכירות|חשמל|מים|amisragas|גז|hot.?net/i,'Logement'],
-  // Carte de crédit (paiement mensuel Hapoalim)
-  [/כרטיסי.?אשראי|credit.?card|max|cal|isracard|visa|mastercard/i,'Carte crédit'],
-  // Prêt bancaire: הלואה קרן + רבית + בנק דיסקונט למשכנתא
-  [/הו"ק.?הלו|הלואה.?קרן|הלואה.?רבית|הלוואה|בנק.?דיסקונט.?למ|הלוואה.?קרן.?כללי/i,'Prêt'],
-  // Épargne: חיסכון, פקדון, ני"ע (titres)
-  [/הו"ק.?ת.?חסכון|הפקדה.?לפקדון|פרעון.?פקדון|ריבית.?מפקדון|זכוי.?מת.?חסכון|חסכון|פקדון|ני"ע|השתלמות|pension|פנסיה|gemel|גמל|ביטוח/i,'Épargne'],
-  // Domiciliations / frais bancaires
-  [/הוראת.?קבע|הו"ק|ע.מפעולות|עמ.?הקצאת|עמלת|partner|cellcom|hot.?mobile|019|012|amazon|microsoft|adobe|icloud|מנוי/i,'Abonnements'],
-  // Revenus: salaires (מרכז קהילתי, מצודת אגסי = employeurs de Samuel)
-  [/מרכז.?קהילתי|מצודת.?אגסי|bit.?העברת|משכורת|salary|שכר/i,'Salaire'],
-  // Virements reçus / transferts
-  [/העב.?לאחר.?נייד|זיכוי.?מלאומי|מלאומי/i,'Virement reçu'],
-  // Allocations état
-  [/ביטוח.?לאומי|בטוח.?לאומי|קצבת.?ילדים|קצבה/i,'Allocations'],
+  // Alimentation
+  [/rami.?levy|shufersal|שפרסל|victory|yochananof|mega|מגה|osher.?ad|tiv.?taam|freshmarket|makolet|מכולת|supermarket/i,'Alimentation'],
+  // Santé
+  [/super.?pharm|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|רופא|dentist|hospital|terem|טרם|clinic|הפניקס/i,'Santé'],
+  // Transport
+  [/gett|bolt|uber|yango|אגד|eged|רכבת|דלק|sonol|paz|delek|parking|חניה|taxi|מונית/i,'Transport'],
+  // Loisirs
+  [/netflix|spotify|wolt|ten.?bis|תן.?ביס|restaurant|מסעדה|coffee|קפה|cinema|סינמה|yes.?planet|gym|fitness/i,'Loisirs'],
+  // Logement — משכנתא Hapoalim s'appelle "טפחות-משכנתא"
+  [/טפחות.?משכנתא|טפחות|משכנתא|arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|שכירות|חשמל|מים|גז|hot.?net/i,'Logement'],
+  // Carte de crédit — "כרטיסי אשראי ל" dans Hapoalim
+  [/כרטיסי.?אשראי|credit.?card|max|cal|isracard/i,'Carte crédit'],
+  // Prêt — "הו"ק הלו' רבית", "הו"ק הלואה קרן", "בנק דיסקונט למ", "הלואה קרן/כללי"
+  [/הו.?ק.?הלו|הלואה.?קרן|הלואה.?רבית|הלוואה|בנק.?דיסקונט.?למ|הלואה.?קרן.?כללי/i,'Prêt'],
+  // Épargne — "הו"ק-ת.חסכון", "הפקדה לפקדון", "פרעון פקדון", "ני"ע", "זכוי מת. חסכון"
+  [/הו.?ק.?ת.?חסכון|הפקדה.?לפקדון|פרעון.?פקדון|ריבית.?מפקדון|זכוי.?מת|חסכון|פקדון|ני.?ע|השתלמות|pension|פנסיה|gemel|גמל|ביטוח/i,'Épargne'],
+  // Abonnements — "הוראת-קבע", "הו"ק", frais bancaires "ע.מפעולות", "עמ'הקצאת"
+  [/הוראת.?קבע|ע.?מפעולות|עמ.?הקצאת|עמלת|partner|cellcom|hot.?mobile|amazon|microsoft|icloud|מנוי/i,'Abonnements'],
+  // Salaire — "מרכז קהילתי בי", "מצודת אגסי בע"
+  [/מרכז.?קהילתי|מצודת.?אגסי|משכורת|salary|שכר/i,'Salaire'],
+  // Virements reçus — "העב' לאחר-נייד", "bit העברת כסף", "זיכוי מלאומי"
+  [/העב.?לאחר.?נייד|bit.?העברת|זיכוי.?מלאומי/i,'Virement reçu'],
+  // Allocations — "בטוח לאומי", "ביטוח לאומי", "קצבת ילדים"
+  [/בטוח.?לאומי|ביטוח.?לאומי|קצבת.?ילדים|קצבה/i,'Allocations'],
+  // Éducation
   [/university|אוניברסיטה|college|מכללה|ulpan|school|בית.?ספר|kindergarten|גן.?ילדים/i,'Éducation'],
 ];
 function localCat(label,amount){
@@ -722,53 +727,111 @@ async function importCSV(file,statusEl){
 }
 
 // ── SAVE TRANSACTIONS ─────────────────────────────────────────
-async function saveImportedTx(txs,fileName,statusEl){
-  const toInsert=[];
-  let aiCount=0;
-  for(const t of txs){
-    const amt=parseFloat(t.amount)||0;
-    if(amt===0)continue;
-    let cat=localCat(t.label,amt);
-    if((cat==='Divers'||cat==='Salaire')&&aiCount<25){
-      cat=await claudeCat(t.label,amt);
-      aiCount++;
+async function saveImportedTx(txs, fileName, statusEl) {
+  const valid = txs.filter(t => t.label && parseFloat(t.amount) !== 0);
+  if (!valid.length) { setStatus(statusEl, 'error', 'Aucune transaction valide.'); return; }
+
+  setStatus(statusEl, 'loading', `🤖 Catégorisation IA de ${valid.length} transactions...`);
+
+  // ── Catégorisation locale rapide d'abord ─────────────────────
+  const CATS = ['Alimentation','Transport','Logement','Loisirs','Santé','Épargne',
+    'Abonnements','Éducation','Carte crédit','Prêt','Salaire','Virement reçu','Allocations','Divers'];
+
+  const toInsert = valid.map(t => ({
+    user_id: user.id,
+    label: (t.label || '').substring(0, 120),
+    amount: parseFloat(t.amount),
+    category: localCat(t.label, parseFloat(t.amount)),
+    created_at: t.date ? new Date(t.date).toISOString() : new Date().toISOString()
+  }));
+
+  // ── Identifier ceux qui restent "Divers" ou "Salaire" → batch Claude ─
+  const needsAI = toInsert.filter(t => t.category === 'Divers' || t.category === 'Salaire');
+
+  if (needsAI.length > 0) {
+    setStatus(statusEl, 'loading', `🤖 Claude catégorise ${needsAI.length} transactions inconnues...`);
+    try {
+      // Envoyer tout en une seule requête Claude
+      const list = needsAI.map((t, i) => `${i}: "${t.label}" (${t.amount > 0 ? '+' : ''}${t.amount}₪)`).join('\n');
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `Catégorise ces transactions bancaires israéliennes (labels en hébreu).
+Catégories possibles: ${CATS.join(', ')}
+
+Transactions:
+${list}
+
+Règles:
+- montant positif = revenu (Salaire, Allocations, Virement reçu...)
+- montant négatif = dépense
+- כרטיסי אשראי = Carte crédit
+- משכנתא/טפחות = Logement  
+- הלואה/הו"ק הלו = Prêt
+- ביטוח לאומי/קצבת ילדים = Allocations
+- זיכוי מלאומי/מרכז קהילתי/מצודת = Salaire
+- הו"ק-ת.חסכון/פקדון = Épargne
+- הוראת-קבע/הו"ק = Abonnements
+- ני"ע = Épargne
+
+Réponds UNIQUEMENT avec du JSON: {"0":"Carte crédit","1":"Prêt","2":"Allocations"}`
+          }]
+        })
+      });
+      const d = await r.json();
+      const raw = (d.content?.[0]?.text || '{}').replace(/```json\s*|\s*```/g, '').trim();
+      const catMap = JSON.parse(raw);
+
+      // Appliquer les catégories Claude
+      needsAI.forEach((t, i) => {
+        const cat = catMap[String(i)];
+        if (cat && CATS.includes(cat)) {
+          // Trouver la transaction dans toInsert et mettre à jour
+          const found = toInsert.find(x => x.label === t.label && x.amount === t.amount && x.category === t.category);
+          if (found) found.category = cat;
+        }
+      });
+    } catch (e) {
+      console.error('Batch categorization error:', e);
     }
-    toInsert.push({
-      user_id:user.id,
-      label:(t.label||'').substring(0,120),
-      amount:amt,
-      category:cat,
-      created_at:t.date?new Date(t.date).toISOString():new Date().toISOString()
-    });
   }
-  const valid=toInsert.filter(t=>t.label&&t.amount!==0);
-  if(!valid.length){setStatus(statusEl,'error','Aucune transaction valide.');return;}
 
-  const{error}=await sb.from('transactions').insert(valid);
-  if(error){setStatus(statusEl,'error','Erreur: '+error.message);return;}
+  setStatus(statusEl, 'loading', `💾 Enregistrement de ${toInsert.length} transactions...`);
+  const { error } = await sb.from('transactions').insert(toInsert);
+  if (error) { setStatus(statusEl, 'error', 'Erreur: ' + error.message); return; }
 
-  // Stocker l'historique avec la plage de dates pour pouvoir supprimer par lot
-  const dates = valid.map(t=>t.created_at).sort();
-  const hist=JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
+  // Historique avec plage de dates
+  const dates = toInsert.map(t => t.created_at).sort();
+  const hist = JSON.parse(localStorage.getItem('fi_hist_' + user.id) || '[]');
   hist.unshift({
-    id: Date.now(),
-    date:new Date().toISOString(),
-    count:valid.length,
-    file:fileName,
-    ai:aiCount,
-    from:dates[0],
-    to:dates[dates.length-1]
+    id: Date.now(), date: new Date().toISOString(),
+    count: toInsert.length, file: fileName,
+    from: dates[0], to: dates[dates.length - 1]
   });
-  localStorage.setItem('fi_hist_'+user.id,JSON.stringify(hist.slice(0,20)));
+  localStorage.setItem('fi_hist_' + user.id, JSON.stringify(hist.slice(0, 20)));
 
-  statusEl.innerHTML=`<div class="status-ok">
+  // Résumé par catégorie
+  const catSummary = {};
+  toInsert.forEach(t => { catSummary[t.category] = (catSummary[t.category] || 0) + 1; });
+  const summaryLines = Object.entries(catSummary)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([c, n]) => `${catIcon(c)} ${c}: ${n}`)
+    .join(' · ');
+
+  statusEl.innerHTML = `<div class="status-ok">
     <div style="font-size:26px;margin-bottom:6px">✅</div>
-    <div style="font-weight:700;color:var(--green);font-size:15px">${valid.length} transactions importées !</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">${aiCount} catégorisées par Claude · ${valid.length-aiCount} reconnues localement</div>
+    <div style="font-weight:700;color:var(--green);font-size:15px">${toInsert.length} transactions importées !</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.8">${summaryLines}</div>
   </div>`;
 
-  loadHome();loadTxList();loadImportHistory();
-  document.getElementById('file-in').value='';
+  loadHome(); loadTxList(); loadImportHistory();
+  document.getElementById('file-in').value = '';
 }
 
 function loadImportHistory(){
