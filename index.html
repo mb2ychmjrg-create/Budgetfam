@@ -1,675 +1,154 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>FinanceAI 🇮🇱 V12</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-<style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-
-:root{
---bg:#08080f;
---card:#11111a;
---card2:#1a1a28;
---border:#2b2b3f;
---text:#f1f1fa;
---muted:#8b8ba8;
---p1:#7c3aed;
---p2:#9333ea;
---green:#22c55e;
---red:#ef4444;
---yellow:#f59e0b;
-}
-
-html,body{
-height:100%;
-background:var(--bg);
-color:var(--text);
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-overflow:hidden;
-}
-
-#app{
-max-width:430px;
-margin:auto;
-height:100%;
-display:flex;
-flex-direction:column;
-}
-
-header{
-padding:16px;
-background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3aed);
-display:flex;
-justify-content:space-between;
-align-items:center;
-box-shadow:0 4px 20px rgba(124,58,237,.3);
-}
-
-.h-title{
-font-size:18px;
-font-weight:800;
-}
-
-.h-sub{
-font-size:11px;
-opacity:.8;
-margin-top:3px;
-}
-
-.logout-btn{
-border:none;
-background:rgba(255,255,255,.14);
-color:#fff;
-padding:8px 12px;
-border-radius:10px;
-font-size:12px;
-cursor:pointer;
-}
-
-.content{
-flex:1;
-overflow-y:auto;
-padding:14px 14px 90px;
-}
-
-.page{display:none}
-.page.active{display:block}
-
-.card{
-background:var(--card);
-border:1px solid var(--border);
-border-radius:18px;
-padding:16px;
-margin-bottom:12px;
-}
-
-.hero{
-background:linear-gradient(135deg,#1e0a4e,#2d1264,#17052e);
-border-radius:22px;
-padding:20px;
-margin-bottom:12px;
-border:1px solid rgba(124,58,237,.35);
-}
-
-.hero-label{
-font-size:10px;
-opacity:.7;
-margin-bottom:8px;
-}
-
-.hero-amount{
-font-size:30px;
-font-weight:800;
-margin-bottom:6px;
-}
-
-.hero-sub{
-font-size:11px;
-opacity:.7;
-}
-
-.stats-row{
-display:flex;
-gap:8px;
-margin-top:14px;
-}
-
-.stat-box{
-flex:1;
-background:rgba(255,255,255,.06);
-padding:10px;
-border-radius:14px;
-text-align:center;
-}
-
-.stat-box label{
-display:block;
-font-size:10px;
-opacity:.6;
-margin-bottom:5px;
-}
-
-.stat-box b{
-font-size:14px;
-}
-
-.quick-grid{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:8px;
-margin-bottom:12px;
-}
-
-.quick-btn{
-background:var(--card);
-border:1px solid var(--border);
-color:var(--text);
-padding:10px 4px;
-border-radius:14px;
-font-size:10px;
-cursor:pointer;
-}
-
-.q-emoji{
-font-size:20px;
-display:block;
-margin-bottom:4px;
-}
-
-.field,.sel{
-width:100%;
-padding:13px;
-border-radius:12px;
-border:1px solid var(--border);
-background:var(--card2);
-color:var(--text);
-font-size:14px;
-margin-bottom:12px;
-outline:none;
-}
-
-.btn{
-width:100%;
-padding:14px;
-border:none;
-border-radius:14px;
-background:linear-gradient(90deg,var(--p1),var(--p2));
-color:#fff;
-font-weight:700;
-cursor:pointer;
-}
-
-.lbl{
-font-size:11px;
-color:var(--muted);
-margin-bottom:5px;
-display:block;
-}
-
-.nav{
-position:fixed;
-bottom:0;
-left:50%;
-transform:translateX(-50%);
-width:100%;
-max-width:430px;
-display:flex;
-background:var(--card);
-border-top:1px solid var(--border);
-}
-
-.nav-btn{
-flex:1;
-padding:8px 4px;
-background:none;
-border:none;
-color:var(--muted);
-display:flex;
-flex-direction:column;
-align-items:center;
-gap:4px;
-font-size:10px;
-cursor:pointer;
-}
-
-.nav-btn.active{
-color:#c4b5fd;
-}
-
-.auth-wrap{
-height:100%;
-display:flex;
-flex-direction:column;
-justify-content:center;
-padding:24px;
-}
-
-.auth-logo{
-font-size:55px;
-text-align:center;
-margin-bottom:10px;
-}
-
-.auth-title{
-font-size:28px;
-font-weight:800;
-text-align:center;
-margin-bottom:5px;
-}
-
-.auth-sub{
-font-size:12px;
-text-align:center;
-color:var(--muted);
-margin-bottom:24px;
-line-height:1.7;
-}
-
-.tabs{
-display:flex;
-background:var(--card);
-padding:4px;
-border-radius:14px;
-margin-bottom:18px;
-}
-
-.tab{
-flex:1;
-padding:10px;
-border:none;
-background:none;
-color:var(--muted);
-border-radius:10px;
-cursor:pointer;
-}
-
-.tab.active{
-background:var(--p1);
-color:#fff;
-}
-
-.tx-item{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:10px 0;
-border-bottom:1px solid var(--border);
-}
-
-.tx-name{
-font-size:13px;
-font-weight:600;
-}
-
-.tx-meta{
-font-size:10px;
-color:var(--muted);
-margin-top:3px;
-}
-
-.tx-amount{
-font-weight:700;
-font-size:14px;
-}
-
-.drop-zone{
-padding:28px;
-text-align:center;
-border:2px dashed var(--border);
-border-radius:18px;
-background:var(--card2);
-margin-bottom:12px;
-cursor:pointer;
-}
-
-.drop-title{
-font-weight:700;
-margin-bottom:6px;
-}
-
-.drop-sub{
-font-size:11px;
-color:var(--muted);
-}
-
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget V12 Auto PDF</title>
 </head>
 
 <body>
 
-<div id="app">
+<h2>Login</h2>
 
-<header id="app-header" style="display:none">
-<div>
-<div class="h-title">💰 FinanceAI 🇮🇱</div>
-<div class="h-sub" id="hello-text">שלום</div>
-</div>
-<button class="logout-btn" onclick="logout()">יציאה</button>
-</header>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Mot de passe">
+<button onclick="handleLogin()">התחבר</button>
+<button onclick="logout()">Logout</button>
 
-<div class="content" id="main-content" style="display:none">
+<hr>
 
-<div id="pg-home" class="page active">
-<div id="dashboard-box"></div>
+<h2>Import PDF Banque</h2>
 
-<div class="quick-grid">
-<button class="quick-btn" onclick="quickAdd('קניות','🛒','מזון')"><span class="q-emoji">🛒</span>קניות</button>
-<button class="quick-btn" onclick="quickAdd('דלק','⛽','תחבורה')"><span class="q-emoji">⛽</span>דלק</button>
-<button class="quick-btn" onclick="quickAdd('מסעדה','🍕','בילוי')"><span class="q-emoji">🍕</span>מסעדה</button>
-<button class="quick-btn" onclick="quickAdd('פארם','💊','בריאות')"><span class="q-emoji">💊</span>פארם</button>
-</div>
+<input type="file" id="pdfFile">
+<button onclick="processPDF()">Analyser PDF</button>
 
-<div id="tx-list"></div>
-</div>
+<p id="status"></p>
 
-<div id="pg-import" class="page">
-<div class="card">
-<div style="font-size:18px;font-weight:800;margin-bottom:8px">📄 ייבוא דפי חשבון</div>
-<div style="font-size:12px;color:var(--muted)">PDF · CSV · Excel</div>
-</div>
+<hr>
 
-<div class="drop-zone" onclick="document.getElementById('file-in').click()">
-<div class="drop-title">לחץ לייבוא קובץ</div>
-<div class="drop-sub">PDF / CSV / Excel</div>
-</div>
-
-<input type="file" id="file-in" style="display:none">
-<div id="import-result"></div>
-</div>
-
-<div id="pg-add" class="page">
-<div class="card">
-<span class="lbl">סוג פעולה</span>
-<select class="sel" id="tx-type">
-<option value="expense">הוצאה</option>
-<option value="income">הכנסה</option>
-</select>
-
-<span class="lbl">תיאור</span>
-<input class="field" id="tx-label">
-
-<span class="lbl">סכום ₪</span>
-<input class="field" id="tx-amount" type="number">
-
-<span class="lbl">קטגוריה</span>
-<select class="sel" id="tx-cat">
-<option>מזון</option>
-<option>תחבורה</option>
-<option>דיור</option>
-<option>בריאות</option>
-<option>בילוי</option>
-<option>אחר</option>
-</select>
-
-<button class="btn" onclick="addTx()">הוסף פעולה</button>
-</div>
-</div>
-
-<div id="pg-stats" class="page">
-<div class="card">
-<div style="font-size:18px;font-weight:800;margin-bottom:10px">📊 סטטיסטיקות</div>
-<canvas id="chart1"></canvas>
-</div>
-</div>
-
-</div>
-
-<div id="auth-page">
-
-<div class="auth-wrap">
-
-<div class="auth-logo">💰</div>
-<div class="auth-title">FinanceAI</div>
-<div class="auth-sub">ניהול תקציב משפחתי חכם בישראל</div>
-
-<div class="tabs">
-<button class="tab active">כניסה</button>
-<button class="tab">הרשמה</button>
-</div>
-
-<input class="field" id="email" placeholder="אימייל">
-<input class="field" id="password" type="password" placeholder="סיסמה">
-
-<button class="btn" onclick="login()">התחבר</button>
-
-<div id="auth-msg" style="margin-top:12px;font-size:12px;text-align:center;color:#ef4444"></div>
-
-</div>
-</div>
-
-<nav class="nav" id="app-nav" style="display:none">
-<button class="nav-btn active" onclick="go('home',this)">🏠<span>בית</span></button>
-<button class="nav-btn" onclick="go('import',this)">📄<span>ייבוא</span></button>
-<button class="nav-btn" onclick="go('add',this)">➕<span>הוסף</span></button>
-<button class="nav-btn" onclick="go('stats',this)">📊<span>סטט'</span></button>
-</nav>
-
-</div>
-
-<script>
-
-const sb = supabase.createClient(
-'https://nyywcxcahalxazienuav.supabase.co',
-'TA_CLE_SUPABASE_ICI'
-);
-
-let user=null;
-
-function qs(id){return document.getElementById(id)}
-
-function go(name,btn){
-document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-qs('pg-'+name).classList.add('active');
-btn.classList.add('active');
-}
-
-function enterApp(){
-qs('auth-page').style.display='none';
-qs('app-header').style.display='flex';
-qs('main-content').style.display='block';
-qs('app-nav').style.display='flex';
-loadHome();
-}
-
-function logout(){
-sb.auth.signOut();
-location.reload();
-}
-
-async function login(){
-
-const email=qs('email').value.trim();
-const password=qs('password').value.trim();
-
-const {data,error}=await sb.auth.signInWithPassword({
-email,password
-});
-
-if(error){
-qs('auth-msg').textContent='שגיאת התחברות';
-return;
-}
-
-user=data.user;
-enterApp();
-}
-
-async function loadHome(){
-
-qs('dashboard-box').innerHTML=`
-<div class="hero">
-<div class="hero-label">החודש</div>
-<div class="hero-amount">₪0</div>
-<div class="hero-sub">ברוך הבא למערכת</div>
-</div>
-`;
-
-qs('tx-list').innerHTML=`
-<div class="card">
-אין עדיין פעולות
-</div>
-`;
-}
-
-function quickAdd(n,e,c){
-alert('יופעל בחלק 2');
-}
-
-function addTx(){
-alert('יופעל בחלק 2');
-}
-
-sb.auth.getSession().then(({data})=>{
-if(data.session?.user){
-user=data.session.user;
-enterApp();
-}
-});
+<h3>Transactions</h3>
+<div id="transactions"></div>
 
 <!-- =========================
-PARTIE 2 - V11 SUPABASE LOGIC
+SUPABASE
 ========================= -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-/* =========================
-   CONFIG SUPABASE
-========================= */
 const SUPABASE_URL = "https://nyywcxcahalxazienuav.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_sJ38oz";
+const SUPABASE_KEY = "sb_publishable_sJ38oz";
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
 /* =========================
-   INIT SUPABASE
+LOGIN
 ========================= */
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+async function handleLogin() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-/* =========================
-   LOGIN / SESSION
-========================= */
-async function login(email, password) {
-  const { data, error } = await client.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
 
   if (error) {
-    alert("Erreur login: " + error.message);
+    alert(error.message);
     return;
   }
 
   localStorage.setItem("user", JSON.stringify(data.user));
-  loadData();
+  alert("Connecté ✔");
 }
 
+/* =========================
+LOGOUT
+========================= */
 async function logout() {
-  await client.auth.signOut();
+  await supabaseClient.auth.signOut();
   localStorage.removeItem("user");
   location.reload();
 }
 
 /* =========================
-   LOAD DATA (BANK + BUDGET)
+UPLOAD + PROCESS PDF
 ========================= */
-async function loadData() {
+async function processPDF() {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!user) return alert("Login requis");
+
+  const file = document.getElementById("pdfFile").files[0];
+  if (!file) return alert("Choisis un PDF");
+
+  document.getElementById("status").innerText = "Upload en cours...";
+
+  const path = `${user.id}/${Date.now()}-${file.name}`;
+
+  /* 1. Upload PDF */
+  const { error: uploadError } = await supabaseClient.storage
+    .from("bank-pdfs")
+    .upload(path, file);
+
+  if (uploadError) {
+    document.getElementById("status").innerText = uploadError.message;
+    return;
+  }
+
+  document.getElementById("status").innerText = "Analyse du PDF...";
+
+  /* 2. Call Edge Function (IMPORTANT) */
+  const { data, error } = await supabaseClient.functions.invoke(
+    "parse-bank-pdf",
+    {
+      body: {
+        path: path,
+        user_id: user.id
+      }
+    }
+  );
+
+  if (error) {
+    document.getElementById("status").innerText = error.message;
+    return;
+  }
+
+  document.getElementById("status").innerText = "Import terminé ✔";
+
+  loadTransactions();
+}
+
+/* =========================
+LOAD TRANSACTIONS
+========================= */
+async function loadTransactions() {
   const user = JSON.parse(localStorage.getItem("user"));
   if (!user) return;
 
-  const { data, error } = await client
+  const { data } = await supabaseClient
     .from("transactions")
     .select("*")
     .eq("user_id", user.id)
     .order("date", { ascending: false });
 
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  renderTransactions(data);
-  calculateTotals(data);
-}
-
-/* =========================
-   RENDER TRANSACTIONS
-========================= */
-function renderTransactions(data) {
-  const container = document.getElementById("transactions");
-  if (!container) return;
-
-  container.innerHTML = "";
+  const box = document.getElementById("transactions");
+  box.innerHTML = "";
 
   data.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "transaction";
-    div.innerHTML = `
-      <div>${t.title}</div>
-      <div>${t.amount} ₪</div>
-      <div>${t.date}</div>
+    box.innerHTML += `
+      <div>
+        <b>${t.title}</b> | ${t.amount} ₪ | ${t.date}
+      </div>
     `;
-    container.appendChild(div);
   });
 }
 
-/* =========================
-   TOTALS
-========================= */
-function calculateTotals(data) {
-  let income = 0;
-  let expense = 0;
-
-  data.forEach(t => {
-    if (t.amount > 0) income += t.amount;
-    else expense += t.amount;
-  });
-
-  const balance = income + expense;
-
-  const elIncome = document.getElementById("income");
-  const elExpense = document.getElementById("expense");
-  const elBalance = document.getElementById("balance");
-
-  if (elIncome) elIncome.innerText = income;
-  if (elExpense) elExpense.innerText = expense;
-  if (elBalance) elBalance.innerText = balance;
-}
-
-/* =========================
-   ADD TRANSACTION
-========================= */
-async function addTransaction(title, amount, date) {
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!user) return;
-
-  const { error } = await client.from("transactions").insert([
-    {
-      user_id: user.id,
-      title,
-      amount: parseFloat(amount),
-      date
-    }
-  ]);
-
-  if (error) {
-    alert("Erreur ajout transaction");
-    return;
-  }
-
-  loadData();
-}
-
-/* =========================
-   UPLOAD PDF BANK STATEMENT
-========================= */
-async function uploadPDF(file) {
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!user) return;
-
-  const filePath = `${user.id}/${Date.now()}-${file.name}`;
-
-  const { error } = await client.storage
-    .from("bank-pdfs")
-    .upload(filePath, file);
-
-  if (error) {
-    alert("Erreur upload PDF");
-    return;
-  }
-
-  alert("PDF envoyé ✔");
-}
-
-/* =========================
-   AUTO INIT
-========================= */
-window.addEventListener("load", () => {
-  loadData();
-});
+window.onload = () => {
+  loadTransactions();
+};
 </script>
+
+</body>
+</html>
