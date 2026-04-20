@@ -24,6 +24,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 #app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
+#auth-page{flex:1;overflow-y:auto}
 
 /* HEADER */
 header{padding:16px 18px;background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3aed);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:max(16px,env(safe-area-inset-top));box-shadow:0 4px 24px rgba(124,58,237,.3)}
@@ -140,20 +141,20 @@ header{padding:16px 18px;background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3a
 
   <!-- AUTH -->
 
-  <div id="auth-page" style="height:100%;overflow-y:auto">
-    <div class="auth-wrap">
-      <div class="auth-logo">💰</div>
-      <div class="auth-title">פיננסAI 🇮🇱</div>
-      <div class="auth-sub">ניהול תקציב משפחתי חכם<br>ייבוא PDF אוטומטי · בינה מלאכותית</div>
+  <div id="auth-page" style="flex:1;overflow-y:auto">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:24px">
+      <div style="font-size:52px;margin-bottom:10px">💰</div>
+      <div style="font-size:26px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px">פיננסAI 🇮🇱</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:28px;text-align:center;line-height:1.6">ניהול תקציב משפחתי חכם<br>ייבוא PDF אוטומטי · בינה מלאכותית</div>
       <div class="tabs">
         <button class="tab active" onclick="setMode('login',this)">התחברות</button>
         <button class="tab" onclick="setMode('signup',this)">הרשמה</button>
       </div>
       <div id="auth-msg"></div>
-      <input class="field" id="a-email" type="email" placeholder="כתובת אימייל" autocomplete="email">
-      <input class="field" id="a-pass" type="password" placeholder="סיסמה" autocomplete="current-password">
+      <input class="field" id="a-email" type="email" placeholder="your@email.com" style="direction:ltr;text-align:left">
+      <input class="field" id="a-pass" type="password" placeholder="••••••••" style="direction:ltr;text-align:left">
       <div id="a-name-wrap" style="display:none;width:100%">
-        <input class="field" id="a-name" type="text" placeholder="שם פרטי (לדוג׳: דוד)">
+        <input class="field" id="a-name" type="text" placeholder="שם פרטי">
       </div>
       <button class="btn" id="auth-btn" onclick="doAuth()">התחבר</button>
     </div>
@@ -373,17 +374,28 @@ async function doAuth(){
   const email=document.getElementById('a-email').value.trim();
   const password=document.getElementById('a-pass').value;
   const btn=document.getElementById('auth-btn');
-  if(!email||!password)return authMsg('אנא מלא את כל השדות.');
+  if(!email||!password)return authMsg('אנא מלא אימייל וסיסמה.');
   btn.textContent='...';btn.style.opacity='.6';btn.style.pointerEvents='none';
-  if(authMode==='signup'){
-    const name=document.getElementById('a-name').value.trim()||'משתמש';
-    const{error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
-    if(error){authMsg(error.message);}else authMsg('✅ החשבון נוצר! אנא אמת את האימייל שלך.',true);
-    btn.textContent='צור חשבון';btn.style.opacity='1';btn.style.pointerEvents='auto';
-  }else{
-    const{data,error}=await sb.auth.signInWithPassword({email,password});
-    if(error){authMsg('אימייל או סיסמה שגויים.');btn.textContent='התחבר';btn.style.opacity='1';btn.style.pointerEvents='auto';return;}
-    user=data.user;enterApp();
+  try{
+    if(authMode==='signup'){
+      const name=document.getElementById('a-name').value.trim()||'משתמש';
+      const{error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
+      if(error){authMsg('שגיאה: '+error.message);}
+      else authMsg('✅ החשבון נוצר! בדוק את האימייל שלך לאישור.',true);
+      btn.textContent='צור חשבון';btn.style.opacity='1';btn.style.pointerEvents='auto';
+    }else{
+      const{data,error}=await sb.auth.signInWithPassword({email,password});
+      if(error){
+        authMsg('שגיאה: '+error.message);
+        btn.textContent='התחבר';btn.style.opacity='1';btn.style.pointerEvents='auto';
+        return;
+      }
+      user=data.user;
+      enterApp();
+    }
+  }catch(e){
+    authMsg('שגיאה טכנית: '+e.message);
+    btn.textContent='התחבר';btn.style.opacity='1';btn.style.pointerEvents='auto';
   }
 }
 function enterApp(){
