@@ -482,25 +482,60 @@ async function loadTxList(data){
   }
   const recent=data.slice(0,20);
   if(!recent.length){list.innerHTML='';return;}
+  const CATS=['Alimentation','Transport','Logement','Loisirs','Santé','Épargne','Abonnements','Éducation','Carte crédit','Prêt','Salaire','Virement reçu','Allocations','Divers'];
   list.innerHTML=`<div class="card" style="padding:14px 16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div class="card-title" style="margin:0">Transactions récentes</div>
       <button onclick="go('stats',document.querySelectorAll('.nav-btn')[4])" style="background:transparent;border:none;color:#a78bfa;font-size:11px;font-weight:600;cursor:pointer">Tout voir →</button>
     </div>
     ${recent.map(t=>`<div class="tx-item" id="tx-${t.id}">
-      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1" onclick="openRecatModal('${t.id}','${(t.category||'Divers').replace(/'/g,"\\'")}','${(t.label||'').replace(/'/g,"\\'").replace(/"/g,'\\"').substring(0,40)}')" style="cursor:pointer">
         <div class="tx-icon">${catIcon(t.category)}</div>
         <div style="min-width:0">
           <div class="tx-name">${t.label||'—'}</div>
-          <div class="tx-meta">${t.category||'Divers'} · ${fmtDate(t.created_at)}</div>
+          <div class="tx-meta">${t.category||'Divers'} · ${fmtDate(t.created_at)} <span style="color:#a78bfa;font-size:9px">✏️ modifier</span></div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         <div class="tx-amount" style="color:${t.amount<0?'var(--red)':'var(--green)'}">${t.amount>0?'+':''}${t.amount.toLocaleString('fr-FR')} ₪</div>
         <button class="del-btn" onclick="delTx('${t.id}')">🗑</button>
       </div>
     </div>`).join('')}
   </div>`;
+}
+
+// ── RECATÉGORISER UNE TRANSACTION ─────────────────────────────
+function openRecatModal(id, currentCat, label) {
+  const CATS = ['Alimentation','Transport','Logement','Loisirs','Santé','Épargne',
+    'Abonnements','Éducation','Carte crédit','Prêt','Salaire','Virement reçu','Allocations','Divers'];
+  const c = document.getElementById('quick-content');
+  c.innerHTML = `
+    <div style="font-size:16px;font-weight:800;margin-bottom:4px">✏️ Modifier la catégorie</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">${label}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${CATS.map(cat=>`
+        <button onclick="recatTx('${id}','${cat}',this)"
+          style="padding:10px 8px;border-radius:12px;border:1px solid ${cat===currentCat?'var(--p2)':'var(--border)'};
+          background:${cat===currentCat?'#1e0a4e':'var(--card2)'};
+          color:${cat===currentCat?'#c4b5fd':'var(--text)'};
+          font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left">
+          ${catIcon(cat)} ${cat}
+        </button>`).join('')}
+    </div>
+    <button onclick="document.getElementById('quick-modal').style.display='none'"
+      style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit">
+      Annuler
+    </button>`;
+  document.getElementById('quick-modal').style.display='flex';
+}
+
+async function recatTx(id, newCat, btn) {
+  btn.style.opacity = '0.5';
+  const { error } = await sb.from('transactions').update({ category: newCat }).eq('id', id).eq('user_id', user.id);
+  if (!error) {
+    document.getElementById('quick-modal').style.display = 'none';
+    loadHome(); loadTxList();
+  }
 }
 
 // ── BANK SELECTOR ─────────────────────────────────────────────
@@ -600,9 +635,10 @@ async function importPDF(file, statusEl) {
 
       let date = '', desc = '', amt = 0;
 
-      // ── FORMAT A: montant DATE description ───────────────
-      // Le montant peut être ".35" (sans 0) ou "2,642.00"
-      const mA = line.match(/([\d,]*\.?\d+)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/);
+      // ── FORMAT A: [balance] [MONTANT] [DATE] [description] ──
+      // IMPORTANT: utiliser .* greedy pour SAUTER le solde et prendre
+      // le DERNIER nombre avant la date (le vrai montant, pas le solde)
+      const mA = line.match(/.*([\d,]*\.?\d+)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+)/);
       if (mA) {
         const a = parseFloat(mA[1].replace(/,/g, ''));
         if (a && !isNaN(a)) {
@@ -718,10 +754,19 @@ async function saveImportedTx(txs,fileName,statusEl){
   const{error}=await sb.from('transactions').insert(valid);
   if(error){setStatus(statusEl,'error','Erreur: '+error.message);return;}
 
-  // Historique local
+  // Stocker l'historique avec la plage de dates pour pouvoir supprimer par lot
+  const dates = valid.map(t=>t.created_at).sort();
   const hist=JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
-  hist.unshift({date:new Date().toISOString(),count:valid.length,file:fileName,ai:aiCount});
-  localStorage.setItem('fi_hist_'+user.id,JSON.stringify(hist.slice(0,10)));
+  hist.unshift({
+    id: Date.now(),
+    date:new Date().toISOString(),
+    count:valid.length,
+    file:fileName,
+    ai:aiCount,
+    from:dates[0],
+    to:dates[dates.length-1]
+  });
+  localStorage.setItem('fi_hist_'+user.id,JSON.stringify(hist.slice(0,20)));
 
   statusEl.innerHTML=`<div class="status-ok">
     <div style="font-size:26px;margin-bottom:6px">✅</div>
@@ -730,7 +775,6 @@ async function saveImportedTx(txs,fileName,statusEl){
   </div>`;
 
   loadHome();loadTxList();loadImportHistory();
-  // Reset file input
   document.getElementById('file-in').value='';
 }
 
@@ -739,9 +783,68 @@ function loadImportHistory(){
   const list=document.getElementById('import-history-list');
   if(!user)return;
   const hist=JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
-  if(!hist.length){card.style.display='none';return;}
+
+  // Toujours afficher la carte avec le bouton "Tout effacer"
   card.style.display='block';
-  list.innerHTML=hist.map(h=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><div><div style="font-weight:600">${h.file}</div><div style="color:var(--muted);font-size:10px">${new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div><div style="color:var(--green);font-weight:700">+${h.count} tx</div></div>`).join('');
+  card.querySelector('.card-title').innerHTML=`
+    Historique imports
+    <button onclick="deleteAllTx()" style="float:right;background:#450a0a;border:1px solid var(--red);border-radius:8px;padding:4px 10px;color:var(--red);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">
+      🗑 Tout effacer
+    </button>`;
+
+  if(!hist.length){
+    list.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px 0">Aucun import encore.</div>';
+    return;
+  }
+
+  list.innerHTML=hist.map(h=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:0;flex:1">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.file}</div>
+        <div style="color:var(--muted);font-size:10px;margin-top:2px">
+          ${new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+          · <span style="color:var(--green)">${h.count} transactions</span>
+        </div>
+      </div>
+      <button onclick="deleteImportBatch(${h.id},'${h.from}','${h.to}',${h.count})"
+        style="margin-left:12px;flex-shrink:0;background:#450a0a;border:1px solid var(--red);border-radius:8px;padding:6px 10px;color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">
+        🗑 Supprimer
+      </button>
+    </div>`).join('');
+}
+
+// Supprimer UN import par plage de dates
+async function deleteImportBatch(histId, from, to, count) {
+  if (!confirm(`Supprimer ces ${count} transactions importées ?`)) return;
+
+  // Supprimer par plage de dates created_at
+  const { error } = await sb.from('transactions')
+    .delete()
+    .eq('user_id', user.id)
+    .gte('created_at', from)
+    .lte('created_at', to);
+
+  if (error) { alert('Erreur: ' + error.message); return; }
+
+  // Retirer de l'historique localStorage
+  const hist = JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
+  localStorage.setItem('fi_hist_'+user.id, JSON.stringify(hist.filter(h=>h.id!==histId)));
+
+  loadHome(); loadTxList(); loadImportHistory();
+}
+
+// Tout effacer
+async function deleteAllTx() {
+  const { count } = await sb.from('transactions').select('*',{count:'exact',head:true}).eq('user_id',user.id);
+  if (!confirm(`⚠️ Supprimer les ${count||'toutes les'} transactions ? Cette action est irréversible.`)) return;
+
+  const { error } = await sb.from('transactions').delete().eq('user_id', user.id);
+  if (error) { alert('Erreur: ' + error.message); return; }
+
+  // Vider l'historique
+  localStorage.removeItem('fi_hist_'+user.id);
+  loadHome(); loadTxList(); loadImportHistory();
+  alert('✅ Toutes les transactions ont été supprimées.');
 }
 
 function setStatus(el,type,msg){
