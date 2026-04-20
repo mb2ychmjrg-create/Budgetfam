@@ -333,37 +333,39 @@ const COLORS=['#8b5cf6','#22c55e','#ef4444','#3b82f6','#f59e0b','#ec4899','#14b8
 
 // ── CATÉGORISATION LOCALE (marchands israéliens) ──────────────
 const RULES=[
+  // Logement — AVANT Prêt car טפחות contient aussi des chiffres
+  [/טפחות|משכנתא|ארנונה|arnona|ועד.?בית|bezeq|בזק|שכירות|חשמל|מים|hot.?net/i,'Logement'],
+  // Carte crédit
+  [/כרטיסי/i,'Carte crédit'],
+  // Prêt — הלואה, הלו (avec apostrophe/guillemet hébreu variable)
+  [/הלוא|הלו|דיסקונט.?למ/i,'Prêt'],
+  // Épargne — חסכון, פקדון, ני (ני"ע), זכוי מת
+  [/חסכון|פקדון|זכוי.?מת|ני.{0,3}ע|ריבית.?מפ|מענק|דיבידנד/i,'Épargne'],
+  // Allocations — בטוח/ביטוח לאומי, קצבת
+  [/בטוח.{0,4}לאומי|ביטוח.{0,4}לאומי|קצבת/i,'Allocations'],
+  // Abonnements — הוראת קבע, פעולות, הקצאת, רבית (intérêts)
+  [/הוראת|פעולות|הקצאת|עמלת|רבית/i,'Abonnements'],
+  // Salaire — employeurs de Samuel
+  [/מרכז.{0,6}קהילתי|מצודת.{0,6}אגסי|משכורת/i,'Salaire'],
+  // Virements
+  [/העב|זיכוי.{0,6}לאומי|bit|מלאומי/i,'Virement reçu'],
   // Alimentation
-  [/rami.?levy|shufersal|שפרסל|victory|yochananof|mega|מגה|osher.?ad|tiv.?taam|freshmarket|makolet|מכולת|supermarket/i,'Alimentation'],
+  [/shufersal|שפרסל|rami.?levy|victory|mega|מגה|osher|tiv.?taam|makolet|מכולת/i,'Alimentation'],
   // Santé
-  [/super.?pharm|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|רופא|dentist|hospital|terem|טרם|clinic|הפניקס/i,'Santé'],
+  [/super.?pharm|clalit|כללית|maccabi|מכבי|leumit|לאומית|הפניקס|רופא|terem/i,'Santé'],
   // Transport
-  [/gett|bolt|uber|yango|אגד|eged|רכבת|דלק|sonol|paz|delek|parking|חניה|taxi|מונית/i,'Transport'],
+  [/gett|bolt|uber|אגד|eged|רכבת|דלק|sonol|paz|parking|חניה|taxi/i,'Transport'],
   // Loisirs
-  [/netflix|spotify|wolt|ten.?bis|תן.?ביס|restaurant|מסעדה|coffee|קפה|cinema|סינמה|yes.?planet|gym|fitness/i,'Loisirs'],
-  // Logement — משכנתא Hapoalim s'appelle "טפחות-משכנתא"
-  [/טפחות.?משכנתא|טפחות|משכנתא|arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|שכירות|חשמל|מים|גז|hot.?net/i,'Logement'],
-  // Carte de crédit — "כרטיסי אשראי ל" dans Hapoalim
-  [/כרטיסי.?אשראי|credit.?card|max|cal|isracard/i,'Carte crédit'],
-  // Prêt — "הו"ק הלו' רבית", "הו"ק הלואה קרן", "בנק דיסקונט למ", "הלואה קרן/כללי"
-  [/הו.?ק.?הלו|הלואה.?קרן|הלואה.?רבית|הלוואה|בנק.?דיסקונט.?למ|הלואה.?קרן.?כללי/i,'Prêt'],
-  // Épargne — "הו"ק-ת.חסכון", "הפקדה לפקדון", "פרעון פקדון", "ני"ע", "זכוי מת. חסכון"
-  [/הו.?ק.?ת.?חסכון|הפקדה.?לפקדון|פרעון.?פקדון|ריבית.?מפקדון|זכוי.?מת|חסכון|פקדון|ני.?ע|השתלמות|pension|פנסיה|gemel|גמל|ביטוח/i,'Épargne'],
-  // Abonnements — "הוראת-קבע", "הו"ק", frais bancaires "ע.מפעולות", "עמ'הקצאת"
-  [/הוראת.?קבע|ע.?מפעולות|עמ.?הקצאת|עמלת|partner|cellcom|hot.?mobile|amazon|microsoft|icloud|מנוי/i,'Abonnements'],
-  // Salaire — "מרכז קהילתי בי", "מצודת אגסי בע"
-  [/מרכז.?קהילתי|מצודת.?אגסי|משכורת|salary|שכר/i,'Salaire'],
-  // Virements reçus — "העב' לאחר-נייד", "bit העברת כסף", "זיכוי מלאומי"
-  [/העב.?לאחר.?נייד|bit.?העברת|זיכוי.?מלאומי/i,'Virement reçu'],
-  // Allocations — "בטוח לאומי", "ביטוח לאומי", "קצבת ילדים"
-  [/בטוח.?לאומי|ביטוח.?לאומי|קצבת.?ילדים|קצבה/i,'Allocations'],
+  [/netflix|spotify|wolt|ten.?bis|מסעדה|coffee|קפה|cinema|סינמה|gym/i,'Loisirs'],
   // Éducation
-  [/university|אוניברסיטה|college|מכללה|ulpan|school|בית.?ספר|kindergarten|גן.?ילדים/i,'Éducation'],
+  [/אוניברסיטה|college|מכללה|ulpan|בית.?ספר|גן.?ילדים/i,'Éducation'],
 ];
 function localCat(label,amount){
-  if(!label)return amount>0?'Salaire':'Divers';
-  for(const[re,cat]of RULES)if(re.test(label))return cat;
-  return amount>0?'Salaire':'Divers';
+  if(!label)return amount>0?'Virement reçu':'Divers';
+  const l=label.trim();
+  for(const[re,cat]of RULES)if(re.test(l))return cat;
+  // Fallback par signe
+  return amount>0?'Virement reçu':'Divers';
 }
 function liveDetect(val){
   const cat=localCat(val,-1);
@@ -455,24 +457,39 @@ async function loadHome(){
   const{data}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
   const all=data||[];
   const now=new Date();
-  const month=all.filter(t=>{const d=new Date(t.created_at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-  const income=month.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
-  const expenses=month.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
-  const balance=income-expenses;
-  const pct=income>0?Math.min(100,Math.round(balance/income*100)):0;
+
+  // Mois courant (mois calendaire réel)
+  const month=all.filter(t=>{
+    const d=new Date(t.created_at);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+
+  const mIncome  = month.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const mExpenses= month.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const mBalance = mIncome-mExpenses;
+  const pct=mIncome>0?Math.min(100,Math.round(mBalance/mIncome*100)):0;
+
+  // Solde total cumulé (toutes transactions)
+  const totalBalance=all.reduce((s,t)=>s+t.amount,0);
+
   const el=document.getElementById('dashboard-hero');
   if(!all.length){
     el.innerHTML=`<div class="hero"><div class="hero-label">Bienvenue !</div><div class="hero-amount" style="font-size:22px">Commence ici 👇</div><div class="hero-sub">Importe ton relevé PDF ou ajoute ta première dépense</div><div style="display:flex;gap:8px;margin-top:4px"><button onclick="go('import',document.querySelectorAll('.nav-btn')[1])" style="flex:1;padding:10px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--p1),var(--p2));color:white;font-size:12px;font-weight:700;cursor:pointer">📄 Importer PDF</button><button onclick="go('add',document.querySelectorAll('.nav-btn')[2])" style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;cursor:pointer">➕ Ajouter</button></div></div>`;
     document.getElementById('tx-list').innerHTML='';return;
   }
+
+  const monthLabel=now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   el.innerHTML=`<div class="hero">
-    <div class="hero-label">${now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</div>
-    <div class="hero-amount" style="color:${balance>=0?'white':'#ef4444'}">${balance.toLocaleString('fr-FR')} ₪</div>
-    <div class="hero-sub">Solde du mois</div>
+    <div class="hero-label">${monthLabel.toUpperCase()}</div>
+    <div class="hero-amount" style="color:${mBalance>=0?'white':'#ef4444'}">${mBalance.toLocaleString('fr-FR')} ₪</div>
+    <div class="hero-sub">Solde du mois · Total cumulé : <b style="color:${totalBalance>=0?'#22c55e':'#ef4444'}">${totalBalance.toLocaleString('fr-FR')} ₪</b></div>
     <div class="stats-row">
-      <div class="stat-box"><label>Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
-      <div class="stat-box"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
+      <div class="stat-box"><label>Revenus</label><b style="color:var(--green)">${mIncome.toLocaleString('fr-FR')} ₪</b></div>
+      <div class="stat-box"><label>Dépenses</label><b style="color:var(--red)">${mExpenses.toLocaleString('fr-FR')} ₪</b></div>
       <div class="stat-box"><label>Épargne</label><b style="color:#a78bfa">${pct}%</b></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
   </div>`;
@@ -482,10 +499,10 @@ async function loadHome(){
 async function loadTxList(data){
   const list=document.getElementById('tx-list');
   if(!data){
-    const{data:d}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(20);
+    const{data:d}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(39);
     data=d||[];
   }
-  const recent=data.slice(0,20);
+  const recent=data.slice(0,40);
   if(!recent.length){list.innerHTML='';return;}
   const CATS=['Alimentation','Transport','Logement','Loisirs','Santé','Épargne','Abonnements','Éducation','Carte crédit','Prêt','Salaire','Virement reçu','Allocations','Divers'];
   list.innerHTML=`<div class="card" style="padding:14px 16px">
@@ -641,30 +658,33 @@ async function importPDF(file, statusEl) {
       if (!dateMatch) continue;
       const dateStr  = dateMatch[1];
       const datePos  = dateMatch.index;
-      const before   = line.substring(0, datePos).trim();   // tout avant la date
-      const after    = line.substring(datePos + dateStr.length).trim(); // tout après
+      const before   = line.substring(0, datePos).trim();
+      const after    = line.substring(datePos + dateStr.length).trim();
 
-      // ── Extraire TOUS les nombres de la partie "avant la date" ─
-      // Format: "[solde] [montant]" — on veut le DERNIER (le montant)
-      // Les nombres peuvent être: "5,073.50" ou ".35" (sans 0 initial)
-      const allNums = before.match(/([\d,]+\.?\d*|\.\d+)/g);
+      // ── Extraire tous les nombres de la partie "avant la date" ─
+      const allNums = [...before.matchAll(/([\d,]+\.?\d*|\.\d+)/g)];
       if (!allNums || allNums.length === 0) continue;
 
       // Le DERNIER nombre avant la date = montant de la transaction
-      // Le(s) premier(s) = solde du compte → on les ignore
-      const amtStr = allNums[allNums.length - 1];
-      const amt    = parseFloat(amtStr.replace(/,/g, ''));
+      const lastNum = allNums[allNums.length - 1];
+      const amt = parseFloat(lastNum[0].replace(/,/g, ''));
       if (!amt || isNaN(amt) || amt === 0) continue;
 
-      // ── Description ────────────────────────────────────────────
-      // FORMAT A: description est APRÈS la date
-      // FORMAT B: description est AVANT les nombres (date en fin de ligne)
+      // ── Description ──────────────────────────────────────────
+      // FORMAT A: description est APRÈS la date (cas le plus fréquent)
       let desc = after.replace(/\s*\d+$/, '').trim();
+
+      // FORMAT B: description est ENTRE les chiffres, APRÈS le dernier nombre
+      // ex: "₪-4,529.30 2,642.00 הו"ק הלואה קרן" → desc après "2,642.00"
       if (!desc || desc.length < 2) {
-        // FORMAT B: chercher le texte hébreu dans "before", avant les chiffres
-        const firstNumIdx = before.search(/([\d,]+\.?\d*|\.\d+)/);
-        desc = (firstNumIdx > 0 ? before.substring(0, firstNumIdx) : before).trim();
+        const afterLastNum = before.substring(lastNum.index + lastNum[0].length).trim();
+        if (afterLastNum && afterLastNum.length > 1) {
+          desc = afterLastNum.replace(/\s*\d+$/, '').trim();
+        }
       }
+
+      // Nettoyer: enlever ₪ et tirets en début
+      desc = desc.replace(/^[₪ש\-\s]+/, '').trim();
       if (!desc || desc.length < 1) continue;
       if (HEADER_RE.test(desc)) continue;
 
@@ -968,7 +988,7 @@ async function loadAiTip(){
   const el=document.getElementById('ai-tip');
   if(!el)return;
   el.innerHTML='<span class="ai-dots"><span></span><span></span><span></span></span>';
-  const{data}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(20);
+  const{data}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(39);
   const all=data||[];
   const income=all.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const expenses=all.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
