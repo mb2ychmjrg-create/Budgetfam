@@ -1,153 +1,1189 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Budget V12 Auto PDF</title>
-</head>
-
-<body>
-
-<h2>Login</h2>
-
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="password" placeholder="Mot de passe">
-<button onclick="handleLogin()">התחבר</button>
-<button onclick="logout()">Logout</button>
-
-<hr>
-
-<h2>Import PDF Banque</h2>
-
-<input type="file" id="pdfFile">
-<button onclick="processPDF()">Analyser PDF</button>
-
-<p id="status"></p>
-
-<hr>
-
-<h3>Transactions</h3>
-<div id="transactions"></div>
-
-<!-- =========================
-SUPABASE
-========================= -->
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FinanceAI 🇮🇱</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#07070c;--card:#11111a;--card2:#191927;--border:#232336;
+  --p1:#7c3aed;--p2:#9333ea;--p3:#a855f7;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
+  --text:#e2e2f0;--muted:#8888aa;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes slideIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+/* LAYOUT */
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
+header{
+padding:16px 18px;
+background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3aed);
+display:flex;justify-content:space-between;align-items:center;
+flex-shrink:0;padding-top:max(16px,env(safe-area-inset-top));
+box-shadow:0 4px 24px rgba(124,58,237,.3)
+}
+.h-title{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.h-sub{font-size:10px;opacity:.7;margin-top:2px}
+.logout-btn{background:rgba(255,255,255,.12);border:none;border-radius:10px;padding:6px 12px;color:white;font-size:11px;cursor:pointer}
+.content{flex:1;overflow-y:auto;padding:14px 14px 88px;-webkit-overflow-scrolling:touch}
+.nav{
+position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+width:100%;max-width:430px;
+background:var(–card);border-top:1px solid var(–border);
+display:flex;z-index:100;
+padding-bottom:max(8px,env(safe-area-inset-bottom))
+}
+.nav-btn{
+flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+padding:8px 4px;background:none;border:none;color:var(–muted);
+cursor:pointer;font-family:inherit;transition:color .2s
+}
+.nav-btn.active{color:var(–p2)}
+.nav-btn span:first-child{font-size:20px}
+.nav-btn span:last-child{font-size:9px;font-weight:600}
+
+/* PAGES */
+.page{display:none;animation:fadeUp .3s ease both}
+.page.active{display:block}
+
+/* AUTH */
+.auth-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px}
+.auth-logo{font-size:52px;margin-bottom:10px}
+.auth-title{font-size:26px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.auth-sub{font-size:12px;color:var(–muted);margin-bottom:28px;text-align:center;line-height:1.6}
+.tabs{display:flex;background:var(–card);border-radius:14px;padding:4px;width:100%;margin-bottom:20px}
+.tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:transparent;color:var(–muted);font-family:inherit;transition:all .2s}
+.tab.active{background:var(–p1);color:white}
+.field{width:100%;padding:13px 14px;border-radius:12px;background:var(–card);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:inherit;margin-bottom:12px}
+.field:focus{border-color:var(–p2)}
+.btn{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(90deg,var(–p1),var(–p2));color:white;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px}
+.btn:active{opacity:.85}
+.msg-ok{background:#14532d;color:var(–green);border-radius:10px;padding:10px;font-size:12px;margin-bottom:10px;text-align:center}
+.msg-err{background:#450a0a;color:var(–red);border-radius:10px;padding:10px;font-size:12px;margin-bottom:10px;text-align:center}
+
+/* CARDS */
+.card{background:var(–card);border:1px solid var(–border);border-radius:18px;padding:16px 18px;margin-bottom:12px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px}
+
+/* HERO DASHBOARD */
+.hero{
+background:linear-gradient(135deg,#1e0a4e,#2d1264,#1a0533);
+border:1px solid rgba(124,58,237,.3);
+border-radius:20px;padding:20px;margin-bottom:12px;
+position:relative;overflow:hidden
+}
+.hero::before{content:’’;position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:var(–p2);border-radius:50%;opacity:.08}
+.hero-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px}
+.hero-amount{font-size:32px;font-weight:800;margin:6px 0 2px}
+.hero-sub{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:16px}
+.stats-row{display:flex;gap:8px;margin-bottom:14px}
+.stat-box{flex:1;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 8px;text-align:center}
+.stat-box label{font-size:9px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.stat-box b{font-size:14px;font-weight:700}
+.progress-bar{background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;height:5px}
+.progress-fill{border-radius:99px;height:5px;background:linear-gradient(90deg,var(–p1),var(–p2));transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* QUICK BUTTONS */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.quick-btn{padding:10px 4px;border-radius:14px;border:1px solid var(–border);background:var(–card);color:var(–text);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;transition:all .15s}
+.quick-btn:active{transform:scale(.93);background:var(–card2)}
+.q-emoji{font-size:20px;display:block;margin-bottom:3px}
+
+/* TRANSACTIONS */
+.tx-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(–border)}
+.tx-item:last-child{border-bottom:none}
+.tx-icon{width:36px;height:36px;border-radius:10px;background:var(–card2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tx-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.tx-meta{font-size:10px;color:var(–muted);margin-top:2px}
+.tx-amount{font-weight:700;font-size:14px}
+.del-btn{background:#3a0a0a;border:none;border-radius:8px;width:28px;height:28px;color:var(–red);cursor:pointer;font-size:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+/* SELECT / INPUT */
+.sel{width:100%;padding:12px 14px;border-radius:12px;background:var(–card2);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:inherit;-webkit-appearance:none;margin-bottom:12px}
+.lbl{font-size:11px;color:var(–muted);margin-bottom:5px;display:block}
+
+/* PDF IMPORT */
+.drop-zone{
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+padding:28px 16px;background:var(–card2);
+border:2px dashed var(–border);border-radius:16px;
+cursor:pointer;transition:all .2s;margin-bottom:12px;text-align:center
+}
+.drop-zone:active,.drop-zone.drag{border-color:var(–p2);background:#1e0a4e33}
+.drop-icon{font-size:38px;margin-bottom:10px}
+.drop-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.drop-sub{font-size:11px;color:var(–muted)}
+.bank-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid var(–border);background:var(–card2);font-size:11px;cursor:pointer;transition:all .2s;margin:3px}
+.bank-pill.sel-bank{border-color:var(–p2);background:#2d1264;color:#c4b5fd}
+
+/* STATUS BOXES */
+.status-loading{display:flex;align-items:center;gap:10px;padding:14px;background:#1e1040;border:1px solid var(–p1);border-radius:12px;font-size:12px;color:#c4b5fd}
+.status-ok{padding:14px;background:#052e16;border:1px solid var(–green);border-radius:12px;text-align:center}
+.status-err{padding:12px;background:#450a0a;border:1px solid var(–red);border-radius:12px;font-size:12px;color:var(–red)}
+.spinner{width:16px;height:16px;border:2px solid rgba(167,139,250,.3);border-top-color:#a78bfa;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+
+/* AI DOTS */
+.ai-dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(–p2);margin:0 2px;animation:pulse 1.2s infinite}
+.ai-dots span:nth-child(2){animation-delay:.2s}
+.ai-dots span:nth-child(3){animation-delay:.4s}
+
+/* CHART */
+.chart-tabs{display:flex;gap:6px;margin-bottom:14px}
+.ct{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(–border);background:transparent;color:var(–muted);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;text-align:center}
+.ct.active{background:#1e0a4e;border-color:var(–p2);color:#c4b5fd}
+.cp{display:none}
+.cp.active{display:block}
+.legend-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(–border);font-size:12px}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* STEP */
+.steps{display:flex;gap:5px;justify-content:center;margin-bottom:18px}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(–border);transition:all .3s}
+.sdot.done{background:var(–green)}
+.sdot.active{background:var(–p2);width:22px;border-radius:4px}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
+.modal-box{background:var(–bg);border:1px solid var(–border);border-radius:24px 24px 0 0;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;padding:20px 20px max(36px,env(safe-area-inset-bottom));position:relative}
+.modal-handle{width:40px;height:4px;background:var(–border);border-radius:99px;margin:0 auto 18px}
+.modal-close{position:absolute;top:18px;right:16px;background:var(–card2);border:none;border-radius:50%;width:30px;height:30px;color:var(–muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+
+/* AI RESULT */
+.ai-result{background:linear-gradient(135deg,#1e0a4e,#0f172a);border:1px solid var(–p1);border-radius:14px;padding:14px;margin:10px 0;line-height:1.8;font-size:13px}
+
+/* PROJ */
+.pt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pt-btn{padding:12px 6px;border-radius:14px;border:1px solid var(–border);background:var(–card2);color:var(–muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;transition:all .2s}
+.pt-btn.active{background:#1e0a4e;border-color:var(–p2);color:#c4b5fd}
+.pt-emoji{font-size:22px;display:block;margin-bottom:4px}
+</style>
+
+</head>
+<body>
+<div id="app">
+  <header id="app-header" style="display:none">
+    <div>
+      <div class="h-title">💰 FinanceAI 🇮🇱</div>
+      <div class="h-sub" id="h-sub">Chargement...</div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Déco.</button>
+  </header>
+
+  <div class="content" id="main-content" style="display:none">
+
+```
+<!-- HOME -->
+<div id="pg-home" class="page active">
+  <div id="dashboard-hero"><div style="height:120px;display:flex;align-items:center;justify-content:center"><div class="spinner"></div></div></div>
+  <div class="quick-grid">
+    <button class="quick-btn" onclick="quickAdd('Courses','🛒','Alimentation')"><span class="q-emoji">🛒</span>Courses</button>
+    <button class="quick-btn" onclick="quickAdd('Carburant','⛽','Transport')"><span class="q-emoji">⛽</span>Carburant</button>
+    <button class="quick-btn" onclick="quickAdd('Restaurant','🍕','Loisirs')"><span class="q-emoji">🍕</span>Restaurant</button>
+    <button class="quick-btn" onclick="quickAdd('Pharmacie','💊','Santé')"><span class="q-emoji">💊</span>Pharmacie</button>
+  </div>
+  <div id="tx-list"></div>
+</div>
+
+<!-- IMPORT PDF -->
+<div id="pg-import" class="page">
+  <div class="card-title" style="font-size:18px;font-weight:800;margin-bottom:4px">📄 Importer relevé</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:14px">PDF · CSV · Excel — Claude lit et classe tout automatiquement</div>
+
+  <!-- Banque selector -->
+  <div class="card">
+    <div class="card-title">Ta banque</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+      <button class="bank-pill" onclick="selectBank(this,'hapoalim')" style="border-color:#ef4444;color:#ef4444">🔴 Hapoalim</button>
+      <button class="bank-pill" onclick="selectBank(this,'leumi')" style="border-color:#3b82f6;color:#3b82f6">🔵 Leumi</button>
+      <button class="bank-pill" onclick="selectBank(this,'discount')" style="border-color:#22c55e;color:#22c55e">🟢 Discount</button>
+      <button class="bank-pill" onclick="selectBank(this,'mizrahi')" style="border-color:#f59e0b;color:#f59e0b">🟡 Mizrahi-Tefahot</button>
+      <button class="bank-pill" onclick="selectBank(this,'other')" style="border-color:#6b7280;color:#6b7280">⚫ Autre</button>
+    </div>
+    <div id="bank-tip" style="font-size:11px;color:var(--muted);line-height:1.8;min-height:20px"></div>
+  </div>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-in').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="this.classList.remove('drag');handleDrop(event)">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">Appuie ici pour importer</div>
+    <div class="drop-sub">PDF (relevé) · CSV · Excel</div>
+  </div>
+  <input type="file" id="file-in" accept=".pdf,.csv,.xlsx,.xls,.txt" style="display:none" onchange="handleFileImport(this.files[0])">
+
+  <div id="import-status"></div>
+
+  <!-- Historique -->
+  <div class="card" id="import-history-card" style="display:none">
+    <div class="card-title">Historique imports</div>
+    <div id="import-history-list"></div>
+  </div>
+</div>
+
+<!-- ADD MANUAL -->
+<div id="pg-add" class="page">
+  <div style="font-size:18px;font-weight:800;margin-bottom:14px">Ajouter ➕</div>
+  <div class="card">
+    <span class="lbl">Type</span>
+    <select class="sel" id="tx-type" onchange="updateCats(this.value)" style="font-size:15px;font-weight:700">
+      <option value="expense">💸 Dépense</option>
+      <option value="income">💰 Revenu</option>
+    </select>
+    <span class="lbl">Description <span id="cat-hint" style="color:var(--green);font-size:10px"></span></span>
+    <input class="field" id="tx-label" placeholder="Ex: Rami Levy, Super-Pharm..." oninput="liveDetect(this.value)">
+    <span class="lbl">Montant (₪)</span>
+    <input class="field" id="tx-amount" type="number" inputmode="decimal" placeholder="0.00">
+    <span class="lbl">Catégorie</span>
+    <select class="sel" id="tx-cat">
+      <option>Alimentation</option><option>Transport</option><option>Logement</option>
+      <option>Loisirs</option><option>Santé</option><option>Épargne</option>
+      <option>Abonnements</option><option>Éducation</option><option>Divers</option>
+    </select>
+    <button class="btn" id="add-btn" onclick="addTx()">Ajouter la transaction</button>
+  </div>
+  <div class="card" style="background:#1e0a4e;border-color:#7c3aed33">
+    <div style="font-size:11px;color:#a78bfa;font-weight:600;margin-bottom:6px">🤖 Conseil IA</div>
+    <div id="ai-tip" style="font-size:13px;line-height:1.6"><span class="ai-dots"><span></span><span></span><span></span></span></div>
+  </div>
+</div>
+
+<!-- PROJETS -->
+<div id="pg-projects" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div style="font-size:18px;font-weight:800">Projets 🎯</div>
+    <button onclick="openProjModal()" style="background:var(--p1);border:none;border-radius:12px;padding:8px 14px;color:white;font-size:12px;font-weight:700;cursor:pointer">+ Nouveau</button>
+  </div>
+  <div id="proj-list"><div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">🎯</div>Aucun projet</div></div>
+</div>
+
+<!-- STATS -->
+<div id="pg-stats" class="page">
+  <div style="font-size:18px;font-weight:800;margin-bottom:14px">Statistiques 📊</div>
+  <div id="stats-content"><div style="text-align:center;padding:40px;color:var(--muted)">Importe des transactions d'abord !</div></div>
+</div>
+```
+
+  </div><!-- /content -->
+
+  <!-- AUTH (shown first) -->
+
+  <div id="auth-page" style="height:100%;overflow-y:auto">
+    <div class="auth-wrap">
+      <div class="auth-logo">💰</div>
+      <div class="auth-title">FinanceAI 🇮🇱</div>
+      <div class="auth-sub">Gérez votre budget familial · PDF automatique<br>Catégorisation IA · Relevés israéliens</div>
+      <div class="tabs">
+        <button class="tab active" onclick="setAuthMode('login',this)">Se connecter</button>
+        <button class="tab" onclick="setAuthMode('signup',this)">Créer compte</button>
+      </div>
+      <div id="auth-msg"></div>
+      <input class="field" id="a-email" type="email" placeholder="Email">
+      <input class="field" id="a-pass" type="password" placeholder="Mot de passe">
+      <div id="a-name-wrap" style="display:none;width:100%">
+        <input class="field" id="a-name" type="text" placeholder="Ton prénom (ex: David)">
+      </div>
+      <button class="btn" id="auth-btn" onclick="doAuth()">Se connecter</button>
+    </div>
+  </div>
+
+  <nav class="nav" id="app-nav" style="display:none">
+    <button class="nav-btn active" onclick="go('home',this)"><span>🏠</span><span>Accueil</span></button>
+    <button class="nav-btn" onclick="go('import',this)"><span>📄</span><span>Importer</span></button>
+    <button class="nav-btn" onclick="go('add',this)"><span>➕</span><span>Ajouter</span></button>
+    <button class="nav-btn" onclick="go('projects',this)"><span>🎯</span><span>Projets</span></button>
+    <button class="nav-btn" onclick="go('stats',this)"><span>📊</span><span>Stats</span></button>
+  </nav>
+</div>
+
+<!-- QUICK ADD MODAL -->
+
+<div id="quick-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box"><div class="modal-handle"></div><div id="quick-content"></div></div>
+</div>
+<!-- PROJECT MODAL -->
+<div id="proj-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="document.getElementById('proj-modal').style.display='none'">✕</button>
+    <div id="proj-modal-content"></div>
+  </div>
+</div>
 
 <script>
-const SUPABASE_URL = "https://nyywcxcahalxazienuav.supabase.co";
-const SUPABASE_KEY = "sb_publishable_sJ38oz";
-
-const supabaseClient = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
+// ── SUPABASE ──────────────────────────────────────────────────
+const sb = supabase.createClient(
+  'https://nyywcxcahalxazienuav.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM'
 );
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-/* =========================
-LOGIN
-========================= */
-async function handleLogin() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+let user=null, txType='expense', chart1=null, chart2=null, chart3=null;
+let wizType='mariage', wizMeta={};
+const COLORS=['#8b5cf6','#22c55e','#ef4444','#3b82f6','#f59e0b','#ec4899','#14b8a6','#a3e635','#fb923c','#a78bfa'];
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
+// ── CATÉGORISATION LOCALE (marchands israéliens) ──────────────
+const RULES=[
+  // Logement — AVANT Prêt car טפחות contient aussi des chiffres
+  [/טפחות|משכנתא|ארנונה|arnona|ועד.?בית|bezeq|בזק|שכירות|חשמל|מים|hot.?net/i,'Logement'],
+  // Carte crédit
+  [/כרטיסי/i,'Carte crédit'],
+  // Prêt — הלואה, הלו (avec apostrophe/guillemet hébreu variable)
+  [/הלוא|הלו|דיסקונט.?למ/i,'Prêt'],
+  // Épargne — חסכון, פקדון, ני (ני"ע), זכוי מת
+  [/חסכון|פקדון|זכוי.?מת|ני.{0,3}ע|ריבית.?מפ|מענק|דיבידנד/i,'Épargne'],
+  // Allocations — בטוח/ביטוח לאומי, קצבת
+  [/בטוח.{0,4}לאומי|ביטוח.{0,4}לאומי|קצבת/i,'Allocations'],
+  // Abonnements — הוראת קבע, פעולות, הקצאת, רבית (intérêts)
+  [/הוראת|פעולות|הקצאת|עמלת|רבית/i,'Abonnements'],
+  // Salaire — employeurs de Samuel
+  [/מרכז.{0,6}קהילתי|מצודת.{0,6}אגסי|משכורת/i,'Salaire'],
+  // Virements
+  [/העב|זיכוי.{0,6}לאומי|bit|מלאומי/i,'Virement reçu'],
+  // Alimentation
+  [/shufersal|שפרסל|rami.?levy|victory|mega|מגה|osher|tiv.?taam|makolet|מכולת/i,'Alimentation'],
+  // Santé
+  [/super.?pharm|clalit|כללית|maccabi|מכבי|leumit|לאומית|הפניקס|רופא|terem/i,'Santé'],
+  // Transport
+  [/gett|bolt|uber|אגד|eged|רכבת|דלק|sonol|paz|parking|חניה|taxi/i,'Transport'],
+  // Loisirs
+  [/netflix|spotify|wolt|ten.?bis|מסעדה|coffee|קפה|cinema|סינמה|gym/i,'Loisirs'],
+  // Éducation
+  [/אוניברסיטה|college|מכללה|ulpan|בית.?ספר|גן.?ילדים/i,'Éducation'],
+];
+function localCat(label,amount){
+  if(!label)return amount>0?'Virement reçu':'Divers';
+  const l=label.trim();
+  for(const[re,cat]of RULES)if(re.test(l))return cat;
+  // Fallback par signe
+  return amount>0?'Virement reçu':'Divers';
+}
+function liveDetect(val){
+  const cat=localCat(val,-1);
+  const hint=document.getElementById('cat-hint');
+  const sel=document.getElementById('tx-cat');
+  if(cat!=='Divers'&&val.length>2){
+    hint.textContent='✦ Auto-détecté';
+    for(const o of sel.options)if(o.text===cat){sel.value=o.value;break}
+  }else hint.textContent='';
+}
+async function claudeCat(label,amount){
+  const cats=['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Abonnements','Éducation','Salaire','Divers'];
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:15,
+        messages:[{role:'user',content:`Catégorie transaction israélienne: "${label}", ${amount}₪. Catégories: ${cats.join(', ')}. Réponds uniquement le nom exact.`}]})
+    });
+    const d=await r.json();
+    const c=d.content?.[0]?.text?.trim();
+    return cats.includes(c)?c:(amount>0?'Salaire':'Divers');
+  }catch{return amount>0?'Salaire':'Divers';}
+}
+async function smartCat(label,amount){
+  const l=localCat(label,amount);
+  if(l!=='Divers'&&l!=='Salaire')return l;
+  return await claudeCat(label,amount);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────
+let authMode='login';
+function setAuthMode(m,btn){
+  authMode=m;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&m==='login')||(i===1&&m==='signup')));
+  document.getElementById('a-name-wrap').style.display=m==='signup'?'block':'none';
+  document.getElementById('auth-btn').textContent=m==='login'?'Se connecter':'Créer mon compte';
+  document.getElementById('auth-msg').innerHTML='';
+}
+function authMsg(msg,ok=false){document.getElementById('auth-msg').innerHTML=`<div class="${ok?'msg-ok':'msg-err'}">${msg}</div>`;}
+async function doAuth(){
+  const email=document.getElementById('a-email').value.trim();
+  const pass=document.getElementById('a-pass').value;
+  const btn=document.getElementById('auth-btn');
+  if(!email||!pass)return authMsg('Remplis tous les champs.');
+  btn.textContent='...';btn.style.opacity='.6';btn.style.pointerEvents='none';
+  if(authMode==='signup'){
+    const name=document.getElementById('a-name').value.trim()||'Utilisateur';
+    const{error}=await sb.auth.signUp({email,pass,options:{data:{full_name:name}}});
+    if(error){authMsg(error.message);}else authMsg('✅ Compte créé ! Vérifie ton email.',true);
+    btn.textContent='Créer mon compte';btn.style.opacity='1';btn.style.pointerEvents='auto';
+  }else{
+    const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error){authMsg('Email ou mot de passe incorrect.');btn.textContent='Se connecter';btn.style.opacity='1';btn.style.pointerEvents='auto';return;}
+    user=data.user;enterApp();
+  }
+}
+function enterApp(){
+  document.getElementById('auth-page').style.display='none';
+  document.getElementById('app-header').style.display='flex';
+  document.getElementById('main-content').style.display='block';
+  document.getElementById('app-nav').style.display='flex';
+  const name=user.user_metadata?.full_name||user.email.split('@')[0];
+  document.getElementById('h-sub').textContent=`Bonjour ${name} 👋`;
+  loadHome();loadAiTip();loadImportHistory();loadProjects();
+}
+async function logout(){
+  if(!confirm('Se déconnecter ?'))return;
+  await sb.auth.signOut();user=null;
+  document.getElementById('auth-page').style.display='block';
+  document.getElementById('app-header').style.display='none';
+  document.getElementById('main-content').style.display='none';
+  document.getElementById('app-nav').style.display='none';
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function go(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('main-content').scrollTop=0;
+  if(name==='stats')loadStats();
+  if(name==='add')loadAiTip();
+  if(name==='home'){loadHome();loadTxList();}
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+async function loadHome(){
+  const{data}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+  const all=data||[];
+  const now=new Date();
+
+  // Mois courant (mois calendaire réel)
+  const month=all.filter(t=>{
+    const d=new Date(t.created_at);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   });
 
-  if (error) {
-    alert(error.message);
-    return;
+  const mIncome  = month.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const mExpenses= month.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const mBalance = mIncome-mExpenses;
+  const pct=mIncome>0?Math.min(100,Math.round(mBalance/mIncome*100)):0;
+
+  // Solde total cumulé (toutes transactions)
+  const totalBalance=all.reduce((s,t)=>s+t.amount,0);
+
+  const el=document.getElementById('dashboard-hero');
+  if(!all.length){
+    el.innerHTML=`<div class="hero"><div class="hero-label">Bienvenue !</div><div class="hero-amount" style="font-size:22px">Commence ici 👇</div><div class="hero-sub">Importe ton relevé PDF ou ajoute ta première dépense</div><div style="display:flex;gap:8px;margin-top:4px"><button onclick="go('import',document.querySelectorAll('.nav-btn')[1])" style="flex:1;padding:10px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--p1),var(--p2));color:white;font-size:12px;font-weight:700;cursor:pointer">📄 Importer PDF</button><button onclick="go('add',document.querySelectorAll('.nav-btn')[2])" style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;cursor:pointer">➕ Ajouter</button></div></div>`;
+    document.getElementById('tx-list').innerHTML='';return;
   }
 
-  localStorage.setItem("user", JSON.stringify(data.user));
-  alert("Connecté ✔");
+  const monthLabel=now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  el.innerHTML=`<div class="hero">
+    <div class="hero-label">${monthLabel.toUpperCase()}</div>
+    <div class="hero-amount" style="color:${mBalance>=0?'white':'#ef4444'}">${mBalance.toLocaleString('fr-FR')} ₪</div>
+    <div class="hero-sub">Solde du mois · Total cumulé : <b style="color:${totalBalance>=0?'#22c55e':'#ef4444'}">${totalBalance.toLocaleString('fr-FR')} ₪</b></div>
+    <div class="stats-row">
+      <div class="stat-box"><label>Revenus</label><b style="color:var(--green)">${mIncome.toLocaleString('fr-FR')} ₪</b></div>
+      <div class="stat-box"><label>Dépenses</label><b style="color:var(--red)">${mExpenses.toLocaleString('fr-FR')} ₪</b></div>
+      <div class="stat-box"><label>Épargne</label><b style="color:#a78bfa">${pct}%</b></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+  loadTxList(all);
 }
 
-/* =========================
-LOGOUT
-========================= */
-async function logout() {
-  await supabaseClient.auth.signOut();
-  localStorage.removeItem("user");
-  location.reload();
-}
-
-/* =========================
-UPLOAD + PROCESS PDF
-========================= */
-async function processPDF() {
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!user) return alert("Login requis");
-
-  const file = document.getElementById("pdfFile").files[0];
-  if (!file) return alert("Choisis un PDF");
-
-  document.getElementById("status").innerText = "Upload en cours...";
-
-  const path = `${user.id}/${Date.now()}-${file.name}`;
-
-  /* 1. Upload PDF */
-  const { error: uploadError } = await supabaseClient.storage
-    .from("bank-pdfs")
-    .upload(path, file);
-
-  if (uploadError) {
-    document.getElementById("status").innerText = uploadError.message;
-    return;
+async function loadTxList(data){
+  const list=document.getElementById('tx-list');
+  if(!data){
+    const{data:d}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(39);
+    data=d||[];
   }
-
-  document.getElementById("status").innerText = "Analyse du PDF...";
-
-  /* 2. Call Edge Function (IMPORTANT) */
-  const { data, error } = await supabaseClient.functions.invoke(
-    "parse-bank-pdf",
-    {
-      body: {
-        path: path,
-        user_id: user.id
-      }
-    }
-  );
-
-  if (error) {
-    document.getElementById("status").innerText = error.message;
-    return;
-  }
-
-  document.getElementById("status").innerText = "Import terminé ✔";
-
-  loadTransactions();
-}
-
-/* =========================
-LOAD TRANSACTIONS
-========================= */
-async function loadTransactions() {
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!user) return;
-
-  const { data } = await supabaseClient
-    .from("transactions")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("date", { ascending: false });
-
-  const box = document.getElementById("transactions");
-  box.innerHTML = "";
-
-  data.forEach(t => {
-    box.innerHTML += `
-      <div>
-        <b>${t.title}</b> | ${t.amount} ₪ | ${t.date}
+  const recent=data.slice(0,40);
+  if(!recent.length){list.innerHTML='';return;}
+  const CATS=['Alimentation','Transport','Logement','Loisirs','Santé','Épargne','Abonnements','Éducation','Carte crédit','Prêt','Salaire','Virement reçu','Allocations','Divers'];
+  list.innerHTML=`<div class="card" style="padding:14px 16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin:0">Transactions récentes</div>
+      <button onclick="go('stats',document.querySelectorAll('.nav-btn')[4])" style="background:transparent;border:none;color:#a78bfa;font-size:11px;font-weight:600;cursor:pointer">Tout voir →</button>
+    </div>
+    ${recent.map(t=>`<div class="tx-item" id="tx-${t.id}">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1" onclick="openRecatModal('${t.id}','${(t.category||'Divers').replace(/'/g,"\\'")}','${(t.label||'').replace(/'/g,"\\'").replace(/"/g,'\\"').substring(0,40)}')" style="cursor:pointer">
+        <div class="tx-icon">${catIcon(t.category)}</div>
+        <div style="min-width:0">
+          <div class="tx-name">${t.label||'—'}</div>
+          <div class="tx-meta">${t.category||'Divers'} · ${fmtDate(t.created_at)} <span style="color:#a78bfa;font-size:9px">✏️ modifier</span></div>
+        </div>
       </div>
-    `;
-  });
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <div class="tx-amount" style="color:${t.amount<0?'var(--red)':'var(--green)'}">${t.amount>0?'+':''}${t.amount.toLocaleString('fr-FR')} ₪</div>
+        <button class="del-btn" onclick="delTx('${t.id}')">🗑</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
-window.onload = () => {
-  loadTransactions();
+// ── RECATÉGORISER UNE TRANSACTION ─────────────────────────────
+function openRecatModal(id, currentCat, label) {
+  const CATS = ['Alimentation','Transport','Logement','Loisirs','Santé','Épargne',
+    'Abonnements','Éducation','Carte crédit','Prêt','Salaire','Virement reçu','Allocations','Divers'];
+  const c = document.getElementById('quick-content');
+  c.innerHTML = `
+    <div style="font-size:16px;font-weight:800;margin-bottom:4px">✏️ Modifier la catégorie</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">${label}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${CATS.map(cat=>`
+        <button onclick="recatTx('${id}','${cat}',this)"
+          style="padding:10px 8px;border-radius:12px;border:1px solid ${cat===currentCat?'var(--p2)':'var(--border)'};
+          background:${cat===currentCat?'#1e0a4e':'var(--card2)'};
+          color:${cat===currentCat?'#c4b5fd':'var(--text)'};
+          font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left">
+          ${catIcon(cat)} ${cat}
+        </button>`).join('')}
+    </div>
+    <button onclick="document.getElementById('quick-modal').style.display='none'"
+      style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit">
+      Annuler
+    </button>`;
+  document.getElementById('quick-modal').style.display='flex';
+}
+
+async function recatTx(id, newCat, btn) {
+  btn.style.opacity = '0.5';
+  const { error } = await sb.from('transactions').update({ category: newCat }).eq('id', id).eq('user_id', user.id);
+  if (!error) {
+    document.getElementById('quick-modal').style.display = 'none';
+    loadHome(); loadTxList();
+  }
+}
+
+// ── BANK SELECTOR ─────────────────────────────────────────────
+let selectedBank='';
+const BANK_TIPS={
+  hapoalim:'poalim.co.il → עסקאות → הורד Excel/CSV',
+  leumi:'leumi.co.il → תנועות בחשבון → ייצוא ל-Excel',
+  discount:'discountbank.co.il → פעולות → הורדה כ-CSV',
+  mizrahi:'mizrahi-tefahot.co.il → תנועות → הורד קובץ',
+  other:'Connecte-toi à ta banque → Transactions → Exporter CSV/Excel',
 };
+function selectBank(btn,bank){
+  selectedBank=bank;
+  document.querySelectorAll('.bank-pill').forEach(b=>b.classList.remove('sel-bank'));
+  btn.classList.add('sel-bank');
+  document.getElementById('bank-tip').innerHTML=`<b>Comment télécharger :</b> ${BANK_TIPS[bank]}`;
+}
+function handleDrop(e){
+  e.preventDefault();
+  const f=e.dataTransfer.files[0];
+  if(f)handleFileImport(f);
+}
+
+// ── IMPORT UNIVERSEL ──────────────────────────────────────────
+async function handleFileImport(file){
+  if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const statusEl=document.getElementById('import-status');
+  if(ext==='pdf'){
+    await importPDF(file,statusEl);
+  }else{
+    await importCSV(file,statusEl);
+  }
+}
+
+// ── PDF IMPORT — Parseur direct format Hapoalim ───────────────
+// Format extrait par PDF.js (lignes RTL inversées):
+// "₪-5,073.50  .35  16/04/2026  ני"ע-דמי ניהול"
+// Ligne suivante: "2" = débit (négatif), "1" = crédit (positif)
+async function importPDF(file, statusEl) {
+  if (typeof pdfjsLib === 'undefined') {
+    setStatus(statusEl, 'error', 'PDF.js non chargé. Recharge la page.');
+    return;
+  }
+  setStatus(statusEl, 'loading', '📄 Lecture du PDF...');
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const numPages = pdf.numPages;
+
+    // Extraire toutes les lignes de texte page par page
+    const lines = [];
+    for (let p = 1; p <= numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      const byY = {};
+      for (const item of tc.items) {
+        if (!item.str || !item.str.trim()) continue;
+        const y = Math.round(item.transform[5] / 5) * 5;
+        if (!byY[y]) byY[y] = [];
+        byY[y].push({ x: item.transform[4], s: item.str.trim() });
+      }
+      Object.keys(byY).map(Number).sort((a,b)=>b-a).forEach(y => {
+        const line = byY[y].sort((a,b)=>a.x-b.x).map(i=>i.s).join(' ');
+        if (line.trim()) lines.push(line.trim());
+      });
+    }
+
+    if (lines.length < 3) {
+      setStatus(statusEl, 'error', 'PDF illisible. Télécharge le PDF numérique depuis bankhapoalim.co.il (pas un scan).');
+      return;
+    }
+
+    setStatus(statusEl, 'loading', `📋 Analyse de ${lines.length} lignes...`);
+
+    // ── Parseur dual-format Hapoalim ─────────────────────────
+    // PDF.js extrait les lignes dans 2 formats différents :
+    // FORMAT A: [balance] [montant] [DD/MM/YYYY] [description]
+    //   ex: "₪-5,073.50 .35 16/04/2026 ני"ע-דמי ניהול"
+    // FORMAT B: [balance] [montant] [description] [DD/MM/YYYY]
+    //   ex: "₪-4,529.30 2,642.00 הו"ק הלואה קרן 15/04/2026"
+    // Ligne suivante: "1"=crédit (positif), "2"=débit (négatif)
+
+    const transactions = [];
+    const HEADER_RE = /תאריך|פעולה|חובה|זכות|יתרה|תקופה|בנק הפועלים|חשבון|סניף/;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].replace(/^#+\s*/, '').trim();
+
+      // Ignorer en-têtes et lignes sans date
+      if (HEADER_RE.test(line)) continue;
+      if (!/\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
+      // Ignorer la ligne de période "20/10/2025 – 18/04/2026"
+      if (/\d{2}\/\d{2}\/\d{4}\s*[–-]\s*\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
+
+      // ── Trouver la date dans la ligne ────────────────────────
+      const dateMatch = line.match(/(\d{2}\/\d{2}\/\d{4})/);
+      if (!dateMatch) continue;
+      const dateStr  = dateMatch[1];
+      const datePos  = dateMatch.index;
+      const before   = line.substring(0, datePos).trim();
+      const after    = line.substring(datePos + dateStr.length).trim();
+
+      // ── Extraire tous les nombres de la partie "avant la date" ─
+      const allNums = [...before.matchAll(/([\d,]+\.?\d*|\.\d+)/g)];
+      if (!allNums || allNums.length === 0) continue;
+
+      // Le DERNIER nombre avant la date = montant de la transaction
+      const lastNum = allNums[allNums.length - 1];
+      const amt = parseFloat(lastNum[0].replace(/,/g, ''));
+      if (!amt || isNaN(amt) || amt === 0) continue;
+
+      // ── Description ──────────────────────────────────────────
+      // FORMAT A: description est APRÈS la date (cas le plus fréquent)
+      let desc = after.replace(/\s*\d+$/, '').trim();
+
+      // FORMAT B: description est ENTRE les chiffres, APRÈS le dernier nombre
+      // ex: "₪-4,529.30 2,642.00 הו"ק הלואה קרן" → desc après "2,642.00"
+      if (!desc || desc.length < 2) {
+        const afterLastNum = before.substring(lastNum.index + lastNum[0].length).trim();
+        if (afterLastNum && afterLastNum.length > 1) {
+          desc = afterLastNum.replace(/\s*\d+$/, '').trim();
+        }
+      }
+
+      // Nettoyer: enlever ₪ et tirets en début
+      desc = desc.replace(/^[₪ש\-\s]+/, '').trim();
+      if (!desc || desc.length < 1) continue;
+      if (HEADER_RE.test(desc)) continue;
+
+      // ── Signe: ligne suivante "1"=crédit, "2"=débit ───────────
+      const next = (lines[i + 1] || '').trim();
+      const signedAmt = (next === '1') ? +Math.abs(amt) : -Math.abs(amt);
+
+      // DD/MM/YYYY → YYYY-MM-DD
+      const [dd, mm, yyyy] = dateStr.split('/');
+      transactions.push({ date: `${yyyy}-${mm}-${dd}`, label: desc, amount: signedAmt });
+    }
+
+    if (transactions.length === 0) {
+      setStatus(statusEl, 'error', `0 transaction sur ${lines.length} lignes.<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">${lines.slice(0,20).join('<br>').replace(/</g,'&lt;')}</div>`);
+      return;
+    }
+
+
+
+    setStatus(statusEl, 'loading', `✅ ${transactions.length} transactions — catégorisation...`);
+    await saveImportedTx(transactions, file.name, statusEl);
+
+  } catch (err) {
+    console.error('PDF error:', err);
+    setStatus(statusEl, 'error', 'Erreur: ' + err.message);
+  }
+}
+
+
+// ── CSV IMPORT ────────────────────────────────────────────────
+async function importCSV(file,statusEl){
+  setStatus(statusEl,'loading','Lecture du fichier CSV...');
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const text=e.target.result;
+    const lines=text.split('\n').filter(l=>l.trim());
+    if(lines.length<2){setStatus(statusEl,'error','Fichier vide ou non reconnu.');return;}
+    setStatus(statusEl,'loading',`🤖 Analyse de ${lines.length-1} lignes...`);
+    const sep=text.includes(';')?';':',';
+    const txs=[];
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(sep).map(c=>c.trim().replace(/^"|"$/g,''));
+      if(cols.length<2)continue;
+      const dateStr=cols[0]||'';
+      const desc=cols[1]||cols[2]||'';
+      let amount=0;
+      for(let c=cols.length-1;c>=1;c--){
+        const v=parseFloat(cols[c].replace(/,/,'.').replace(/[^\d\-\.]/g,''));
+        if(!isNaN(v)&&v!==0){amount=v;break;}
+      }
+      if(!amount||isNaN(amount)||!desc||desc.length<2)continue;
+      let txDate=new Date();
+      try{if(dateStr){const p=dateStr.includes('/')?dateStr.split('/').reverse().join('-'):dateStr;const pd=new Date(p);if(!isNaN(pd))txDate=pd;}}catch{}
+      txs.push({date:txDate.toISOString().split('T')[0],label:desc.substring(0,120),amount});
+    }
+    if(!txs.length){setStatus(statusEl,'error','Aucune transaction reconnue dans ce fichier.');return;}
+    await saveImportedTx(txs,file.name,statusEl);
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+// ── SAVE TRANSACTIONS ─────────────────────────────────────────
+async function saveImportedTx(txs, fileName, statusEl) {
+  const valid = txs.filter(t => t.label && parseFloat(t.amount) !== 0);
+  if (!valid.length) { setStatus(statusEl, 'error', 'Aucune transaction valide.'); return; }
+
+  setStatus(statusEl, 'loading', `🤖 Catégorisation IA de ${valid.length} transactions...`);
+
+  // ── Catégorisation locale rapide d'abord ─────────────────────
+  const CATS = ['Alimentation','Transport','Logement','Loisirs','Santé','Épargne',
+    'Abonnements','Éducation','Carte crédit','Prêt','Salaire','Virement reçu','Allocations','Divers'];
+
+  const toInsert = valid.map(t => ({
+    user_id: user.id,
+    label: (t.label || '').substring(0, 120),
+    amount: parseFloat(t.amount),
+    category: localCat(t.label, parseFloat(t.amount)),
+    created_at: t.date ? new Date(t.date).toISOString() : new Date().toISOString()
+  }));
+
+  // ── Identifier ceux qui restent "Divers" ou "Salaire" → batch Claude ─
+  const needsAI = toInsert.filter(t => t.category === 'Divers' || t.category === 'Salaire');
+
+  if (needsAI.length > 0) {
+    setStatus(statusEl, 'loading', `🤖 Claude catégorise ${needsAI.length} transactions inconnues...`);
+    try {
+      // Envoyer tout en une seule requête Claude
+      const list = needsAI.map((t, i) => `${i}: "${t.label}" (${t.amount > 0 ? '+' : ''}${t.amount}₪)`).join('\n');
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `Catégorise ces transactions bancaires israéliennes (labels en hébreu).
+Catégories possibles: ${CATS.join(', ')}
+
+Transactions:
+${list}
+
+Règles:
+- montant positif = revenu (Salaire, Allocations, Virement reçu...)
+- montant négatif = dépense
+- כרטיסי אשראי = Carte crédit
+- משכנתא/טפחות = Logement  
+- הלואה/הו"ק הלו = Prêt
+- ביטוח לאומי/קצבת ילדים = Allocations
+- זיכוי מלאומי/מרכז קהילתי/מצודת = Salaire
+- הו"ק-ת.חסכון/פקדון = Épargne
+- הוראת-קבע/הו"ק = Abonnements
+- ני"ע = Épargne
+
+Réponds UNIQUEMENT avec du JSON: {"0":"Carte crédit","1":"Prêt","2":"Allocations"}`
+          }]
+        })
+      });
+      const d = await r.json();
+      const raw = (d.content?.[0]?.text || '{}').replace(/```json\s*|\s*```/g, '').trim();
+      const catMap = JSON.parse(raw);
+
+      // Appliquer les catégories Claude
+      needsAI.forEach((t, i) => {
+        const cat = catMap[String(i)];
+        if (cat && CATS.includes(cat)) {
+          // Trouver la transaction dans toInsert et mettre à jour
+          const found = toInsert.find(x => x.label === t.label && x.amount === t.amount && x.category === t.category);
+          if (found) found.category = cat;
+        }
+      });
+    } catch (e) {
+      console.error('Batch categorization error:', e);
+    }
+  }
+
+  setStatus(statusEl, 'loading', `💾 Enregistrement de ${toInsert.length} transactions...`);
+  const { error } = await sb.from('transactions').insert(toInsert);
+  if (error) { setStatus(statusEl, 'error', 'Erreur: ' + error.message); return; }
+
+  // Historique avec plage de dates
+  const dates = toInsert.map(t => t.created_at).sort();
+  const hist = JSON.parse(localStorage.getItem('fi_hist_' + user.id) || '[]');
+  hist.unshift({
+    id: Date.now(), date: new Date().toISOString(),
+    count: toInsert.length, file: fileName,
+    from: dates[0], to: dates[dates.length - 1]
+  });
+  localStorage.setItem('fi_hist_' + user.id, JSON.stringify(hist.slice(0, 20)));
+
+  // Résumé par catégorie
+  const catSummary = {};
+  toInsert.forEach(t => { catSummary[t.category] = (catSummary[t.category] || 0) + 1; });
+  const summaryLines = Object.entries(catSummary)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([c, n]) => `${catIcon(c)} ${c}: ${n}`)
+    .join(' · ');
+
+  statusEl.innerHTML = `<div class="status-ok">
+    <div style="font-size:26px;margin-bottom:6px">✅</div>
+    <div style="font-weight:700;color:var(--green);font-size:15px">${toInsert.length} transactions importées !</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.8">${summaryLines}</div>
+  </div>`;
+
+  loadHome(); loadTxList(); loadImportHistory();
+  document.getElementById('file-in').value = '';
+}
+
+function loadImportHistory(){
+  const card=document.getElementById('import-history-card');
+  const list=document.getElementById('import-history-list');
+  if(!user)return;
+  const hist=JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
+
+  // Toujours afficher la carte avec le bouton "Tout effacer"
+  card.style.display='block';
+  card.querySelector('.card-title').innerHTML=`
+    Historique imports
+    <button onclick="deleteAllTx()" style="float:right;background:#450a0a;border:1px solid var(--red);border-radius:8px;padding:4px 10px;color:var(--red);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">
+      🗑 Tout effacer
+    </button>`;
+
+  if(!hist.length){
+    list.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px 0">Aucun import encore.</div>';
+    return;
+  }
+
+  list.innerHTML=hist.map(h=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:0;flex:1">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.file}</div>
+        <div style="color:var(--muted);font-size:10px;margin-top:2px">
+          ${new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+          · <span style="color:var(--green)">${h.count} transactions</span>
+        </div>
+      </div>
+      <button onclick="deleteImportBatch(${h.id},'${h.from}','${h.to}',${h.count})"
+        style="margin-left:12px;flex-shrink:0;background:#450a0a;border:1px solid var(--red);border-radius:8px;padding:6px 10px;color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">
+        🗑 Supprimer
+      </button>
+    </div>`).join('');
+}
+
+// Supprimer UN import par plage de dates
+async function deleteImportBatch(histId, from, to, count) {
+  if (!confirm(`Supprimer ces ${count} transactions importées ?`)) return;
+
+  // Supprimer par plage de dates created_at
+  const { error } = await sb.from('transactions')
+    .delete()
+    .eq('user_id', user.id)
+    .gte('created_at', from)
+    .lte('created_at', to);
+
+  if (error) { alert('Erreur: ' + error.message); return; }
+
+  // Retirer de l'historique localStorage
+  const hist = JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
+  localStorage.setItem('fi_hist_'+user.id, JSON.stringify(hist.filter(h=>h.id!==histId)));
+
+  loadHome(); loadTxList(); loadImportHistory();
+}
+
+// Tout effacer
+async function deleteAllTx() {
+  const { count } = await sb.from('transactions').select('*',{count:'exact',head:true}).eq('user_id',user.id);
+  if (!confirm(`⚠️ Supprimer les ${count||'toutes les'} transactions ? Cette action est irréversible.`)) return;
+
+  const { error } = await sb.from('transactions').delete().eq('user_id', user.id);
+  if (error) { alert('Erreur: ' + error.message); return; }
+
+  // Vider l'historique
+  localStorage.removeItem('fi_hist_'+user.id);
+  loadHome(); loadTxList(); loadImportHistory();
+  alert('✅ Toutes les transactions ont été supprimées.');
+}
+
+function setStatus(el,type,msg){
+  if(type==='loading')el.innerHTML=`<div class="status-loading"><div class="spinner"></div>${msg}</div>`;
+  else if(type==='error')el.innerHTML=`<div class="status-err">⚠️ ${msg}</div>`;
+}
+
+// ── QUICK ADD ─────────────────────────────────────────────────
+function quickAdd(label,emoji,cat){
+  const c=document.getElementById('quick-content');
+  c.innerHTML=`<div style="text-align:center;margin-bottom:16px"><div style="font-size:40px;margin-bottom:6px">${emoji}</div><div style="font-size:18px;font-weight:800">${label}</div></div>
+  <input class="field" id="qa-amount" type="number" inputmode="decimal" placeholder="Montant en ₪" style="font-size:24px;text-align:center;padding:16px" autofocus>
+  <input class="field" id="qa-desc" placeholder="Détail (optionnel)" style="font-size:13px">
+  <button class="btn" onclick="submitQuick('${cat}','${label}')">✅ Enregistrer</button>`;
+  document.getElementById('quick-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('qa-amount')?.focus(),100);
+}
+async function submitQuick(cat,defaultLabel){
+  const amt=parseFloat(document.getElementById('qa-amount').value);
+  const desc=document.getElementById('qa-desc').value.trim()||defaultLabel;
+  if(!amt||amt<=0)return;
+  const category=localCat(desc,-amt)!=='Divers'?localCat(desc,-amt):cat;
+  await sb.from('transactions').insert({user_id:user.id,label:desc,amount:-Math.abs(amt),category});
+  document.getElementById('quick-modal').style.display='none';
+  loadHome();
+}
+
+// ── ADD MANUAL ────────────────────────────────────────────────
+function updateCats(type){
+  txType=type;
+  const sel=document.getElementById('tx-cat');
+  const exp=['Alimentation','Transport','Logement','Loisirs','Santé','Épargne','Abonnements','Éducation','Divers'];
+  const inc=['Salaire','Freelance','Allocations','Loyer reçu','Virement reçu','Cadeau','Investissement'];
+  sel.innerHTML=(type==='income'?inc:exp).map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('tx-label').style.display=type==='income'?'none':'block';
+}
+async function addTx(){
+  const label=document.getElementById('tx-label').value.trim();
+  const amt=parseFloat(document.getElementById('tx-amount').value);
+  const manCat=document.getElementById('tx-cat').value;
+  if(!amt)return;
+  const btn=document.getElementById('add-btn');
+  btn.textContent='🤖 Catégorisation...';btn.style.opacity='.6';btn.style.pointerEvents='none';
+  const finalAmt=txType==='expense'?-Math.abs(amt):Math.abs(amt);
+  const cat=manCat==='Divers'&&label?await smartCat(label,finalAmt):manCat;
+  await sb.from('transactions').insert({user_id:user.id,label:label||manCat,amount:finalAmt,category:cat});
+  btn.textContent='✅ Ajouté!';btn.style.background='var(--green)';
+  document.getElementById('tx-label').value='';document.getElementById('tx-amount').value='';
+  setTimeout(()=>{btn.textContent='Ajouter la transaction';btn.style.background='';btn.style.opacity='1';btn.style.pointerEvents='auto';},1400);
+  loadHome();
+}
+
+// ── DELETE ────────────────────────────────────────────────────
+async function delTx(id){
+  if(!confirm('Supprimer ?'))return;
+  const row=document.getElementById('tx-'+id);
+  if(row){row.style.opacity='.3';row.style.pointerEvents='none';}
+  await sb.from('transactions').delete().eq('id',id).eq('user_id',user.id);
+  if(row){row.style.transition='all .3s';row.style.maxHeight=row.offsetHeight+'px';requestAnimationFrame(()=>{row.style.maxHeight='0';row.style.opacity='0';row.style.padding='0';row.style.overflow='hidden';});setTimeout(()=>row.remove(),350);}
+  loadHome();
+}
+
+// ── AI TIP ────────────────────────────────────────────────────
+async function loadAiTip(){
+  const el=document.getElementById('ai-tip');
+  if(!el)return;
+  el.innerHTML='<span class="ai-dots"><span></span><span></span><span></span></span>';
+  const{data}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(39);
+  const all=data||[];
+  const income=all.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const expenses=all.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const catMap={};all.filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catMap[c]=(catMap[c]||0)+Math.abs(t.amount);});
+  const top=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,2).map(e=>e[0]).join(' et ');
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-20250514',max_tokens:100,
+    system:'Conseiller financier israélien. Français, 2 phrases max, emoji au début, direct et bienveillant.',
+    messages:[{role:'user',content:all.length>0?`Revenus:${income.toLocaleString()}₪, dépenses:${expenses.toLocaleString()}₪, postes:${top||'variés'}. Conseil personnalisé.`:'Conseil débutant budget familial israélien.'}]
+  })});
+  const d=await r.json();
+  if(el)el.textContent=d.content?.[0]?.text||"💡 Commence par importer tes 3 derniers relevés PDF — tu verras immédiatement où va ton argent !";
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+async function loadStats(){
+  const el=document.getElementById('stats-content');
+  el.innerHTML='<div style="text-align:center;padding:20px"><div class="spinner" style="margin:0 auto"></div></div>';
+  const{data:txs}=await sb.from('transactions').select('*').eq('user_id',user.id).order('created_at',{ascending:true});
+  const all=txs||[];
+  if(!all.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">📊</div>Importe ton relevé PDF d\'abord !</div>';return;}
+  const catMap={};all.filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catMap[c]=(catMap[c]||0)+Math.abs(t.amount);});
+  const catLabels=Object.keys(catMap),catValues=Object.values(catMap);
+  const mIn={},mEx={};
+  all.forEach(t=>{const d=new Date(t.created_at),k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(t.amount>0)mIn[k]=(mIn[k]||0)+t.amount;else mEx[k]=(mEx[k]||0)+Math.abs(t.amount);});
+  const months=[...new Set([...Object.keys(mIn),...Object.keys(mEx)])].sort().slice(-6);
+  const mLabels=months.map(m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleDateString('fr-FR',{month:'short'});});
+  let run=0;const bData=all.map(t=>{run+=t.amount;return Math.round(run);});
+  const income=all.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const expenses=all.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const savings=income-expenses;
+  el.innerHTML=`
+  <div class="card"><div class="card-title">Résumé global</div><div class="stats-row">
+    <div class="stat-box" style="background:var(--card2)"><label>Revenus</label><b style="color:var(--green)">${income.toLocaleString('fr-FR')} ₪</b></div>
+    <div class="stat-box" style="background:var(--card2)"><label>Dépenses</label><b style="color:var(--red)">${expenses.toLocaleString('fr-FR')} ₪</b></div>
+    <div class="stat-box" style="background:var(--card2)"><label>Épargne</label><b style="color:${savings>=0?'#a78bfa':'var(--red)'}">${savings.toLocaleString('fr-FR')} ₪</b></div>
+  </div></div>
+  <div class="card">
+    <div class="chart-tabs">
+      <button class="ct active" onclick="switchC('donut',this)">🍩 Catégories</button>
+      <button class="ct" onclick="switchC('bar',this)">📊 Mensuel</button>
+      <button class="ct" onclick="switchC('line',this)">📈 Solde</button>
+    </div>
+    <div id="cp-donut" class="cp active"><div style="position:relative;height:200px"><canvas id="chart-donut"></canvas></div><div id="legend" style="margin-top:12px"></div></div>
+    <div id="cp-bar" class="cp"><div style="position:relative;height:220px"><canvas id="chart-bar"></canvas></div></div>
+    <div id="cp-line" class="cp"><div style="position:relative;height:220px"><canvas id="chart-line"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-title">Total</div><div style="font-size:36px;font-weight:800;color:#a78bfa;text-align:center;padding:6px 0">${all.length}</div><div style="text-align:center;font-size:12px;color:var(--muted)">transactions analysées</div></div>`;
+  requestAnimationFrame(()=>{
+    // Donut
+    if(chart1)chart1.destroy();
+    const c1=document.getElementById('chart-donut').getContext('2d');
+    chart1=new Chart(c1,{type:'doughnut',data:{labels:catLabels,datasets:[{data:catValues,backgroundColor:COLORS,borderColor:'#11111a',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed.toLocaleString('fr-FR')} ₪`}}}}});
+    const tot=catValues.reduce((a,b)=>a+b,0);
+    document.getElementById('legend').innerHTML=catLabels.map((l,i)=>`<div class="legend-row"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div><div style="flex:1">${catIcon(l)} ${l}</div><div style="color:var(--muted)">${catValues[i].toLocaleString('fr-FR')} ₪</div><div style="color:#a78bfa;width:30px;text-align:right">${Math.round(catValues[i]/tot*100)}%</div></div>`).join('');
+    // Bar
+    if(chart2)chart2.destroy();
+    const c2=document.getElementById('chart-bar').getContext('2d');
+    chart2=new Chart(c2,{type:'bar',data:{labels:mLabels,datasets:[{label:'Revenus',data:months.map(m=>mIn[m]||0),backgroundColor:'#22c55e44',borderColor:'#22c55e',borderWidth:2,borderRadius:6},{label:'Dépenses',data:months.map(m=>mEx[m]||0),backgroundColor:'#ef444444',borderColor:'#ef4444',borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#8888aa',font:{size:11},boxWidth:12}}},scales:{x:{ticks:{color:'#8888aa',font:{size:10}},grid:{color:'#232336'}},y:{ticks:{color:'#8888aa',font:{size:10},callback:v=>v.toLocaleString('fr-FR')},grid:{color:'#232336'}}}}});
+    // Line
+    if(chart3)chart3.destroy();
+    const c3=document.getElementById('chart-line').getContext('2d');
+    const g=c3.createLinearGradient(0,0,0,200);g.addColorStop(0,'#7c3aed44');g.addColorStop(1,'#7c3aed00');
+    chart3=new Chart(c3,{type:'line',data:{labels:all.map(t=>fmtDate(t.created_at)),datasets:[{label:'Solde',data:bData,borderColor:'#8b5cf6',borderWidth:2,backgroundColor:g,fill:true,tension:0.4,pointRadius:bData.length<=20?3:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` Solde: ${c.parsed.y.toLocaleString('fr-FR')} ₪`}}},scales:{x:{ticks:{color:'#8888aa',font:{size:10},maxTicksLimit:6},grid:{color:'#232336'}},y:{ticks:{color:'#8888aa',font:{size:10},callback:v=>v.toLocaleString('fr-FR')},grid:{color:'#232336'}}}}});
+  });
+}
+function switchC(name,btn){
+  document.querySelectorAll('.ct').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.cp').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('cp-'+name).classList.add('active');
+}
+
+// ── PROJECTS ─────────────────────────────────────────────────
+async function loadProjects(){
+  const el=document.getElementById('proj-list');
+  if(!user)return;
+  const{data}=await sb.from('projects').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+  const all=data||[];
+  if(!all.length){el.innerHTML=`<div class="card" style="background:#1e0a4e;border-color:#7c3aed33"><div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:8px">✨ Idées de projets IA</div><div style="font-size:13px;color:var(--muted);line-height:2">💒 Mariage · 🚗 Voiture · 🏠 Apport · ✈️ Vacances · 🎓 Études</div><button onclick="openProjModal()" class="btn" style="margin-top:10px">🤖 Créer avec l'IA</button></div>`;return;}
+  el.innerHTML=all.map(p=>{
+    const pct=p.target_amount>0?Math.min(100,Math.round(((p.saved_amount||0)/p.target_amount)*100)):0;
+    const days=p.target_date?Math.max(0,Math.round((new Date(p.target_date)-new Date())/86400000)):null;
+    return`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div style="font-size:15px;font-weight:700">${pEmoji(p.type)} ${p.name}</div>${days!==null?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${days>0?days+' jours restants':'⏰ Échéance !'}</div>`:''}</div>
+        <div style="text-align:right"><div style="font-size:16px;font-weight:800;color:#a78bfa">${p.target_amount.toLocaleString('fr-FR')} ₪</div><div style="font-size:10px;color:var(--muted)">objectif</div></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box" style="background:var(--card2)"><label>Épargné</label><b style="color:var(--green)">${(p.saved_amount||0).toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-box" style="background:var(--card2)"><label>/mois</label><b style="color:#a78bfa">${(p.monthly_saving||0).toLocaleString('fr-FR')} ₪</b></div>
+        <div class="stat-box" style="background:var(--card2)"><label>Avancement</label><b style="color:${pct>=75?'var(--green)':pct>=40?'#a78bfa':'var(--yellow)'}">${pct}%</b></div>
+      </div>
+      <div class="progress-bar" style="margin-bottom:10px"><div class="progress-fill" style="width:${pct}%;background:${pct>=75?'var(--green)':pct>=40?'linear-gradient(90deg,var(--p1),var(--p2))':'var(--yellow)'}"></div></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="addSaving('${p.id}','${p.name}')" style="flex:1;padding:9px;border-radius:10px;border:1px solid var(--green);background:transparent;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Épargner</button>
+        <button onclick="delProj('${p.id}')" style="padding:9px 12px;border-radius:10px;border:1px solid #450a0a;background:transparent;color:var(--red);font-size:12px;cursor:pointer">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openProjModal(){
+  wizType='mariage';wizMeta={};
+  document.getElementById('proj-modal').style.display='flex';
+  projStep1();
+}
+function projStep1(){
+  document.getElementById('proj-modal-content').innerHTML=`
+    <div class="steps"><div class="sdot active"></div><div class="sdot"></div><div class="sdot"></div></div>
+    <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center">Quel projet ? 🎯</div>
+    <div class="pt-grid">
+      ${[{k:'mariage',e:'💒',l:'Mariage'},{k:'voiture',e:'🚗',l:'Voiture'},{k:'immobilier',e:'🏠',l:'Immobilier'},{k:'vacances',e:'✈️',l:'Vacances'},{k:'etudes',e:'🎓',l:'Études'},{k:'autre',e:'🎯',l:'Autre'}].map(t=>`<button class="pt-btn ${wizType===t.k?'active':''}" onclick="wizType='${t.k}';document.querySelectorAll('.pt-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')"><span class="pt-emoji">${t.e}</span>${t.l}</button>`).join('')}
+    </div>
+    <button class="btn" onclick="projStep2()">Continuer →</button>`;
+}
+function projStep2(){
+  document.getElementById('proj-modal-content').innerHTML=`
+    <div class="steps"><div class="sdot done"></div><div class="sdot active"></div><div class="sdot"></div></div>
+    <div style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center">${pEmoji(wizType)} Détails</div>
+    ${wizType==='mariage'?`<span class="lbl">Pour qui ?</span><input class="field" id="w-who" placeholder="Ex: Sarah"><span class="lbl">Date prévue</span><input class="field" id="w-date" type="month"><span class="lbl">Nombre d'invités</span><input class="field" id="w-guests" placeholder="200" type="number"><span class="lbl">Style</span><select class="sel" id="w-style"><option value="simple">Simple</option><option value="classique" selected>Classique</option><option value="luxe">Luxueux</option></select>`:
+    wizType==='voiture'?`<span class="lbl">Type</span><select class="sel" id="w-style"><option>Occasion</option><option>Neuve</option><option>SUV/Familiale</option><option>Électrique</option></select><span class="lbl">Budget (₪)</span><input class="field" id="w-budget" placeholder="80000" type="number"><span class="lbl">Date cible</span><input class="field" id="w-date" type="month">`:
+    wizType==='immobilier'?`<span class="lbl">Prix du bien (₪)</span><input class="field" id="w-budget" placeholder="1500000" type="number"><span class="lbl">Apport visé (%)</span><input class="field" id="w-pct" placeholder="25" type="number"><span class="lbl">Ville</span><input class="field" id="w-region" placeholder="Tel Aviv"><span class="lbl">Date cible</span><input class="field" id="w-date" type="month">`:
+    `<span class="lbl">Description</span><input class="field" id="w-who" placeholder="Mon projet"><span class="lbl">Budget (₪)</span><input class="field" id="w-budget" placeholder="15000" type="number"><span class="lbl">Date cible</span><input class="field" id="w-date" type="month">`}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button onclick="projStep1()" style="flex:1;padding:13px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit">←</button>
+      <button class="btn" style="flex:3" onclick="runProjAI()">🤖 Générer le plan IA</button>
+    </div>`;
+}
+async function runProjAI(){
+  const who=document.getElementById('w-who')?.value||'';
+  const dateVal=document.getElementById('w-date')?.value||'';
+  const guests=document.getElementById('w-guests')?.value||'200';
+  const budget=document.getElementById('w-budget')?.value||'';
+  const style=document.getElementById('w-style')?.value||'';
+  const region=document.getElementById('w-region')?.value||'';
+  const pct=document.getElementById('w-pct')?.value||'25';
+
+  document.getElementById('proj-modal-content').innerHTML=`<div class="steps"><div class="sdot done"></div><div class="sdot done"></div><div class="sdot active"></div></div><div style="text-align:center;padding:24px 0"><div style="font-size:40px;margin-bottom:12px">${pEmoji(wizType)}</div><div style="font-size:16px;font-weight:700;margin-bottom:12px">L'IA génère votre plan...</div><div class="ai-dots" style="justify-content:center;display:flex"><span></span><span></span><span></span></div></div>`;
+
+  const prompts={
+    mariage:`Mariage de ${who||'mon enfant'} en Israël. Invités:${guests}, Style:${style}, Date:${dateVal||'dans 2 ans'}.\n1. Coût total estimé ₪ (marché israélien 2025-2026)\n2. Budget par poste (salle, traiteur, photos, musique, robes, bague, fleurs)\n3. Épargne mensuelle nécessaire\n4. 2 astuces économies`,
+    voiture:`Achat ${style} en Israël, budget ${budget}₪, date:${dateVal}. Plan épargne + assurance + conseil marché israélien`,
+    immobilier:`Achat immobilier à ${region}, prix ${budget}₪, apport ${pct}%, date ${dateVal}. Calcul apport, épargne mensuelle, mashkanta, aides זכאות`,
+    autre:`Projet:${who}, budget ${budget}₪, date ${dateVal}. Plan épargne + conseils pratiques`
+  };
+
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    model:'claude-sonnet-4-20250514',max_tokens:600,
+    system:'Expert financier familles israéliennes. Français, chiffres réels ₪ 2025-2026, emojis pour structurer, concis.',
+    messages:[{role:'user',content:prompts[wizType]||prompts.autre}]
+  })});
+  const d=await r.json();
+  const aiText=d.content?.[0]?.text||'';
+  let target=parseInt(budget)||0;
+  if(!target&&wizType==='mariage')target=parseInt(guests||200)*900;
+  const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
+  const months=targetDate?Math.max(1,Math.round((new Date(targetDate)-new Date())/(30.44*86400000))):24;
+  const monthly=target>0?Math.round(target/months):0;
+  const pName=wizType==='mariage'?`💒 Mariage de ${who||'mon enfant'}`:wizType==='voiture'?`🚗 ${style||'Voiture'}`:wizType==='immobilier'?`🏠 Apport ${region}`:who||'🎯 Projet';
+
+  document.getElementById('proj-modal-content').innerHTML=`
+    <div class="steps"><div class="sdot done"></div><div class="sdot done"></div><div class="sdot done"></div></div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:12px;text-align:center">✅ Plan IA prêt !</div>
+    <div class="ai-result">${aiText.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+    <div class="card" style="margin:12px 0;background:var(--card2)">
+      <span class="lbl">Objectif (₪) — ajuste si besoin</span>
+      <input class="field" id="w-final" type="number" value="${target}" style="background:var(--card)">
+      <div style="text-align:center;padding:6px 0;font-size:18px;font-weight:800;color:#a78bfa">${monthly.toLocaleString('fr-FR')} ₪ / mois</div>
+    </div>
+    <button class="btn" onclick="saveProj('${pName.replace(/'/g,"&#39;")}','${wizType}','${targetDate||''}',${monthly})">💾 Sauvegarder</button>`;
+}
+async function saveProj(name,type,date,monthly){
+  const amt=parseFloat(document.getElementById('w-final')?.value)||0;
+  await sb.from('projects').insert({user_id:user.id,name,type,target_amount:amt,target_date:date||null,monthly_saving:monthly,saved_amount:0});
+  document.getElementById('proj-modal').style.display='none';
+  go('projects',document.querySelectorAll('.nav-btn')[3]);
+  loadProjects();
+}
+async function addSaving(id,name){
+  const amt=prompt(`Épargne ajoutée pour "${name}" (₪)`);
+  if(!amt||isNaN(amt))return;
+  const{data:p}=await sb.from('projects').select('saved_amount').eq('id',id).single();
+  await sb.from('projects').update({saved_amount:(p?.saved_amount||0)+parseFloat(amt)}).eq('id',id);
+  loadProjects();
+}
+async function delProj(id){if(!confirm('Supprimer ?'))return;await sb.from('projects').delete().eq('id',id);loadProjects();}
+function pEmoji(t){return{mariage:'💒',voiture:'🚗',immobilier:'🏠',vacances:'✈️',etudes:'🎓',autre:'🎯'}[t]||'🎯';}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function catIcon(cat){const m={Alimentation:'🛒',Logement:'🏠',Transport:'🚗',Loisirs:'🎮',Santé:'💊',Épargne:'💰',Divers:'📦',Salaire:'💼',Abonnements:'📱',Éducation:'🎓',Freelance:'💻',Cadeau:'🎁'};return m[cat]||'💸';}
+function fmtDate(d){if(!d)return'';return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});}
+
+// ── INIT ──────────────────────────────────────────────────────
+sb.auth.onAuthStateChange((event,session)=>{
+  if(session?.user){user=session.user;enterApp();}
+});
 </script>
 
 </body>
