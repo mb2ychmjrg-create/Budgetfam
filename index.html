@@ -1,254 +1,255 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>FinanceAI 🇮🇱</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{
-  --bg:#07070c;--card:#11111a;--card2:#191927;--border:#232336;
-  --p1:#7c3aed;--p2:#9333ea;--p3:#a855f7;
-  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
-  --text:#e2e2f0;--muted:#8888aa;
-}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo',-apple-system,sans-serif;overflow:hidden}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>FinanceAI 🇮🇱</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+        :root{
+            --bg:#07070c;--card:#11111a;--card2:#191927;--border:#232336;
+            --p1:#7c3aed;--p2:#9333ea;--p3:#a855f7;
+            --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
+            --text:#e2e2f0;--muted:#8888aa;
+        }
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;overflow:hidden}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
 
-/* LAYOUT */
-#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
-header{
-padding:16px 18px;
-background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3aed);
-display:flex;justify-content:space-between;align-items:center;
-flex-shrink:0;padding-top:max(16px,env(safe-area-inset-top));
-box-shadow:0 4px 24px rgba(124,58,237,.3)
-}
-.h-title{font-size:18px;font-weight:800;letter-spacing:-.3px}
-.h-sub{font-size:10px;opacity:.7;margin-top:2px}
-.logout-btn{background:rgba(255,255,255,.12);border:none;border-radius:10px;padding:6px 12px;color:white;font-size:11px;cursor:pointer}
-.content{flex:1;overflow-y:auto;padding:14px 14px 88px;-webkit-overflow-scrolling:touch}
-.nav{
-position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-width:100%;max-width:430px;
-background:var(--card);border-top:1px solid var(--border);
-display:flex;z-index:100;
-padding-bottom:max(8px,env(safe-area-inset-bottom))
-}
-.nav-btn{
-flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-padding:8px 4px;background:none;border:none;color:var(--muted);
-cursor:pointer;font-family:inherit;transition:color .2s
-}
-.nav-btn.active{color:var(--p2)}
-.nav-btn span:first-child{font-size:20px}
-.nav-btn span:last-child{font-size:9px;font-weight:600}
+        #app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;position:relative}
+        
+        header{
+            padding:16px 18px;background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3aed);
+            display:none;justify-content:space-between;align-items:center;
+            padding-top:max(16px,env(safe-area-inset-top));box-shadow:0 4px 24px rgba(124,58,237,.3);z-index:10;
+        }
+        .h-title{font-size:18px;font-weight:800}
+        .h-sub{font-size:11px;opacity:0.8}
+        .logout-btn{background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:6px 10px;color:white;font-size:11px;cursor:pointer}
 
-/* PAGES */
-.page{display:none;animation:fadeUp .3s ease both}
-.page.active{display:block}
+        .content{flex:1;overflow-y:auto;padding:16px 16px 100px;display:none}
+        .page{display:none;animation:fadeUp .3s ease both}
+        .page.active{display:block}
 
-/* AUTH */
-.auth-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px}
-.auth-logo{font-size:52px;margin-bottom:10px}
-.auth-title{font-size:26px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-.auth-sub{font-size:12px;color:var(--muted);margin-bottom:28px;text-align:center;line-height:1.6}
-.tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;width:100%;margin-bottom:20px}
-.tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:transparent;color:var(--muted);font-family:inherit;transition:all .2s}
-.tab.active{background:var(--p1);color:white}
-.field{width:100%;padding:13px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:inherit;margin-bottom:12px; text-align: right;}
-.field:focus{border-color:var(--p2)}
-.btn{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(90deg,var(--p1),var(--p2));color:white;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px}
+        #auth-page{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+        .auth-logo{font-size:60px;margin-bottom:10px}
+        .auth-title{font-size:28px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;width:100%;margin:20px 0}
+        .tab{flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-weight:600;font-family:inherit}
+        .tab.active{background:var(--p1);color:white}
 
-/* CARDS & HERO */
-.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px 18px;margin-bottom:12px}
-.card-title{font-size:14px;font-weight:700;margin-bottom:12px}
-.hero{
-background:linear-gradient(135deg,#1e0a4e,#2d1264,#1a0533);
-border:1px solid rgba(124,58,237,.3);
-border-radius:20px;padding:20px;margin-bottom:12px;
-position:relative;overflow:hidden
-}
-.hero-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px}
-.hero-amount{font-size:32px;font-weight:800;margin:6px 0 2px}
-.hero-sub{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:16px}
-.stats-row{display:flex;gap:8px;margin-bottom:14px}
-.stat-box{flex:1;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 8px;text-align:center}
-.stat-box label{font-size:9px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
-.stat-box b{font-size:14px;font-weight:700}
-.progress-bar{background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;height:5px}
-.progress-fill{border-radius:99px;height:5px;background:linear-gradient(90deg,var(--p1),var(--p2));transition:width .8s cubic-bezier(.4,0,.2,1)}
+        .field{width:100%;padding:14px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:15px;margin-bottom:12px;font-family:inherit;text-align:right}
+        .btn{width:100%;padding:15px;border-radius:14px;border:none;background:linear-gradient(90deg,var(--p1),var(--p2));color:white;font-weight:700;font-size:16px;cursor:pointer;font-family:inherit}
+        .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:12px}
+        
+        .nav{
+            position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+            background:var(--card);border-top:1px solid var(--border);display:none;padding-bottom:env(safe-area-inset-bottom);z-index:100;
+        }
+        .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0;background:none;border:none;color:var(--muted);cursor:pointer;font-family:inherit}
+        .nav-btn.active{color:var(--p2)}
+        .nav-btn span:first-child{font-size:20px}
+        .nav-btn span:last-child{font-size:10px;font-weight:600}
 
-/* QUICK BUTTONS */
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-.quick-btn{padding:10px 4px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;transition:all .15s}
-.q-emoji{font-size:20px;display:block;margin-bottom:3px}
-
-/* TRANSACTIONS */
-.tx-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
-.tx-icon{width:36px;height:36px;border-radius:10px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; margin-left:10px}
-.tx-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
-.tx-meta{font-size:10px;color:var(--muted);margin-top:2px}
-.tx-amount{font-weight:700;font-size:14px; text-align: left;}
-.del-btn{background:#3a0a0a;border:none;border-radius:8px;width:28px;height:28px;color:var(--red);cursor:pointer;font-size:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center; margin-right:8px}
-
-.sel{width:100%;padding:12px 14px;border-radius:12px;background:var(--card2);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;font-family:inherit;margin-bottom:12px; text-align: right;}
-.lbl{font-size:11px;color:var(--muted);margin-bottom:5px;display:block}
-
-/* MODAL & OTHERS */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
-.modal-box{background:var(--bg);border:1px solid var(--border);border-radius:24px 24px 0 0;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;padding:20px 20px max(36px,env(safe-area-inset-bottom));position:relative}
-.spinner{width:16px;height:16px;border:2px solid rgba(167,139,250,.3);border-top-color:#a78bfa;border-radius:50%;animation:spin .7s linear infinite}
-.ai-dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--p2);margin:0 2px;animation:pulse 1.2s infinite}
-
-.bank-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--card2);font-size:11px;cursor:pointer;margin:3px}
-.bank-pill.sel-bank{border-color:var(--p2);background:#2d1264;color:#c4b5fd}
-.drop-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 16px;background:var(--card2);border:2px dashed var(--border);border-radius:16px;cursor:pointer;margin-bottom:12px;text-align:center}
-</style>
+        .tx-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+        .tx-info{display:flex;align-items:center;gap:12px}
+        .tx-icon{width:40px;height:40px;background:var(--card2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px}
+        .tx-amount{font-weight:800;font-size:15px}
+        .spinner{width:20px;height:20px;border:3px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite}
+    </style>
 </head>
 <body>
+
 <div id="app">
-  <header id="app-header" style="display:none">
-    <div>
-      <div class="h-title">💰 FinanceAI 🇮🇱</div>
-      <div class="h-sub" id="h-sub">טוען...</div>
-    </div>
-    <button class="logout-btn" onclick="logout()">התנתק</button>
-  </header>
-
-  <div class="content" id="main-content" style="display:none">
-
-    <div id="pg-home" class="page active">
-      <div id="dashboard-hero"><div style="height:120px;display:flex;align-items:center;justify-content:center"><div class="spinner"></div></div></div>
-      <div class="quick-grid">
-        <button class="quick-btn" onclick="quickAdd('קניות','🛒','Alimentation')"><span class="q-emoji">🛒</span>קניות</button>
-        <button class="quick-btn" onclick="quickAdd('דלק','⛽','Transport')"><span class="q-emoji">⛽</span>דלק</button>
-        <button class="quick-btn" onclick="quickAdd('מסעדה','🍕','Loisirs')"><span class="q-emoji">🍕</span>מסעדה</button>
-        <button class="quick-btn" onclick="quickAdd('פארם','💊','Santé')"><span class="q-emoji">💊</span>פארם</button>
-      </div>
-      <div id="tx-list"></div>
-    </div>
-
-    <div id="pg-import" class="page">
-      <div class="card-title" style="font-size:18px;font-weight:800;margin-bottom:4px">📄 ייבוא תדפיס בנק</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">PDF · CSV — הבינה המלאכותית תנתח הכל אוטומטית</div>
-
-      <div class="card">
-        <div class="card-title">הבנק שלך</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
-          <button class="bank-pill" onclick="selectBank(this,'hapoalim')" style="border-color:#ef4444;color:#ef4444">🔴 פועלים</button>
-          <button class="bank-pill" onclick="selectBank(this,'leumi')" style="border-color:#3b82f6;color:#3b82f6">🔵 לאומי</button>
-          <button class="bank-pill" onclick="selectBank(this,'discount')" style="border-color:#22c55e;color:#22c55e">🟢 דיסקונט</button>
-          <button class="bank-pill" onclick="selectBank(this,'mizrahi')" style="border-color:#f59e0b;color:#f59e0b">🟡 מזרחי-טפחות</button>
+    <header id="app-header">
+        <div>
+            <div class="h-title">💰 FinanceAI</div>
+            <div class="h-sub" id="user-greeting">שלום!</div>
         </div>
-        <div id="bank-tip" style="font-size:11px;color:var(--muted);line-height:1.8;min-height:20px"></div>
-      </div>
+        <button class="logout-btn" onclick="logout()">התנתק</button>
+    </header>
 
-      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-in').click()">
-        <div class="drop-icon">📂</div>
-        <div class="drop-title">לחץ כאן להעלאת קובץ</div>
-        <div class="drop-sub">PDF (תדפיס עובר ושב)</div>
-      </div>
-      <input type="file" id="file-in" accept=".pdf,.csv" style="display:none" onchange="handleFileImport(this.files[0])">
-      <div id="import-status"></div>
-      <div class="card" id="import-history-card" style="display:none">
-        <div class="card-title">היסטוריית ייבוא</div>
-        <div id="import-history-list"></div>
-      </div>
+    <div id="auth-page">
+        <div class="auth-logo">🇮🇱</div>
+        <div class="auth-title">FinanceAI</div>
+        <p style="color:var(--muted);margin-top:8px">ניהול כספים חכם למשפחה</p>
+        <div class="tabs">
+            <button class="tab active" onclick="setAuthMode('login', this)">התחברות</button>
+            <button class="tab" onclick="setAuthMode('signup', this)">הרשמה</button>
+        </div>
+        <input type="email" id="a-email" class="field" placeholder="אימייל">
+        <input type="password" id="a-pass" class="field" placeholder="סיסמה">
+        <button class="btn" id="auth-btn" onclick="handleAuth()">התחבר</button>
     </div>
 
-    <div id="pg-add" class="page">
-      <div style="font-size:18px;font-weight:800;margin-bottom:14px">הוספה ידנית ➕</div>
-      <div class="card">
-        <span class="lbl">סוג פעולה</span>
-        <select class="sel" id="tx-type" onchange="updateCats(this.value)">
-          <option value="expense">💸 הוצאה</option>
-          <option value="income">💰 הכנסה</option>
-        </select>
-        <span class="lbl">תיאור <span id="cat-hint" style="color:var(--green);font-size:10px"></span></span>
-        <input class="field" id="tx-label" placeholder="לדוגמה: רמי לוי, סופר-פארם..." oninput="liveDetect(this.value)">
-        <span class="lbl">סכום (₪)</span>
-        <input class="field" id="tx-amount" type="number" inputmode="decimal" placeholder="0.00">
-        <span class="lbl">קטגוריה</span>
-        <select class="sel" id="tx-cat">
-            <option>מזון</option><option>תחבורה</option><option>מגורים</option>
-            <option>פנאי</option><option>בריאות</option><option>חיסכון</option>
-            <option>מנויים</option><option>חינוך</option><option>שונות</option>
-        </select>
-        <button class="btn" id="add-btn" onclick="addTx()">הוסף פעולה</button>
-      </div>
-    </div>
+    <main class="content" id="main-content">
+        <div id="pg-home" class="page active">
+            <div class="card" style="background:linear-gradient(135deg,#1e0a4e,#2d1264);border:none">
+                <div style="font-size:12px;opacity:0.7">יתרה כוללת</div>
+                <div style="font-size:32px;font-weight:800;margin:5px 0" id="total-balance">₪ 0.00</div>
+            </div>
+            <h3 style="margin-bottom:12px">פעולות אחרונות</h3>
+            <div id="tx-list"></div>
+        </div>
 
-    <div id="pg-projects" class="page"><div style="font-size:18px;font-weight:800;margin-bottom:14px">יעדים ופרויקטים 🎯</div><div id="proj-list"></div></div>
-    <div id="pg-stats" class="page"><div style="font-size:18px;font-weight:800;margin-bottom:14px">סטטיסטיקה 📊</div><div id="stats-content"></div></div>
+        <div id="pg-add" class="page">
+            <h3>הוספת פעולה חדשה ➕</h3>
+            <div class="card" style="margin-top:15px">
+                <input type="text" id="tx-label" class="field" placeholder="תיאור (למשל: סופרמרקט)">
+                <input type="number" id="tx-amount" class="field" placeholder="סכום ב-₪">
+                <select id="tx-cat" class="field">
+                    <option value="Alimentation">מזון 🛒</option>
+                    <option value="Transport">תחבורה 🚗</option>
+                    <option value="Loisirs">פנאי 🎮</option>
+                    <option value="Divers">שונות 📦</option>
+                </select>
+                <button class="btn" onclick="addTransaction()">שמור פעולה</button>
+            </div>
+        </div>
 
-  </div>
+        <div id="pg-import" class="page"><h3>ייבוא נתונים 📄</h3><p>בקרוב...</p></div>
+        <div id="pg-stats" class="page"><h3>סטטיסטיקה 📊</h3><div id="stats-container"></div></div>
+    </main>
 
-  <div id="auth-page" style="height:100%;overflow-y:auto">
-    <div class="auth-wrap">
-      <div class="auth-logo">💰</div>
-      <div class="auth-title">FinanceAI 🇮🇱</div>
-      <div class="auth-sub">נהלו את תקציב המשפחה שלכם בקלות<br>זיהוי אוטומטי של תדפיסי בנק ישראלים</div>
-      <div class="tabs">
-        <button class="tab active" onclick="setAuthMode('login',this)">התחברות</button>
-        <button class="tab" onclick="setAuthMode('signup',this)">הרשמה</button>
-      </div>
-      <div id="auth-msg"></div>
-      <input class="field" id="a-email" type="email" placeholder="אימייל">
-      <input class="field" id="a-pass" type="password" placeholder="סיסמה">
-      <button class="btn" id="auth-btn" onclick="doAuth()">התחבר</button>
-    </div>
-  </div>
-
-  <nav class="nav" id="app-nav" style="display:none">
-    <button class="nav-btn active" onclick="go('home',this)"><span>🏠</span><span>בית</span></button>
-    <button class="nav-btn" onclick="go('import',this)"><span>📄</span><span>ייבוא</span></button>
-    <button class="nav-btn" onclick="go('add',this)"><span>➕</span><span>הוספה</span></button>
-    <button class="nav-btn" onclick="go('projects',this)"><span>🎯</span><span>יעדים</span></button>
-    <button class="nav-btn" onclick="go('stats',this)"><span>📊</span><span>נתונים</span></button>
-  </nav>
+    <nav class="nav" id="app-nav">
+        <button class="nav-btn active" onclick="go('home', this)"><span>🏠</span><span>בית</span></button>
+        <button class="nav-btn" onclick="go('add', this)"><span>➕</span><span>הוספה</span></button>
+        <button class="nav-btn" onclick="go('import', this)"><span>📄</span><span>ייבוא</span></button>
+        <button class="nav-btn" onclick="go('stats', this)"><span>📊</span><span>נתונים</span></button>
+    </nav>
 </div>
 
 <script>
-// --- Configuration Supabase ---
-const sb = supabase.createClient('URL', 'KEY');
+    // CONFIGURATION AVEC TES CLÉS
+    const SB_URL = 'https://nyywcxchahalxazientuav.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM';
+    const sb = supabase.createClient(SB_URL, SB_KEY);
+    let currentUser = null;
 
-// --- Traduction des catégories ---
-const CAT_LABELS = {
-    'Alimentation': 'מזון', 'Transport': 'תחבורה', 'Logement': 'מגורים',
-    'Loisirs': 'פנאי', 'Santé': 'בריאות', 'Épargne': 'חיסכון',
-    'Abonnements': 'מנויים', 'Éducation': 'חינוך', 'Divers': 'שונות',
-    'Salaire': 'משכורת', 'Virement reçu': 'העברה נכנסת', 'Allocations': 'קצבאות'
-};
+    async function handleAuth() {
+        const email = document.getElementById('a-email').value;
+        const pass = document.getElementById('a-pass').value;
+        const btn = document.getElementById('auth-btn');
+        const isLogin = btn.innerText === 'התחבר';
 
-function catIcon(cat){
-    const m={'מזון':'🛒','מגורים':'🏠','תחבורה':'🚗','פנאי':'🎮','בריאות':'💊','חיסכון':'💰','שונות':'📦','משכורת':'💼','מנויים':'📱','חינוך':'🎓'};
-    return m[cat] || m[CAT_LABELS[cat]] || '💸';
-}
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="margin:auto"></div>';
+            
+            const { data, error } = isLogin 
+                ? await sb.auth.signInWithPassword({ email, password: pass })
+                : await sb.auth.signUp({ email, password: pass });
 
-// --- Logique d'affichage (Fr → He) ---
-function enterApp(){
-  document.getElementById('auth-page').style.display='none';
-  document.getElementById('app-header').style.display='flex';
-  document.getElementById('main-content').style.display='block';
-  document.getElementById('app-nav').style.display='flex';
-  const name=user.user_metadata?.full_name||user.email.split('@')[0];
-  document.getElementById('h-sub').textContent=`שלום ${name} 👋`; // "Bonjour" en Hébreu
-  loadHome();
-}
+            if (error) throw error;
+            currentUser = data.user;
+            showApp();
+        } catch (err) {
+            alert("שגיאה: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = isLogin ? 'התחבר' : 'הרשמה';
+        }
+    }
 
-// Note: Vous devrez mettre à jour les fonctions loadHome(), loadTxList() etc. 
-// pour utiliser les clés de CAT_LABELS afin d'afficher les noms en hébreu 
-// tout en gardant la logique de catégorisation intacte.
+    function setAuthMode(mode, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('auth-btn').innerText = mode === 'login' ? 'התחבר' : 'הרשמה';
+    }
 
+    function go(pageId, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('pg-' + pageId).classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        if(pageId === 'home') loadTransactions();
+    }
+
+    function showApp() {
+        document.getElementById('auth-page').style.display = 'none';
+        document.getElementById('app-header').style.display = 'flex';
+        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('app-nav').style.display = 'flex';
+        document.getElementById('user-greeting').innerText = `שלום, ${currentUser.email.split('@')[0]} 👋`;
+        loadTransactions();
+    }
+
+    async function addTransaction() {
+        const label = document.getElementById('tx-label').value;
+        const amount = document.getElementById('tx-amount').value;
+        const category = document.getElementById('tx-cat').value;
+
+        if(!label || !amount) return alert("נא למלא את כל השדות");
+
+        const { error } = await sb.from('transactions').insert([
+            { user_id: currentUser.id, label, amount: parseFloat(amount), category, created_at: new Date() }
+        ]);
+
+        if (error) alert(error.message);
+        else {
+            alert("הפעולה נוספה בהצלחה!");
+            document.getElementById('tx-label').value = '';
+            document.getElementById('tx-amount').value = '';
+            go('home');
+        }
+    }
+
+    async function loadTransactions() {
+        const list = document.getElementById('tx-list');
+        list.innerHTML = '<div class="spinner" style="margin:20px auto; border-top-color:var(--p1)"></div>';
+
+        const { data, error } = await sb.from('transactions')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            list.innerHTML = "שגיאה בטעינת נתונים";
+            return;
+        }
+
+        let total = 0;
+        list.innerHTML = data.map(tx => {
+            total += tx.amount;
+            return `
+                <div class="tx-item">
+                    <div class="tx-info">
+                        <div class="tx-icon">${getIcon(tx.category)}</div>
+                        <div>
+                            <div style="font-weight:600">${tx.label}</div>
+                            <div style="font-size:10px; color:var(--muted)">${new Date(tx.created_at).toLocaleDateString('he-IL')}</div>
+                        </div>
+                    </div>
+                    <div class="tx-amount" style="color:${tx.amount > 0 ? 'var(--green)' : 'var(--red)'}">
+                        ₪ ${Math.abs(tx.amount).toFixed(2)}
+                    </div>
+                </div>
+            `;
+        }).join('') || '<p style="text-align:center;color:var(--muted)">אין פעולות עדיין</p>';
+
+        document.getElementById('total-balance').innerText = `₪ ${total.toFixed(2)}`;
+    }
+
+    function getIcon(cat) {
+        const icons = { 'Alimentation': '🛒', 'Transport': '🚗', 'Loisirs': '🎮', 'Divers': '📦' };
+        return icons[cat] || '💸';
+    }
+
+    async function logout() {
+        await sb.auth.signOut();
+        location.reload();
+    }
+
+    sb.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            showApp();
+        }
+    });
 </script>
 </body>
 </html>
