@@ -668,13 +668,38 @@ async function importPDF(file,statusEl){
       const amtStr=allNums[allNums.length-1];
       const amt=parseFloat(amtStr.replace(/,/g,''));
       if(!amt||isNaN(amt)||amt===0)continue;
-      let desc=after.replace(/\s*\d+$/,'').trim();
-      if(!desc||desc.length<2){
-        const firstNumIdx=before.search(/([\d,]+\.?\d*|\.\d+)/);
-        desc=(firstNumIdx>0?before.substring(0,firstNumIdx):before).trim();
+
+      // ── מציאת התיאור ──────────────────────────────────────────
+      // פורמט ב-iPhone (RTL ממוין שמאל→ימין):
+      // "₪[יתרה]  [סכום]  [תיאור]  [תאריך]"
+      // התיאור נמצא בין המספר האחרון לתאריך!
+      let desc = '';
+
+      // שיטה 1: מה שאחרי התאריך (פורמט A — תיאור אחרי תאריך)
+      const afterClean = after.replace(/\s*\d+$/, '').trim();
+      if (afterClean && afterClean.length >= 2 && /[\u0590-\u05FF\u05F3\u05F4a-zA-Z]/.test(afterClean)) {
+        desc = afterClean;
       }
-      if(!desc||desc.length<1)continue;
-      if(HEADER_RE.test(desc))continue;
+
+      // שיטה 2: טקסט אחרי המספר האחרון, לפני התאריך (פורמט B — iPhone RTL)
+      if (!desc || desc.length < 2) {
+        const lastAmtPos = before.lastIndexOf(amtStr);
+        const afterLastNum = before.substring(lastAmtPos + amtStr.length).trim();
+        if (afterLastNum && afterLastNum.length >= 2 && /[\u0590-\u05FF\u05F3\u05F4a-zA-Z]/.test(afterLastNum)) {
+          desc = afterLastNum.replace(/\s*\d+$/, '').trim();
+        }
+      }
+
+      // שיטה 3: כל הטקסט העברי בשורה (fallback)
+      if (!desc || desc.length < 2) {
+        const hebrewText = line.match(/[\u0590-\u05FF\u05F3\u05F4][\u0590-\u05FF\u05F3\u05F4\s\-\.'"״׳\/]*/g);
+        if (hebrewText && hebrewText.length > 0) {
+          desc = hebrewText.join(' ').trim();
+        }
+      }
+
+      if (!desc || desc.length < 1) continue;
+      if (HEADER_RE.test(desc)) continue;
       const next=(lines[i+1]||'').trim();
       const signedAmt=(next==='1')?+Math.abs(amt):-Math.abs(amt);
       const[dd,mm,yyyy]=dateStr.split('/');
