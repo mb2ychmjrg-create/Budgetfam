@@ -347,10 +347,14 @@ const RULES=[
 
 function localCat(label, amount){
   if(!label) return amount > 0 ? 'Virement reçu' : 'Divers';
-  // normalize: replace Hebrew special quotes with standard
-  const l = label.replace(/[״׳]/g, '"').replace(/[׳]/g, "'");
+  // נרמול אגרסיבי — PDF.js מחלץ תווים שונים לפי המכשיר
+  let l = label
+    .replace(/\u05F4/g, '"')   // ״ → "
+    .replace(/\u05F3/g, "'")   // ׳ → '
+    .replace(/\u201C|\u201D/g, '"')  // " " → "
+    .replace(/\u2019|\u2018/g, "'"); // ' ' → '
   for(const [re, cat] of RULES) if(re.test(l)) return cat;
-  // fallback by amount sign
+  // Fallback לפי כיוון הסכום
   return amount > 0 ? 'Virement reçu' : 'Divers';
 }
 function liveDetect(val){
@@ -876,31 +880,54 @@ async function loadStats(){
   <div class="card"><div class="card-title">סיכום כולל</div><div class="stats-row">
     <div class="stat-box" style="background:var(--card2)"><label>הכנסות</label><b style="color:var(--green)">${income.toLocaleString('he-IL')} ₪</b></div>
     <div class="stat-box" style="background:var(--card2)"><label>הוצאות</label><b style="color:var(--red)">${expenses.toLocaleString('he-IL')} ₪</b></div>
-    <div class="stat-box" style="background:var(--card2)"><label>חיסכון</label><b style="color:${savings>=0?'#a78bfa':'var(--red)'}">  ${savings.toLocaleString('he-IL')} ₪</b></div>
+    <div class="stat-box" style="background:var(--card2)"><label>חיסכון</label><b style="color:${savings>=0?'#a78bfa':'var(--red)'}">${savings.toLocaleString('he-IL')} ₪</b></div>
   </div></div>
+
   <div class="card">
-    <div class="chart-tabs">
-      <button class="ct active" onclick="switchC('donut',this)">🍩 קטגוריות</button>
-      <button class="ct" onclick="switchC('bar',this)">📊 חודשי</button>
-      <button class="ct" onclick="switchC('line',this)">📈 יתרה</button>
-    </div>
-    <div id="cp-donut" class="cp active"><div style="position:relative;height:200px"><canvas id="chart-donut"></canvas></div><div id="legend" style="margin-top:12px"></div></div>
-    <div id="cp-bar" class="cp"><div style="position:relative;height:220px"><canvas id="chart-bar"></canvas></div></div>
-    <div id="cp-line" class="cp"><div style="position:relative;height:220px"><canvas id="chart-line"></canvas></div></div>
+    <div class="card-title">🍩 הוצאות לפי קטגוריה</div>
+    <div style="position:relative;height:200px"><canvas id="chart-donut"></canvas></div>
+    <div id="legend" style="margin-top:12px"></div>
   </div>
+
+  <div class="card">
+    <div class="card-title">📊 הכנסות והוצאות חודשי</div>
+    <div style="position:relative;height:220px"><canvas id="chart-bar"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 יתרה מצטברת</div>
+    <div style="position:relative;height:220px"><canvas id="chart-line"></canvas></div>
+  </div>
+
   <div class="card"><div class="card-title">סה״כ עסקאות</div><div style="font-size:36px;font-weight:800;color:#a78bfa;text-align:center;padding:6px 0">${all.length}</div></div>`;
-  requestAnimationFrame(()=>{
-    if(chart1)chart1.destroy();
-    chart1=new Chart(document.getElementById('chart-donut').getContext('2d'),{type:'doughnut',data:{labels:catLabels,datasets:[{data:catValues,backgroundColor:COLORS,borderColor:'#11111a',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed.toLocaleString('he-IL')} ₪`}}}}});
-    const tot=catValues.reduce((a,b)=>a+b,0);
-    document.getElementById('legend').innerHTML=catLabels.map((l,i)=>`<div class="legend-row"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div><div style="flex:1">${l}</div><div style="color:var(--muted)">${catValues[i].toLocaleString('he-IL')} ₪</div><div style="color:#a78bfa;width:30px;text-align:left">${Math.round(catValues[i]/tot*100)}%</div></div>`).join('');
-    if(chart2)chart2.destroy();
-    chart2=new Chart(document.getElementById('chart-bar').getContext('2d'),{type:'bar',data:{labels:mLabels,datasets:[{label:'הכנסות',data:months.map(m=>mIn[m]||0),backgroundColor:'#22c55e44',borderColor:'#22c55e',borderWidth:2,borderRadius:6},{label:'הוצאות',data:months.map(m=>mEx[m]||0),backgroundColor:'#ef444444',borderColor:'#ef4444',borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#8888aa',font:{size:11},boxWidth:12}}},scales:{x:{ticks:{color:'#8888aa',font:{size:10}},grid:{color:'#232336'}},y:{ticks:{color:'#8888aa',font:{size:10},callback:v=>v.toLocaleString('he-IL')},grid:{color:'#232336'}}}}});
-    if(chart3)chart3.destroy();
-    const c3=document.getElementById('chart-line').getContext('2d');
-    const g=c3.createLinearGradient(0,0,0,200);g.addColorStop(0,'#7c3aed44');g.addColorStop(1,'#7c3aed00');
-    chart3=new Chart(c3,{type:'line',data:{labels:all.map(t=>fmtDate(t.created_at)),datasets:[{label:'יתרה',data:bData,borderColor:'#8b5cf6',borderWidth:2,backgroundColor:g,fill:true,tension:0.4,pointRadius:bData.length<=20?3:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` יתרה: ${c.parsed.y.toLocaleString('he-IL')} ₪`}}},scales:{x:{ticks:{color:'#8888aa',font:{size:10},maxTicksLimit:6},grid:{color:'#232336'}},y:{ticks:{color:'#8888aa',font:{size:10},callback:v=>v.toLocaleString('he-IL')},grid:{color:'#232336'}}}}});
-  });
+
+  // בנה גרפים אחרי שה-DOM מוכן
+  setTimeout(()=>{
+    try{
+      if(chart1){chart1.destroy();chart1=null;}
+      const c1=document.getElementById('chart-donut');
+      if(c1&&catLabels.length){
+        chart1=new Chart(c1.getContext('2d'),{type:'doughnut',data:{labels:catLabels,datasets:[{data:catValues,backgroundColor:COLORS,borderColor:'#11111a',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed.toLocaleString('he-IL')} ₪`}}}}});
+        const tot=catValues.reduce((a,b)=>a+b,0);
+        document.getElementById('legend').innerHTML=catLabels.map((l,i)=>`<div class="legend-row"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div><div style="flex:1">${l}</div><div style="color:var(--muted)">${catValues[i].toLocaleString('he-IL')} ₪</div><div style="color:#a78bfa;width:30px;text-align:left">${Math.round(catValues[i]/tot*100)}%</div></div>`).join('');
+      }
+    }catch(e){console.error('donut:',e);}
+    try{
+      if(chart2){chart2.destroy();chart2=null;}
+      const c2=document.getElementById('chart-bar');
+      if(c2&&months.length){
+        chart2=new Chart(c2.getContext('2d'),{type:'bar',data:{labels:mLabels,datasets:[{label:'הכנסות',data:months.map(m=>mIn[m]||0),backgroundColor:'#22c55e44',borderColor:'#22c55e',borderWidth:2,borderRadius:6},{label:'הוצאות',data:months.map(m=>mEx[m]||0),backgroundColor:'#ef444444',borderColor:'#ef4444',borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#8888aa',font:{size:11},boxWidth:12}}},scales:{x:{ticks:{color:'#8888aa',font:{size:10}},grid:{color:'#232336'}},y:{ticks:{color:'#8888aa',font:{size:10},callback:v=>v.toLocaleString('he-IL')},grid:{color:'#232336'}}}}});
+      }
+    }catch(e){console.error('bar:',e);}
+    try{
+      if(chart3){chart3.destroy();chart3=null;}
+      const c3=document.getElementById('chart-line');
+      if(c3&&bData.length){
+        const g=c3.getContext('2d').createLinearGradient(0,0,0,200);g.addColorStop(0,'#7c3aed44');g.addColorStop(1,'#7c3aed00');
+        chart3=new Chart(c3.getContext('2d'),{type:'line',data:{labels:all.map(t=>fmtDate(t.created_at)),datasets:[{label:'יתרה',data:bData,borderColor:'#8b5cf6',borderWidth:2,backgroundColor:g,fill:true,tension:0.4,pointRadius:bData.length<=20?3:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` יתרה: ${c.parsed.y.toLocaleString('he-IL')} ₪`}}},scales:{x:{ticks:{color:'#8888aa',font:{size:10},maxTicksLimit:6},grid:{color:'#232336'}},y:{ticks:{color:'#8888aa',font:{size:10},callback:v=>v.toLocaleString('he-IL')},grid:{color:'#232336'}}}}});
+      }
+    }catch(e){console.error('line:',e);}
+  }, 100);
 }
 function switchC(name,btn){document.querySelectorAll('.ct').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.cp').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('cp-'+name).classList.add('active');}
 
