@@ -684,7 +684,21 @@ async function importPDF(file,statusEl){
       setStatus(statusEl,'error',`לא נמצאו עסקאות (${lines.length} שורות).<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">${lines.slice(0,15).join('<br>').replace(/</g,'&lt;')}</div>`);
       return;
     }
-    setStatus(statusEl,'loading',`✅ ${transactions.length} עסקאות — מסווג...`);
+
+    // DEBUG — הצג labels + קטגוריה + Unicode codes
+    const debugRows = transactions.slice(0,10).map(t=>{
+      const cat = localCat(t.label, t.amount);
+      const codes = [...(t.label||'')].slice(0,12).map(c=>c.codePointAt(0).toString(16)).join(' ');
+      return `<div style="border-bottom:1px solid #222;padding:3px 0"><b style="color:${cat==='Divers'?'#ef4444':'#22c55e'}">${cat}</b> | "${(t.label||'').substring(0,25)}"<br><span style="color:#555;font-size:8px">[${codes}]</span></div>`;
+    }).join('');
+    statusEl.innerHTML=`
+      <div style="padding:12px;background:#0a0a14;border:1px solid #7c3aed33;border-radius:10px;margin-bottom:8px">
+        <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:8px">🔍 DEBUG — Labels מה-PDF (${transactions.length} עסקאות)</div>
+        <div style="font-size:10px;font-family:monospace;line-height:1.8;direction:ltr;text-align:left">${debugRows}</div>
+      </div>`;
+    await new Promise(r=>setTimeout(r,3000));
+
+    setStatus(statusEl,'loading',`🤖 מסווג ${transactions.length} עסקאות...`);
     await saveImportedTx(transactions,file.name,statusEl);
   }catch(err){
     setStatus(statusEl,'error','שגיאה: '+err.message);
