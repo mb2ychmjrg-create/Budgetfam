@@ -311,30 +311,47 @@ const CATS_HE = {
   'Allocations':'קצבאות','Divers':'שונות'
 };
 const CATS_KEYS=Object.keys(CATS_HE);
-const CATS_HE_LIST=Object.values(CATS_HE);
-
 function heLabel(cat){return CATS_HE[cat]||cat||'שונות';}
 
-// ── סיווג מקומי ───────────────────────────────────────────────
+// ── סיווג מקומי — עובד על labels מ-PDF הפועלים ────────────────
+// הערה: PDF.js עשוי להחליף " ו-' בתווי עברית מיוחדים (״ ׳)
+// לכן הregex מחפשים רק שורשים עבריים ללא ניקוד/סימנים
 const RULES=[
-  [/טפחות|משכנתא|ארנונה|ועד.?בית|bezeq|בזק|שכירות|חשמל|מים|hot.?net/i,'Logement'],
-  [/כרטיסי/i,'Carte crédit'],
-  [/הלוא|הלו|דיסקונט.?למ/i,'Prêt'],
-  [/חסכון|פקדון|זכוי.?מת|ני.{0,3}ע|ריבית.?מפ|מענק|דיבידנד/i,'Épargne'],
-  [/בטוח.{0,4}לאומי|ביטוח.{0,4}לאומי|קצבת/i,'Allocations'],
-  [/הוראת|פעולות|הקצאת|עמלת|רבית(?!.?מפ)/i,'Abonnements'],
-  [/מרכז.{0,6}קהילתי|מצודת.{0,6}אגסי|משכורת/i,'Salaire'],
-  [/העב|זיכוי.{0,6}לאומי|bit|מלאומי/i,'Virement reçu'],
-  [/shufersal|שפרסל|rami.?levy|victory|mega|מגה|osher|tiv.?taam|makolet|מכולת/i,'Alimentation'],
-  [/super.?pharm|clalit|כללית|maccabi|מכבי|leumit|לאומית|הפניקס|רופא|terem/i,'Santé'],
-  [/gett|bolt|uber|אגד|eged|רכבת|דלק|sonol|paz|parking|חניה|taxi/i,'Transport'],
-  [/netflix|spotify|wolt|ten.?bis|מסעדה|coffee|קפה|cinema|gym/i,'Loisirs'],
-  [/אוניברסיטה|college|מכללה|ulpan|בית.?ספר|גן.?ילדים/i,'Éducation'],
+  // דיור - טפחות/משכנתא/ארנונה/ועד בית
+  [/טפחות|משכנת|ארנונ|ועד.{0,4}בית|בזק|חשמל|מים|hot.?net|שכירות/i,'Logement'],
+  // כרטיס אשראי - "כרטיסי אשראי ל"
+  [/כרטיס/i,'Carte crédit'],
+  // הלוואה - הלואה/הלוא (הו"ק הלו' = הו״ק הלו׳)
+  [/הלוא|הלו.{0,3}קר|הלו.{0,3}רב|דיסקונט.{0,4}למ/i,'Prêt'],
+  // חיסכון - חסכון/פקדון/ני"ע/ריבית
+  [/חסכו|פקדו|ריבית.{0,4}מפ|ני.{0,4}ע|דיבידנד|מענק/i,'Épargne'],
+  // קצבאות - ביטוח לאומי/קצבת ילדים
+  [/ביטוח.{0,6}לאומ|בטוח.{0,6}לאומ|קצבת.{0,6}ילד/i,'Allocations'],
+  // מנויים/הוראות קבע/עמלות
+  [/הוראת.{0,4}קב|פעולות|הקצאת|עמלת|עמ.{0,3}הק/i,'Abonnements'],
+  // משכורת - המעסיקים של שמואל
+  [/מרכז.{0,8}קהיל|מצודת.{0,8}אגס|משכורת|שכר.{0,4}עבוד/i,'Salaire'],
+  // העברות שהתקבלו
+  [/זיכוי.{0,8}לאומ|העב.{0,6}לאח|bit|מלאומי/i,'Virement reçu'],
+  // מזון
+  [/שופרסל|רמי.{0,4}לוי|victory|ויקטורי|mega|מגה|osher|tiv.{0,4}taam|מכולת|shufersal/i,'Alimentation'],
+  // בריאות
+  [/סופר.{0,4}פארם|pharm|כללית|מכבי|לאומית|הפניקס|רופא|terem|maccabi/i,'Santé'],
+  // תחבורה
+  [/גט.{0,4}טקסי|gett|uber|bolt|אגד|eged|רכבת|דלק|sonol|paz|חניה|taxi|מונית/i,'Transport'],
+  // בילויים
+  [/netflix|spotify|wolt|תן.{0,4}ביס|ten.?bis|מסעדה|קפה|coffee|cinema|גים|gym/i,'Loisirs'],
+  // חינוך
+  [/אוניברסיט|מכלל|אולפן|ulpan|בית.{0,4}ספר|גן.{0,4}ילד/i,'Éducation'],
 ];
-function localCat(label,amount){
-  if(!label)return amount>0?'Virement reçu':'Divers';
-  for(const[re,cat]of RULES)if(re.test(label))return cat;
-  return amount>0?'Virement reçu':'Divers';
+
+function localCat(label, amount){
+  if(!label) return amount > 0 ? 'Virement reçu' : 'Divers';
+  // normalize: replace Hebrew special quotes with standard
+  const l = label.replace(/[״׳]/g, '"').replace(/[׳]/g, "'");
+  for(const [re, cat] of RULES) if(re.test(l)) return cat;
+  // fallback by amount sign
+  return amount > 0 ? 'Virement reçu' : 'Divers';
 }
 function liveDetect(val){
   const cat=localCat(val,-1);
@@ -704,8 +721,10 @@ async function importCSV(file,statusEl){
 async function saveImportedTx(txs,fileName,statusEl){
   const valid=txs.filter(t=>t.label&&parseFloat(t.amount)!==0);
   if(!valid.length){setStatus(statusEl,'error','אין עסקאות תקינות.');return;}
+
   setStatus(statusEl,'loading',`🤖 מסווג ${valid.length} עסקאות...`);
 
+  // שלב 1: סיווג מקומי מהיר
   const toInsert=valid.map(t=>({
     user_id:user.id,
     label:(t.label||'').substring(0,120),
@@ -714,26 +733,45 @@ async function saveImportedTx(txs,fileName,statusEl){
     created_at:t.date?new Date(t.date).toISOString():new Date().toISOString()
   }));
 
-  // Batch Claude לעסקאות לא מזוהות
-  const needsAI=toInsert.filter(t=>t.category==='Divers'||t.category==='Virement reçu'&&t.amount<0);
+  // שלב 2: Claude לא מזוהים (תיקון עדיפות אופרטורים!)
+  const needsAI=toInsert.filter(t=>t.category==='Divers');
   if(needsAI.length>0){
-    setStatus(statusEl,'loading',`🤖 Claude מסווג ${needsAI.length} עסקאות לא מזוהות...`);
+    setStatus(statusEl,'loading',`🤖 Claude מסווג ${needsAI.length} עסקאות נוספות...`);
     try{
-      const list=needsAI.map((t,i)=>`${i}: "${t.label}" (${t.amount}₪)`).join('\n');
-      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
-          messages:[{role:'user',content:`סווג עסקאות בנקאיות ישראליות. קטגוריות: ${CATS_KEYS.join(', ')}\n\n${list}\n\nענה JSON בלבד: {"0":"Prêt","1":"Allocations"}`}]})});
+      const list=needsAI.map((t,i)=>`${i}: "${t.label}" ${t.amount}₪`).join('\n');
+      const r=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
+          messages:[{role:'user',content:`סווג את העסקאות הבנקאיות הישראליות הבאות.
+קטגוריות אפשריות: ${CATS_KEYS.join(', ')}
+
+הנחיות:
+- סכום חיובי = הכנסה (Salaire, Allocations, Virement reçu, Épargne)
+- סכום שלילי = הוצאה
+- כרטיסי אשראי = Carte crédit
+- טפחות/משכנתא = Logement
+- הלואה/הלוא = Prêt
+- ביטוח לאומי/קצבת ילדים = Allocations
+- מרכז קהילתי/מצודת אגסי = Salaire
+- חסכון/פקדון/ני"ע = Épargne
+- הוראת קבע/עמלות = Abonnements
+
+עסקאות:
+${list}
+
+ענה JSON בלבד ללא markdown: {"0":"Prêt","1":"Allocations"}`}]})
+      });
       const d=await r.json();
-      const raw=(d.content?.[0]?.text||'{}').replace(/\`\`\`json\s*|\s*\`\`\`/g,'').trim();
+      const raw=(d.content?.[0]?.text||'{}').replace(/```json\s*|\s*```/g,'').trim();
       const catMap=JSON.parse(raw);
       needsAI.forEach((t,i)=>{
-        const cat=catMap[String(i)];
-        if(cat&&CATS_KEYS.includes(cat)){
-          const found=toInsert.find(x=>x.label===t.label&&x.amount===t.amount);
-          if(found)found.category=cat;
+        const newCat=catMap[String(i)];
+        if(newCat&&CATS_KEYS.includes(newCat)){
+          const idx=toInsert.findIndex(x=>x.label===t.label&&x.amount===t.amount&&x.created_at===t.created_at);
+          if(idx>=0)toInsert[idx].category=newCat;
         }
       });
-    }catch(e){console.error('Batch cat error:',e);}
+    }catch(e){console.error('Claude batch error:',e);}
   }
 
   setStatus(statusEl,'loading',`💾 שומר ${toInsert.length} עסקאות...`);
@@ -746,16 +784,19 @@ async function saveImportedTx(txs,fileName,statusEl){
   hist.unshift({id:Date.now(),date:new Date().toISOString(),count:toInsert.length,file:fileName,from:dates[0],to:dates[dates.length-1]});
   localStorage.setItem('fi_hist_'+user.id,JSON.stringify(hist.slice(0,20)));
 
-  // סיכום לפי קטגוריה
+  // סיכום קטגוריות
   const catSum={};
   toInsert.forEach(t=>{catSum[t.category]=(catSum[t.category]||0)+1;});
+  const stillDivers=toInsert.filter(t=>t.category==='Divers').length;
   const sumLines=Object.entries(catSum).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([c,n])=>`${catIcon(c)} ${heLabel(c)}: ${n}`).join(' · ');
 
   statusEl.innerHTML=`<div class="status-ok">
     <div style="font-size:26px;margin-bottom:6px">✅</div>
-    <div style="font-weight:700;color:var(--green);font-size:15px">${toInsert.length} עסקאות יובאו בהצלחה!</div>
+    <div style="font-weight:700;color:var(--green);font-size:15px">${toInsert.length} עסקאות יובאו!</div>
     <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.8">${sumLines}</div>
+    ${stillDivers>0?`<div style="font-size:10px;color:var(--yellow);margin-top:6px">⚠️ ${stillDivers} עסקאות לא סווגו — ניתן לשנות ידנית ✏️</div>`:''}
   </div>`;
+
   loadHome();loadTxList();loadImportHistory();
   document.getElementById('file-in').value='';
 }
