@@ -152,16 +152,14 @@ header{padding:16px 18px;background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3a
       </div>
       <div id="auth-msg"></div>
       <input class="field" id="a-email" type="email" placeholder="your@email.com" style="direction:ltr;text-align:left">
-      <input class="field" id="a-pass" type="password" placeholder="••••••••" style="direction:ltr;text-align:left">
+      <input class="field" id="a-pass" type="password" placeholder="password" style="direction:ltr;text-align:left">
       <div id="a-name-wrap" style="display:none;width:100%">
         <input class="field" id="a-name" type="text" placeholder="שם פרטי">
       </div>
       <button class="btn" id="auth-btn" onclick="doAuth()">התחבר</button>
     </div>
   </div>
-
   <!-- MAIN APP -->
-
   <header id="app-header" style="display:none">
     <div>
       <div class="h-title">💰 פיננסAI 🇮🇱</div>
@@ -361,40 +359,53 @@ async function claudeCat(label,amount){
 }
 
 // ── אוטנטיקציה ────────────────────────────────────────────────
+// ── אוטנטיקציה OTP — ללא סיסמה ────────────────────────────────
 let authMode='login';
 function setMode(m,btn){
   authMode=m;
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&m==='login')||(i===1&&m==='signup')));
-  document.getElementById('a-name-wrap').style.display=m==='signup'?'block':'none';
-  document.getElementById('auth-btn').textContent=m==='login'?'התחבר':'צור חשבון';
-  document.getElementById('auth-msg').innerHTML='';
+  const nameWrap=document.getElementById('a-name-wrap');
+  if(nameWrap)nameWrap.style.display=m==='signup'?'block':'none';
+  const authBtn=document.getElementById('auth-btn');
+  if(authBtn)authBtn.textContent=m==='login'?'התחבר':'צור חשבון';
+  const msg=document.getElementById('auth-msg');
+  if(msg)msg.innerHTML='';
 }
-function authMsg(msg,ok=false){document.getElementById('auth-msg').innerHTML=`<div class="${ok?'msg-ok':'msg-err'}">${msg}</div>`;}
+function authMsg(msg,ok=false){
+  const el=document.getElementById('auth-msg');
+  if(el)el.innerHTML='<div class="'+(ok?'msg-ok':'msg-err')+'">'+msg+'</div>';
+}
 async function doAuth(){
-  const email=document.getElementById('a-email').value.trim();
-  const password=document.getElementById('a-pass').value;
+  const email=(document.getElementById('a-email').value||'').trim();
+  const password=document.getElementById('a-pass').value||'';
   const btn=document.getElementById('auth-btn');
-  if(!email||!password)return authMsg('אנא מלא אימייל וסיסמה.');
+  if(!email||!password){authMsg('נא מלא אימייל וסיסמה');return;}
   btn.textContent='...';btn.style.opacity='.6';btn.style.pointerEvents='none';
   try{
     if(authMode==='signup'){
-      const name=document.getElementById('a-name').value.trim()||'משתמש';
-      const{error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
-      if(error){authMsg('שגיאה: '+error.message);}
-      else authMsg('✅ החשבון נוצר! בדוק את האימייל שלך לאישור.',true);
+      const name=(document.getElementById('a-name').value||'').trim()||'משתמש';
+      const res=await sb.auth.signUp({email:email,password:password,options:{data:{full_name:name}}});
+      if(res.error){authMsg('שגיאה: '+res.error.message);}
+      else if(res.data&&res.data.user&&res.data.user.identities&&res.data.user.identities.length===0){
+        authMsg('כתובת אימייל זו כבר רשומה. נסה להתחבר.');
+      }
+      else{authMsg('✅ חשבון נוצר! אנא בדוק את האימייל שלך.',true);}
       btn.textContent='צור חשבון';btn.style.opacity='1';btn.style.pointerEvents='auto';
     }else{
-      const{data,error}=await sb.auth.signInWithPassword({email,password});
-      if(error){
-        authMsg('שגיאה: '+error.message);
+      const res=await sb.auth.signInWithPassword({email:email,password:password});
+      if(res.error){
+        let msg='שגיאה: '+res.error.message;
+        if(res.error.message.includes('Email not confirmed'))msg='האימייל לא אומת. בדוק את תיבת הדואר שלך ולחץ על קישור האימות.';
+        if(res.error.message.includes('Invalid login'))msg='אימייל או סיסמה שגויים.';
+        authMsg(msg);
         btn.textContent='התחבר';btn.style.opacity='1';btn.style.pointerEvents='auto';
         return;
       }
-      user=data.user;
+      user=res.data.user;
       enterApp();
     }
   }catch(e){
-    authMsg('שגיאה טכנית: '+e.message);
+    authMsg('שגיאה: '+e.message);
     btn.textContent='התחבר';btn.style.opacity='1';btn.style.pointerEvents='auto';
   }
 }
@@ -565,7 +576,7 @@ async function delTx(id){
 }
 
 // ── ייבוא PDF ──────────────────────────────────────────────────
-let selectedBank='';
+
 const BANK_TIPS={
   hapoalim:'poalim.co.il → עסקאות → הורד PDF/Excel',
   leumi:'leumi.co.il → תנועות בחשבון → ייצוא',
