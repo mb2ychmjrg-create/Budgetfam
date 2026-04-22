@@ -719,51 +719,12 @@ async function importPDF(file,statusEl){
       const[dd,mm,yyyy]=dateStr.split('/');
       transactions.push({date:`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`,label:desc,amount:signed});
     }
-// ── 🧠 HUMAN MODE (Leumi / Discount / Mizrahi)
-if(transactions.length<3){
-  transactions.length=0;
-  let prevBalance=null;
 
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i].replace(/^#+\s*/,'').trim();
-    if(HEADER_RE.test(line))continue;
-
-    const sdMatch=line.match(/(\d{1,2})\/(\d{2})(?!\d{2})/);
-    if(!sdMatch)continue;
-
-    const dd=sdMatch[1],mm=sdMatch[2];
-    const isoDate=resolveYear(dd,mm)+'-'+mm.padStart(2,'0')+'-'+dd.padStart(2,'0');
-
-    const clean=line.replace(sdMatch[0],'').trim();
-
-    const {amt,balance}=parseHumanNumbers(clean);
-    if(!amt||amt===0)continue;
-
-    const hebWords=(clean.match(/[\u0590-\u05FF][\u0590-\u05FF\s\-\.׳״'"\/]*/g)||[]);
-    const desc=hebWords.join(' ').replace(/\s+/g,' ').trim();
-
-    if(!desc||desc.length<2||HEADER_RE.test(desc))continue;
-
-    let signed;
-
-    // logique humaine de banque :
-    if(balance!==null && prevBalance!==null){
-      signed = balance > prevBalance ? +Math.abs(amt) : -Math.abs(amt);
-    }else{
-      signed = /הפקד|זיכוי|העברה|בנק|שיק/i.test(desc)
-        ? +Math.abs(amt)
-        : -Math.abs(amt);
-    }
-
-    prevBalance=balance;
-
-    transactions.push({
-      date:isoDate,
-      label:desc,
-      amount:signed
-    });
-  }
-}
+    // ── שיטה 2: לאומי/דיסקונט — DD/MM בכל מקום בשורה ──────────
+    // ב-iPhone PDF.js ממיין שמאל→ימין: יתרה|סכום|מספר|תיאור|DD/MM
+    if(transactions.length<3){
+      transactions.length=0;
+      let prevBalance=null;
 
       // יתרת פתיחה — מה שנמצא כבר למעלה
       if(openingBalance!==null){
