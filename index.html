@@ -645,85 +645,99 @@ async function importPDF(file,statusEl){
         if(line.trim())lines.push(line.trim());
       });
     }
-    if(lines.length<3){setStatus(statusEl,'error','PDF לא קריא. הורד PDF דיגיטלי מאתר הבנק (לא סריקה).');return;}
+    if(lines.length<3){setStatus(statusEl,'error','PDF לא קריא. הורד PDF דיגיטלי מאתר הבנק.');return;}
     setStatus(statusEl,'loading',`📋 ניתוח ${lines.length} שורות...`);
 
-    // ── פארסר ישיר: מוצא תאריך בשורה, לוקח את המספר האחרון לפניו ──
-    const HEADER_RE=/תאריך|פעולה|חובה|זכות|יתרה|תקופה|בנק הפועלים|חשבון|סניף/;
+    const HEADER_RE=/תאריך|פעולה|חובה|זכות|יתרה|תקופה|בנק הפועלים|חשבון|סניף|מקור|אסמכתא|ערך/;
     const transactions=[];
+
+    // זיהוי שנה מהמסמך (לאומי משתמש DD/MM בלבד)
+    let docYear=new Date().getFullYear(), docMonth=new Date().getMonth()+1;
+    for(const line of lines){
+      const m=line.match(/(\d{1,2})\/(\d{2})\/(\d{4})/);
+      if(m){docYear=parseInt(m[3]);docMonth=parseInt(m[2]);break;}
+    }
+    function resolveYear(dd,mm){
+      return parseInt(mm)>docMonth?docYear-1:docYear;
+    }
+
+    // ── שיטה 1: הפועלים — DD/MM/YYYY מלא ──────────────────────
     for(let i=0;i<lines.length;i++){
       const line=lines[i].replace(/^#+\s*/,'').trim();
       if(HEADER_RE.test(line))continue;
       if(!/\d{2}\/\d{2}\/\d{4}/.test(line))continue;
       if(/\d{2}\/\d{2}\/\d{4}\s*[–-]\s*\d{2}\/\d{2}\/\d{4}/.test(line))continue;
-      const dateMatch=line.match(/(\d{2}\/\d{2}\/\d{4})/);
-      if(!dateMatch)continue;
-      const dateStr=dateMatch[1];
-      const datePos=dateMatch.index;
+      const dm=line.match(/(\d{2}\/\d{2}\/\d{4})/);
+      if(!dm)continue;
+      const dateStr=dm[1],datePos=dm.index;
       const before=line.substring(0,datePos).trim();
       const after=line.substring(datePos+dateStr.length).trim();
-      // כל המספרים לפני התאריך — לוקחים את האחרון (הסכום, לא היתרה)
       const allNums=before.match(/([\d,]+\.?\d*|\.\d+)/g);
       if(!allNums||!allNums.length)continue;
       const amtStr=allNums[allNums.length-1];
       const amt=parseFloat(amtStr.replace(/,/g,''));
       if(!amt||isNaN(amt)||amt===0)continue;
-
-      // ── מציאת התיאור ──────────────────────────────────────────
-      // פורמט ב-iPhone (RTL ממוין שמאל→ימין):
-      // "₪[יתרה]  [סכום]  [תיאור]  [תאריך]"
-      // התיאור נמצא בין המספר האחרון לתאריך!
-      let desc = '';
-
-      // שיטה 1: מה שאחרי התאריך (פורמט A — תיאור אחרי תאריך)
-      const afterClean = after.replace(/\s*\d+$/, '').trim();
-      if (afterClean && afterClean.length >= 2 && /[\u0590-\u05FF\u05F3\u05F4a-zA-Z]/.test(afterClean)) {
-        desc = afterClean;
+      let desc='';
+      const lastPos=before.lastIndexOf(amtStr);
+      const afterNum=before.substring(lastPos+amtStr.length).trim();
+      if(afterNum&&afterNum.length>=2&&/[\u0590-\u05FF\u05F3\u05F4a-zA-Z]/.test(afterNum)){
+        desc=afterNum.replace(/\s*\d+$/,'').trim();
       }
-
-      // שיטה 2: טקסט אחרי המספר האחרון, לפני התאריך (פורמט B — iPhone RTL)
-      if (!desc || desc.length < 2) {
-        const lastAmtPos = before.lastIndexOf(amtStr);
-        const afterLastNum = before.substring(lastAmtPos + amtStr.length).trim();
-        if (afterLastNum && afterLastNum.length >= 2 && /[\u0590-\u05FF\u05F3\u05F4a-zA-Z]/.test(afterLastNum)) {
-          desc = afterLastNum.replace(/\s*\d+$/, '').trim();
-        }
+      if(!desc||desc.length<2){
+        const ac=after.replace(/\s*\d+$/,'').trim();
+        if(ac&&ac.length>=2&&/[\u0590-\u05FF]/.test(ac))desc=ac;
       }
-
-      // שיטה 3: כל הטקסט העברי בשורה (fallback)
-      if (!desc || desc.length < 2) {
-        const hebrewText = line.match(/[\u0590-\u05FF\u05F3\u05F4][\u0590-\u05FF\u05F3\u05F4\s\-\.'"״׳\/]*/g);
-        if (hebrewText && hebrewText.length > 0) {
-          desc = hebrewText.join(' ').trim();
-        }
-      }
-
-      if (!desc || desc.length < 1) continue;
-      if (HEADER_RE.test(desc)) continue;
+      if(!desc||desc.length<1||HEADER_RE.test(desc))continue;
       const next=(lines[i+1]||'').trim();
-      const signedAmt=(next==='1')?+Math.abs(amt):-Math.abs(amt);
+      const signed=(next==='1')?+Math.abs(amt):-Math.abs(amt);
       const[dd,mm,yyyy]=dateStr.split('/');
-      transactions.push({date:`${yyyy}-${mm}-${dd}`,label:desc,amount:signedAmt});
-    }
-    if(!transactions.length){
-      setStatus(statusEl,'error',`לא נמצאו עסקאות (${lines.length} שורות).<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">${lines.slice(0,15).join('<br>').replace(/</g,'&lt;')}</div>`);
-      return;
+      transactions.push({date:`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`,label:desc,amount:signed});
     }
 
-    // DEBUG — הצג labels + קטגוריה + Unicode codes
-    const debugRows = transactions.slice(0,10).map(t=>{
-      const cat = localCat(t.label, t.amount);
-      const codes = [...(t.label||'')].slice(0,12).map(c=>c.codePointAt(0).toString(16)).join(' ');
-      return `<div style="border-bottom:1px solid #222;padding:3px 0"><b style="color:${cat==='Divers'?'#ef4444':'#22c55e'}">${cat}</b> | "${(t.label||'').substring(0,25)}"<br><span style="color:#555;font-size:8px">[${codes}]</span></div>`;
-    }).join('');
-    statusEl.innerHTML=`
-      <div style="padding:12px;background:#0a0a14;border:1px solid #7c3aed33;border-radius:10px;margin-bottom:8px">
-        <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:8px">🔍 DEBUG — Labels מה-PDF (${transactions.length} עסקאות)</div>
-        <div style="font-size:10px;font-family:monospace;line-height:1.8;direction:ltr;text-align:left">${debugRows}</div>
-      </div>`;
-    await new Promise(r=>setTimeout(r,3000));
+    // ── שיטה 2: לאומי/דיסקונט — DD/MM קצר ─────────────────────
+    // פורמט: DD/MM  [תיאור]  [אסמכתא]  [זכות/חובה]  [יתרה]
+    if(transactions.length<3){
+      transactions.length=0;
+      let prevBalance=null;
+      for(let i=0;i<lines.length;i++){
+        const line=lines[i].replace(/^#+\s*/,'').trim();
+        if(HEADER_RE.test(line))continue;
+        // תאריך קצר בתחילת שורה: 1-2 ספרות / 2 ספרות
+        const sd=line.match(/^(\d{1,2})\/(\d{2})\s+(.+)/);
+        if(!sd)continue;
+        const[,dd,mm,rest]=sd;
+        const yyyy=resolveYear(dd,mm);
+        const isoDate=`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+        // חלץ מספרים מהשארית
+        const nums=(rest.match(/([\d,]+\.?\d*)/g)||[]).map(n=>parseFloat(n.replace(/,/g,'')));
+        if(nums.length<1)continue;
+        const balance=nums[nums.length-1];
+        const amt=nums.length>=2?nums[nums.length-2]:nums[0];
+        if(!amt||isNaN(amt)||amt===0)continue;
+        // תיאור = טקסט לפני המספר הראשון
+        const firstNumIdx=rest.search(/\d/);
+        let desc=firstNumIdx>0?rest.substring(0,firstNumIdx).trim():'';
+        // נסה להוסיף טקסט עברי נוסף
+        if(!desc||desc.length<2){
+          const heb=rest.match(/[\u0590-\u05FF][\u0590-\u05FF\s\-\.׳״'"]*/g);
+          if(heb)desc=heb.join(' ').trim();
+        }
+        if(!desc||desc.length<2||HEADER_RE.test(desc))continue;
+        // כיוון: השוואת יתרות
+        let signed;
+        if(prevBalance!==null){
+          signed=balance>prevBalance?+Math.abs(amt):-Math.abs(amt);
+        } else {
+          // ברירת מחדל: הפקדה/שיק/בנק → זכות, אחרת → חובה
+          const isCredit=/הפקד|שיק|בנק הפועלים|בנק הדואר|זיכוי|העברה.{0,4}דיגיטל/.test(desc);
+          signed=isCredit?+Math.abs(amt):-Math.abs(amt);
+        }
+        prevBalance=balance;
+        transactions.push({date:isoDate,label:desc,amount:signed});
+      }
+    }
 
-    setStatus(statusEl,'loading',`🤖 מסווג ${transactions.length} עסקאות...`);
+    setStatus(statusEl,'loading','🤖 מסווג '+transactions.length+' עסקאות...');
     await saveImportedTx(transactions,file.name,statusEl);
   }catch(err){
     setStatus(statusEl,'error','שגיאה: '+err.message);
@@ -781,28 +795,12 @@ async function saveImportedTx(txs,fileName,statusEl){
   if(needsAI.length>0){
     setStatus(statusEl,'loading',`🤖 Claude מסווג ${needsAI.length} עסקאות נוספות...`);
     try{
-      const list=needsAI.map((t,i)=>`${i}: "${t.label}" ${t.amount}₪`).join('\n');
+      const list=needsAI.map((t,i)=>i+': "'+t.label+'" '+t.amount+'₪').join('\n');
+      const prompt='סווג עסקאות בנקאיות ישראליות.\nקטגוריות: '+CATS_KEYS.join(', ')+'\n\nהנחיות:\n- סכום חיובי = הכנסה\n- כרטיסי/כרטיס = Carte crédit\n- טפחות/משכנתא = Logement\n- הלואה = Prêt\n- ביטוח לאומי/קצבת ילדים = Allocations\n- מרכז קהילתי/מצודת אגסי = Salaire\n- חסכון/פקדון = Épargne\n- הוראת קבע/עמלות/ערוץ = Abonnements\n- העברה דיגיטל/הפקדת שיק = Virement reçu\n- לאומי ויזה/visa = Carte crédit\n- בנק הפועלים/בנק הדואר = Virement reçu\n\nעסקאות:\n'+list+'\n\nענה JSON בלבד: {"0":"Prêt","1":"Allocations"}';
       const r=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,
-          messages:[{role:'user',content:`סווג את העסקאות הבנקאיות הישראליות הבאות.
-קטגוריות אפשריות: ${CATS_KEYS.join(', ')}
-
-הנחיות:
-- סכום חיובי = הכנסה (Salaire, Allocations, Virement reçu, Épargne)
-- סכום שלילי = הוצאה
-- כרטיסי אשראי = Carte crédit
-- טפחות/משכנתא = Logement
-- הלואה/הלוא = Prêt
-- ביטוח לאומי/קצבת ילדים = Allocations
-- מרכז קהילתי/מצודת אגסי = Salaire
-- חסכון/פקדון/ני"ע = Épargne
-- הוראת קבע/עמלות = Abonnements
-
-עסקאות:
-${list}
-
-ענה JSON בלבד ללא markdown: {"0":"Prêt","1":"Allocations"}`}]})
+          messages:[{role:'user',content:prompt}]})
       });
       const d=await r.json();
       const raw=(d.content?.[0]?.text||'{}').replace(/```json\s*|\s*```/g,'').trim();
