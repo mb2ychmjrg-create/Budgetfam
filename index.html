@@ -694,44 +694,34 @@ async function importPDF(file,statusEl){
       transactions.push({date:`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`,label:desc,amount:signed});
     }
 
-    // ── שיטה 2: לאומי/דיסקונט — DD/MM קצר ─────────────────────
-    // פורמט: DD/MM  [תיאור]  [אסמכתא]  [זכות/חובה]  [יתרה]
+    // ── שיטה 2: לאומי/דיסקונט — DD/MM בכל מקום בשורה ──────────
+    // ב-iPhone PDF.js ממיין שמאל→ימין: יתרה|סכום|מספר|תיאור|DD/MM
     if(transactions.length<3){
       transactions.length=0;
       let prevBalance=null;
       for(let i=0;i<lines.length;i++){
         const line=lines[i].replace(/^#+\s*/,'').trim();
         if(HEADER_RE.test(line))continue;
-        // תאריך קצר בתחילת שורה: 1-2 ספרות / 2 ספרות
-        const sd=line.match(/^(\d{1,2})\/(\d{2})\s+(.+)/);
-        if(!sd)continue;
-        const[,dd,mm,rest]=sd;
-        const yyyy=resolveYear(dd,mm);
-        const isoDate=`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
-        // חלץ מספרים מהשארית
-        const nums=(rest.match(/([\d,]+\.?\d*)/g)||[]).map(n=>parseFloat(n.replace(/,/g,'')));
-        if(nums.length<1)continue;
-        const balance=nums[nums.length-1];
-        const amt=nums.length>=2?nums[nums.length-2]:nums[0];
-        if(!amt||isNaN(amt)||amt===0)continue;
-        // תיאור = טקסט לפני המספר הראשון
-        const firstNumIdx=rest.search(/\d/);
-        let desc=firstNumIdx>0?rest.substring(0,firstNumIdx).trim():'';
-        // נסה להוסיף טקסט עברי נוסף
-        if(!desc||desc.length<2){
-          const heb=rest.match(/[\u0590-\u05FF][\u0590-\u05FF\s\-\.׳״'"]*/g);
-          if(heb)desc=heb.join(' ').trim();
-        }
+        const sdMatch=line.match(/(\d{1,2})\/(\d{2})(?!\d{2})/);
+        if(!sdMatch)continue;
+        const mNum=parseInt(sdMatch[2]);
+        if(mNum<1||mNum>12)continue;
+        const dd=sdMatch[1],mm=sdMatch[2];
+        const isoDate=resolveYear(dd,mm)+'-'+mm.padStart(2,'0')+'-'+dd.padStart(2,'0');
+        const noDate=line.replace(sdMatch[0],'').trim();
+        // רק מספרים עם נקודה עשרונית = סכומים אמיתיים (לא מספרי אסמכתא)
+        const decNums=(noDate.match(/\d[\d,]*\.\d+/g)||[]).map(n=>parseFloat(n.replace(/,/g,''))).filter(n=>n>0);
+        if(decNums.length<1)continue;
+        decNums.sort((a,b)=>b-a);
+        const balance=decNums[0];
+        const amt=decNums.length>=2?decNums[1]:decNums[0];
+        if(!amt||amt===0)continue;
+        const hebWords=(noDate.match(/[\u0590-\u05FF][\u0590-\u05FF\s\-\.׳״'"\/]*/g)||[]);
+        const desc=hebWords.join(' ').replace(/\s+/g,' ').trim();
         if(!desc||desc.length<2||HEADER_RE.test(desc))continue;
-        // כיוון: השוואת יתרות
         let signed;
-        if(prevBalance!==null){
-          signed=balance>prevBalance?+Math.abs(amt):-Math.abs(amt);
-        } else {
-          // ברירת מחדל: הפקדה/שיק/בנק → זכות, אחרת → חובה
-          const isCredit=/הפקד|שיק|בנק הפועלים|בנק הדואר|זיכוי|העברה.{0,4}דיגיטל/.test(desc);
-          signed=isCredit?+Math.abs(amt):-Math.abs(amt);
-        }
+        if(prevBalance!==null){signed=balance>prevBalance?+Math.abs(amt):-Math.abs(amt);}
+        else{signed=/הפקד|שיק|בנק הפועלים|בנק הדואר|זיכוי|העברה/.test(desc)?+Math.abs(amt):-Math.abs(amt);}
         prevBalance=balance;
         transactions.push({date:isoDate,label:desc,amount:signed});
       }
