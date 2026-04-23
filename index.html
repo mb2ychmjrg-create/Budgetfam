@@ -79,7 +79,7 @@
   <script>
     const sb = supabase.createClient(
       'https://nyywcxcahalxazienuav.supabase.co',
-      'votre_clé_supabase_ici'
+      'eyJhbGciOiJIUzI1N....(continuer conforme à votre clé)'
     );
 
     /**
@@ -112,7 +112,7 @@
         const transactions = parseTransactionsFromText(extractedText);
 
         if (!transactions.length) {
-          setStatus(statusEl, "error", "🤔 Aucune transaction n'a été détectée dans le fichier PDF.");
+          setStatus(statusEl, "error", "🤔 Aucune transaction détectée dans le fichier PDF.");
           return;
         }
 
