@@ -623,155 +623,267 @@ function setStatus(el,type,msg){
   else if(type==='error')el.innerHTML=`<div class="status-err">⚠️ ${msg}</div>`;
 }
 
+async function importCSV(file, statusEl) {
+  setStatus(statusEl, 'loading', '📊 קורא CSV...');
+  try {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { setStatus(statusEl, 'error', 'CSV ריק.'); return; }
+
+    setStatus(statusEl, 'loading', '🤖 Claude מנתח CSV...');
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: 'CSV מבנק ישראלי. חלץ עסקאות.\n' +
+            '- חובה = שלילי, זכות = חיובי\n' +
+            '- date: YYYY-MM-DD\n\n' +
+            text.substring(0, 8000) + '\n\n' +
+            'JSON בלבד: [{"date":"2025-12-14","label":"...","amount":-100}]'
+        }]
+      })
+    });
+    const d = await r.json();
+    const raw = (d.content?.[0]?.text || '[]').replace(/```json\s*|\s*```/g, '').trim();
+    let txs = [];
+    try { txs = JSON.parse(raw); } catch {
+      const m = raw.match(/\[[\s\S]*\]/);
+      if (m) try { txs = JSON.parse(m[0]); } catch {}
+    }
+    if (!Array.isArray(txs) || !txs.length) { setStatus(statusEl, 'error', 'לא נמצאו עסקאות.'); return; }
+    await saveImportedTx(txs, file.name, statusEl);
+  } catch (e) {
+    setStatus(statusEl, 'error', 'שגיאה: ' + e.message);
+  }
+}
+
 async function importPDF(file, statusEl) {
   if (typeof pdfjsLib === 'undefined') {
     setStatus(statusEl, 'error', 'PDF.js לא נטען. רענן את הדף.');
     return;
   }
-  setStatus(statusEl, 'loading', '📄 קורא את ה-PDF...');
+  setStatus(statusEl, 'loading', '📄 פותח את ה-PDF...');
   try {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const numPages = pdf.numPages;
+    const numPages = Math.min(pdf.numPages, 6);
 
-    // חילוץ טקסט מכל עמוד — שומר על מיקום X,Y לשחזור הגיאומטריה
-    setStatus(statusEl, 'loading', 'מחלץ טקסט מ-' + numPages + ' עמודים...');
-    let fullText = '';
+    setStatus(statusEl, 'loading', '🖼️ ממיר ' + numPages + ' עמודים...');
+
+    // המר כל עמוד לתמונה — scale קטן למניעת קריסה על iPhone
+    const images = [];
     for (let p = 1; p <= numPages; p++) {
-      const page = await pdf.getPage(p);
-      const tc = await page.getTextContent();
-      // מיין לפי שורה (Y) ועמודה (X) — שומר מבנה הטבלה
-      const byY = {};
-      for (const item of tc.items) {
-        if (!item.str.trim()) continue;
-        const y = Math.round(item.transform[5] / 4) * 4;
-        if (!byY[y]) byY[y] = [];
-        byY[y].push({ x: item.transform[4], s: item.str.trim() });
+      try {
+        const page = await pdf.getPage(p);
+        const baseViewport = page.getViewport({ scale: 1.2 });
+        // הגבל גודל מקסימלי ל-1400px
+        const maxDim = 1400;
+        let scale = 1.2;
+        if (baseViewport.width > maxDim || baseViewport.height > maxDim) {
+          scale = Math.min(maxDim / baseViewport.width, maxDim / baseViewport.height);
+        }
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const b64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+        images.push(b64);
+        // שחרר זיכרון
+        canvas.width = 0; canvas.height = 0;
+        setStatus(statusEl, 'loading', '🖼️ עמוד ' + p + '/' + numPages + ' מוכן...');
+      } catch (pageErr) {
+        console.error('Page ' + p + ' error:', pageErr);
       }
-      // כתוב כל שורה: מימין לשמאל (Y יורד) + בתוך שורה X עולה
-      Object.keys(byY).map(Number).sort((a,b)=>b-a).forEach(y => {
-        const row = byY[y].sort((a,b)=>a.x-b.x).map(i=>i.s).join('  ');
-        if (row.trim()) fullText += row + '\n';
-      });
-      fullText += '\n--- עמוד ' + p + ' ---\n';
     }
 
-    if (!fullText.trim()) {
-      setStatus(statusEl, 'error', 'לא ניתן לקרוא את ה-PDF. נסה להוריד מחדש מאתר הבנק.');
+    if (!images.length) {
+      setStatus(statusEl, 'error', 'לא ניתן לקרוא את ה-PDF. נסה להוריד אותו שוב מאתר הבנק.');
       return;
     }
 
-    // שלח לקלוד — הוא יקרא כמו אדם
-    setStatus(statusEl, 'loading', '🤖 Claude מנתח את דף החשבון...');
+    setStatus(statusEl, 'loading', '🤖 Claude קורא את דף החשבון (' + images.length + ' עמודים)...');
 
-    // שלח בחלקים אם הטקסט ארוך
-    const CHUNK = 6000;
-    let allTx = [];
-    const chunks = [];
-    for (let i = 0; i < fullText.length; i += CHUNK) chunks.push(fullText.substring(i, i+CHUNK));
+    // שלח 2 עמודים בכל פעם
+    let allTransactions = [];
 
-    for (let ci = 0; ci < chunks.length; ci++) {
-      if (chunks.length > 1) setStatus(statusEl, 'loading', 'Claude מנתח חלק ' + (ci+1) + '/' + chunks.length + '...');
+    for (let batch = 0; batch < images.length; batch += 2) {
+      const batchImages = images.slice(batch, batch + 2);
+      if (images.length > 2) {
+        setStatus(statusEl, 'loading', '🤖 Claude מנתח עמודים ' + (batch+1) + '-' + Math.min(batch+2, images.length) + '...');
+      }
 
-      const prompt = 'זהו טקסט שחולץ מדף חשבון בנקאי ישראלי (' + (selectedBank||'בנק ישראלי') + ').\n' +
-        'הטקסט מסודר לפי שורות כפי שמופיע בדף.\n\n' +
-        'חלץ את כל העסקאות הבנקאיות.\n\n' +
-        'כללים:\n' +
-        '- חובה / דביט / הוצאה = amount שלילי\n' +
-        '- זכות / קרדיט / הכנסה = amount חיובי\n' +
-        '- אם יש יתרת פתיחה (יתרה להעברה / העברה מדף קודם) — כלול אותה כ-{"label":"יתרת פתיחה","amount":X}\n' +
-        '- תאריך בפורמט YYYY-MM-DD (המר DD/MM או DD/MM/YY)\n' +
-        '- התעלם מכותרות, סיכומים, טבלאות ריבית\n\n' +
-        'טקסט:\n' + chunks[ci] + '\n\n' +
-        'ענה JSON בלבד ללא markdown:\n' +
-        '[{"date":"2025-12-14","label":"העברה דיגיטל","amount":-5804.00}]';
+      const content = [];
+      batchImages.forEach((b64, i) => {
+        content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
+        content.push({ type: 'text', text: 'עמוד ' + (batch + i + 1) + ':' });
+      });
+
+      content.push({
+        type: 'text',
+        text: 'דף חשבון בנקאי ישראלי' + (selectedBank ? ' (' + selectedBank + ')' : '') + '.\n\n' +
+          'חלץ את כל העסקאות מהטבלה.\n\n' +
+          'כללים:\n' +
+          '- חובה / הוצאה = amount שלילי\n' +
+          '- זכות / הכנסה = amount חיובי\n' +
+          '- יתרת פתיחה / העברה מדף קודם = amount חיובי עם label "יתרת פתיחה"\n' +
+          '- תאריך: YYYY-MM-DD\n' +
+          '- התעלם משורות כותרת, סיכומים, וטבלאות ריבית\n\n' +
+          'JSON בלבד, ללא markdown:\n' +
+          '[{"date":"2025-12-14","label":"העברה דיגיטל","amount":-5804.00}]'
+      });
+
+      try {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content }]
+          })
+        });
+
+        if (!r.ok) {
+          console.error('API HTTP error:', r.status);
+          continue;
+        }
+
+        const d = await r.json();
+        if (d.error) { console.error('Claude error:', d.error); continue; }
+
+        const raw = (d.content?.[0]?.text || '[]')
+          .replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) allTransactions = allTransactions.concat(parsed);
+        } catch(e) {
+          const match = raw.match(/\[[\s\S]*\]/);
+          if (match) {
+            try {
+              const p = JSON.parse(match[0]);
+              if (Array.isArray(p)) allTransactions = allTransactions.concat(p);
+            } catch {}
+          }
+        }
+      } catch (batchErr) {
+        console.error('Batch error:', batchErr);
+      }
+    }
+
+    // הסר כפולות
+    const seen = new Set();
+    const transactions = allTransactions.filter(t => {
+      if (!t.date || !t.label || t.amount === undefined) return false;
+      const k = t.date + '|' + t.label + '|' + t.amount;
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+
+    if (!transactions.length) {
+      setStatus(statusEl, 'error', 'Claude לא מצא עסקאות. נסה שוב או עלה קובץ CSV מהבנק.');
+      return;
+    }
+
+    setStatus(statusEl, 'loading', '✅ ' + transactions.length + ' עסקאות — מסווג...');
+    await saveImportedTx(transactions, file.name, statusEl);
+
+  } catch (err) {
+    console.error('PDF error:', err);
+    setStatus(statusEl, 'error', 'שגיאה: ' + err.message);
+  }
+}
+async function saveImportedTx(txs, fileName, statusEl) {
+  const valid = txs.filter(t => t.label && parseFloat(t.amount) !== 0 && t.date);
+  if (!valid.length) { setStatus(statusEl, 'error', 'אין עסקאות תקינות.'); return; }
+
+  setStatus(statusEl, 'loading', '🤖 מסווג ' + valid.length + ' עסקאות...');
+
+  // סיווג מקומי מהיר
+  const toInsert = valid.map(t => ({
+    user_id: user.id,
+    label: (t.label || '').substring(0, 120),
+    amount: parseFloat(t.amount),
+    category: localCat(t.label, parseFloat(t.amount)),
+    created_at: t.date ? new Date(t.date).toISOString() : new Date().toISOString()
+  }));
+
+  // batch Claude לכל מה שלא זוהה
+  const needsAI = toInsert.filter(t => t.category === 'Divers');
+  if (needsAI.length > 0) {
+    setStatus(statusEl, 'loading', '🤖 Claude מסווג ' + needsAI.length + ' עסקאות נוספות...');
+    try {
+      const list = needsAI.map((t, i) => i + ': "' + t.label + '" ' + t.amount + '₪').join('\n');
+      const prompt = 'סווג עסקאות בנקאיות ישראליות.\nקטגוריות: ' + CATS_KEYS.join(', ') + '\n\n' +
+        'הנחיות:\n' +
+        '- חיובי = הכנסה\n' +
+        '- כרטיסי / כרטיס = Carte crédit\n' +
+        '- טפחות / משכנתא = Logement\n' +
+        '- הלואה = Prêt\n' +
+        '- ביטוח לאומי / קצבת ילדים = Allocations\n' +
+        '- מרכז קהילתי / מצודת אגסי = Salaire\n' +
+        '- חסכון / פקדון = Épargne\n' +
+        '- הוראת קבע / עמלות = Abonnements\n' +
+        '- העברה / הפקדת שיק / זיכוי = Virement reçu\n' +
+        '- לאומי ויזה = Carte crédit\n\n' +
+        'עסקאות:\n' + list + '\n\n' +
+        'ענה JSON בלבד: {"0":"Prêt","1":"Allocations"}';
 
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
+          max_tokens: 1000,
           messages: [{ role: 'user', content: prompt }]
         })
       });
-
       const d = await r.json();
-      if (d.error) { console.error('Claude error:', d.error); continue; }
-
-      const raw = (d.content?.[0]?.text || '')
-        .replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) allTx = allTx.concat(parsed);
-      } catch(e) {
-        const match = raw.match(/\[[\s\S]*\]/);
-        if (match) try { allTx = allTx.concat(JSON.parse(match[0])); } catch{}
-      }
-    }
-
-    // הסר כפילויות
-    const seen = new Set();
-    const unique = allTx.filter(t => {
-      const k = t.date + '|' + t.label + '|' + t.amount;
-      if (seen.has(k)) return false;
-      seen.add(k); return true;
-    });
-
-    if (!unique.length) {
-      setStatus(statusEl, 'error', 'Claude לא מצא עסקאות. נסה שוב או השתמש ב-CSV.');
-      return;
-    }
-
-    setStatus(statusEl, 'loading', unique.length + ' עסקאות זוהו — מסווג...');
-    await saveImportedTx(unique, file.name, statusEl);
-
-  } catch (err) {
-    console.error(err);
-    setStatus(statusEl, 'error', 'שגיאה: ' + err.message);
-  }
-}
-
-      });
-      const d=await r.json();
-      const raw=(d.content?.[0]?.text||'{}').replace(/```json\s*|\s*```/g,'').trim();
-      const catMap=JSON.parse(raw);
-      needsAI.forEach((t,i)=>{
-        const newCat=catMap[String(i)];
-        if(newCat&&CATS_KEYS.includes(newCat)){
-          const idx=toInsert.findIndex(x=>x.label===t.label&&x.amount===t.amount&&x.created_at===t.created_at);
-          if(idx>=0)toInsert[idx].category=newCat;
+      const raw = (d.content?.[0]?.text || '{}').replace(/```json\s*|\s*```/g, '').trim();
+      const catMap = JSON.parse(raw);
+      needsAI.forEach((t, i) => {
+        const newCat = catMap[String(i)];
+        if (newCat && CATS_KEYS.includes(newCat)) {
+          const idx = toInsert.findIndex(x => x.label === t.label && x.amount === t.amount && x.created_at === t.created_at);
+          if (idx >= 0) toInsert[idx].category = newCat;
         }
       });
-    }catch(e){console.error('Claude batch error:',e);}
+    } catch(e) { console.error('Claude batch error:', e); }
   }
 
-  setStatus(statusEl,'loading',`💾 שומר ${toInsert.length} עסקאות...`);
-  const{error}=await sb.from('transactions').insert(toInsert);
-  if(error){setStatus(statusEl,'error','שגיאה: '+error.message);return;}
+  setStatus(statusEl, 'loading', `💾 שומר ${toInsert.length} עסקאות...`);
+  const { error } = await sb.from('transactions').insert(toInsert);
+  if (error) { setStatus(statusEl, 'error', 'שגיאה: ' + error.message); return; }
 
   // היסטוריה
-  const dates=toInsert.map(t=>t.created_at).sort();
-  const hist=JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
-  hist.unshift({id:Date.now(),date:new Date().toISOString(),count:toInsert.length,file:fileName,from:dates[0],to:dates[dates.length-1]});
-  localStorage.setItem('fi_hist_'+user.id,JSON.stringify(hist.slice(0,20)));
+  const dates = toInsert.map(t => t.created_at).sort();
+  const hist = JSON.parse(localStorage.getItem('fi_hist_' + user.id) || '[]');
+  hist.unshift({ id: Date.now(), date: new Date().toISOString(), count: toInsert.length, file: fileName, from: dates[0], to: dates[dates.length-1] });
+  localStorage.setItem('fi_hist_' + user.id, JSON.stringify(hist.slice(0, 20)));
 
   // סיכום קטגוריות
-  const catSum={};
-  toInsert.forEach(t=>{catSum[t.category]=(catSum[t.category]||0)+1;});
-  const stillDivers=toInsert.filter(t=>t.category==='Divers').length;
-  const sumLines=Object.entries(catSum).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([c,n])=>`${catIcon(c)} ${heLabel(c)}: ${n}`).join(' · ');
+  const catSum = {};
+  toInsert.forEach(t => { catSum[t.category] = (catSum[t.category] || 0) + 1; });
+  const stillDivers = toInsert.filter(t => t.category === 'Divers').length;
+  const sumLines = Object.entries(catSum).sort((a,b) => b[1]-a[1]).slice(0,6).map(([c,n]) => `${catIcon(c)} ${heLabel(c)}: ${n}`).join(' · ');
 
-  statusEl.innerHTML=`<div class="status-ok">
+  statusEl.innerHTML = `<div class="status-ok">
     <div style="font-size:26px;margin-bottom:6px">✅</div>
     <div style="font-weight:700;color:var(--green);font-size:15px">${toInsert.length} עסקאות יובאו!</div>
     <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.8">${sumLines}</div>
     ${stillDivers>0?`<div style="font-size:10px;color:var(--yellow);margin-top:6px">⚠️ ${stillDivers} עסקאות לא סווגו — ניתן לשנות ידנית ✏️</div>`:''}
   </div>`;
 
-  loadHome();loadTxList();loadImportHistory();
-  document.getElementById('file-in').value='';
+  loadHome(); loadTxList(); loadImportHistory();
+  document.getElementById('file-in').value = '';
 }
 
 // ── היסטוריית ייבוא ───────────────────────────────────────────
