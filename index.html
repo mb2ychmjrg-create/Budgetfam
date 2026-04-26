@@ -481,7 +481,27 @@ async function loadHome(){
   const mEx=month.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
   const mBal=mIn-mEx;
   const pct=mIn>0?Math.min(100,Math.round(mBal/mIn*100)):0;
-  const total=all.reduce((s,t)=>s+t.amount,0);
+
+  // ── סה״כ מצטבר: השתמש ביתרה אמיתית מ-PDF אם קיימת ──
+  // אחרת חשב מסכום העסקאות
+  let total = all.reduce((s,t)=>s+t.amount,0);
+  let totalSource = 'computed'; // 'computed' או 'pdf'
+
+  const realBalances = JSON.parse(localStorage.getItem('fi_real_balance_' + user.id) || '{}');
+  const balanceEntries = Object.values(realBalances);
+  if (balanceEntries.length > 0) {
+    // מצא את היתרה הכי חדשה
+    balanceEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+    total = balanceEntries[0].balance;
+    totalSource = 'pdf';
+
+    // הוסף לסה״כ את כל העסקאות שנוספו אחרי הייבוא
+    const importDate = new Date(balanceEntries[0].date);
+    const newTxAfterImport = all.filter(t => new Date(t.created_at) > importDate);
+    const sumNew = newTxAfterImport.reduce((s, t) => s + t.amount, 0);
+    total += sumNew;
+  }
+
   const el=document.getElementById('dashboard-hero');
   if(!all.length){
     el.innerHTML=`<div class="hero"><div class="hero-label">ברוך הבא!</div><div class="hero-amount" style="font-size:22px">התחל כאן 👇</div><div class="hero-sub">ייבא דף חשבון PDF או הוסף עסקה ראשונה</div><div style="display:flex;gap:8px;margin-top:14px"><button onclick="go('import',document.querySelectorAll('.nav-btn')[1])" style="flex:1;padding:10px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--p1),var(--p2));color:white;font-size:12px;font-weight:700;cursor:pointer">📄 ייבוא PDF</button><button onclick="go('add',document.querySelectorAll('.nav-btn')[2])" style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;cursor:pointer">➕ הוסף</button></div></div>`;
@@ -489,8 +509,8 @@ async function loadHome(){
   }
   el.innerHTML=`<div class="hero">
     <div class="hero-label">${now.toLocaleDateString('he-IL',{month:'long',year:'numeric'}).toUpperCase()}</div>
-    <div class="hero-amount" style="color:${mBal>=0?'white':'#ef4444'}">${mBal.toLocaleString('he-IL')} ₪</div>
-    <div class="hero-sub">יתרת החודש · סה״כ מצטבר: <b style="color:${total>=0?'#22c55e':'#ef4444'}">${total.toLocaleString('he-IL')} ₪</b></div>
+    <div class="hero-amount" style="color:${total>=0?'white':'#ef4444'}">${total.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})} ₪</div>
+    <div class="hero-sub">סה״כ בחשבון ${totalSource==='pdf'?'· מסונכרן מהבנק ✓':''} · החודש: <b style="color:${mBal>=0?'#22c55e':'#ef4444'}">${mBal.toLocaleString('he-IL')} ₪</b></div>
     <div class="stats-row">
       <div class="stat-box"><label>הכנסות</label><b style="color:var(--green)">${mIn.toLocaleString('he-IL')} ₪</b></div>
       <div class="stat-box"><label>הוצאות</label><b style="color:var(--red)">${mEx.toLocaleString('he-IL')} ₪</b></div>
@@ -890,23 +910,30 @@ async function importPDF(file, statusEl) {
       }
     }
 
-    // ── יתרת פתיחה — חישוב מדויק ─────────────────────────────
-    // החישוב: יתרת פתיחה צריכה להיות כך שיתרה סופית = יתרת פתיחה + סכום עסקאות
-    if (transactions.length > 0) {
+    // ── יתרת פתיחה + יתרת סגירה ─────────────────────────────
+    // lastBalance = היתרה האחרונה ב-PDF (המספר במעלה הימני / שורה תחתונה)
+    // hapoalimFirstBalance = ב-Hapoalim, השורה הראשונה היא העסקה החדשה ביותר → זה היתרה הסופית
+    // ל-Leumi: היתרה הסופית היא השורה האחרונה במספרי העסקאות
+    let actualClosingBalance = null;
+    if (hapoalimFirstBalance !== null) {
+      // Hapoalim: סדר הפוך — השורה הראשונה היא הכי עדכנית
+      actualClosingBalance = hapoalimFirstBalance;
+    } else if (lastBalance !== null) {
+      // Leumi/Discount: השורה האחרונה היא הכי עדכנית
+      actualClosingBalance = lastBalance;
+    } else if (openingBalance !== null) {
+      // אין יתרה אחרונה — חשב לפי סכום העסקאות
       const sumTx = transactions.reduce((s, t) => s + t.amount, 0);
+      actualClosingBalance = openingBalance + sumTx;
+    }
 
-      // אם יש יתרת סגירה ידועה מה-PDF
-      if (lastBalance !== null) {
-        // יתרת פתיחה צריכה להיות: lastBalance - sumTx
-        const calculatedOpening = lastBalance - sumTx;
-        // אם יש סתירה עם openingBalance שזיהינו, נסמוך על החישוב
-        if (Math.abs(calculatedOpening - (openingBalance || 0)) > 0.5) {
-          openingBalance = calculatedOpening;
-        }
-      }
+    // חשב יתרת פתיחה אמיתית מתוך הסגירה
+    if (actualClosingBalance !== null && transactions.length > 0) {
+      const sumTx = transactions.reduce((s, t) => s + t.amount, 0);
+      const calcOpening = actualClosingBalance - sumTx;
 
-      // הוסף יתרת פתיחה כעסקה ראשונה
-      if (openingBalance !== null && Math.abs(openingBalance) > 0.01) {
+      // הוסף עסקת יתרת פתיחה
+      if (Math.abs(calcOpening) > 0.01) {
         const firstDate = transactions[transactions.length - 1].date;
         const d = new Date(firstDate);
         d.setDate(d.getDate() - 1);
@@ -914,16 +941,30 @@ async function importPDF(file, statusEl) {
         transactions.push({
           date: openDate,
           label: 'יתרת פתיחה',
-          amount: openingBalance
+          amount: calcOpening
         });
       }
-    } else if (openingBalance !== null && openingBalance !== 0) {
-      // אין עסקאות אבל יש יתרת פתיחה
+    } else if (openingBalance !== null && openingBalance !== 0 && transactions.length === 0) {
       transactions.push({
         date: docYear + '-' + String(docMonth).padStart(2,'0') + '-01',
         label: 'יתרת פתיחה',
         amount: openingBalance
       });
+      actualClosingBalance = openingBalance;
+    }
+
+    // ── שמור את היתרה האמיתית ב-localStorage ──────────────
+    // נשתמש בה ב-loadHome() כמקור אמת
+    if (actualClosingBalance !== null) {
+      const balKey = 'fi_real_balance_' + user.id;
+      const existing = JSON.parse(localStorage.getItem(balKey) || '{}');
+      existing[file.name] = {
+        balance: actualClosingBalance,
+        date: new Date().toISOString(),
+        bank: selectedBank || 'unknown'
+      };
+      localStorage.setItem(balKey, JSON.stringify(existing));
+      console.log('Saved real balance:', actualClosingBalance, 'for', file.name);
     }
 
     if (!transactions.length) {
@@ -1057,13 +1098,22 @@ async function deleteImportBatch(histId,from,to,count){
   if(!confirm(`למחוק ${count} עסקאות מייבוא זה?`))return;
   await sb.from('transactions').delete().eq('user_id',user.id).gte('created_at',from).lte('created_at',to);
   const hist=JSON.parse(localStorage.getItem('fi_hist_'+user.id)||'[]');
+  const removedItem = hist.find(h=>h.id===histId);
   localStorage.setItem('fi_hist_'+user.id,JSON.stringify(hist.filter(h=>h.id!==histId)));
+  // נקה גם את היתרה האמיתית של הקובץ הזה
+  if (removedItem) {
+    const balKey = 'fi_real_balance_' + user.id;
+    const balances = JSON.parse(localStorage.getItem(balKey) || '{}');
+    delete balances[removedItem.file];
+    localStorage.setItem(balKey, JSON.stringify(balances));
+  }
   loadHome();loadTxList();loadImportHistory();
 }
 async function deleteAllTx(){
   if(!confirm('⚠️ למחוק את כל העסקאות? פעולה זו בלתי הפיכה.'))return;
   await sb.from('transactions').delete().eq('user_id',user.id);
   localStorage.removeItem('fi_hist_'+user.id);
+  localStorage.removeItem('fi_real_balance_'+user.id);
   loadHome();loadTxList();loadImportHistory();
 }
 
