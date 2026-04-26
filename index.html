@@ -954,7 +954,6 @@ async function importPDF(file, statusEl) {
     }
 
     // ── שמור את היתרה האמיתית ב-localStorage ──────────────
-    // נשתמש בה ב-loadHome() כמקור אמת
     if (actualClosingBalance !== null) {
       const balKey = 'fi_real_balance_' + user.id;
       const existing = JSON.parse(localStorage.getItem(balKey) || '{}');
@@ -964,13 +963,37 @@ async function importPDF(file, statusEl) {
         bank: selectedBank || 'unknown'
       };
       localStorage.setItem(balKey, JSON.stringify(existing));
-      console.log('Saved real balance:', actualClosingBalance, 'for', file.name);
     }
 
     if (!transactions.length) {
       setStatus(statusEl, 'error', 'לא נמצאו עסקאות (' + lines.length + ' שורות).<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">' + lines.slice(0, 15).join('<br>').replace(/</g, '&lt;') + '</div>');
       return;
     }
+
+    // ── DEBUG: הצג מה זוהה ─────────────────────────────────
+    const sumTx = transactions.reduce((s,t)=>s+t.amount,0);
+    const computedFinal = (openingBalance || 0) + sumTx;
+    const debugInfo = `
+      <div style="padding:14px;background:#0f1729;border:1px solid #3b82f6;border-radius:14px;margin-bottom:12px;font-family:monospace;font-size:11px;line-height:1.8;direction:ltr;text-align:left;color:#cbd5e1">
+        <div style="color:#60a5fa;font-weight:700;margin-bottom:8px;font-size:12px">🔍 DEBUG — נתוני קובץ</div>
+        <div>📅 שנת מסמך: <b>${docYear}</b></div>
+        <div>💰 יתרת פתיחה זוהתה: <b style="color:#22c55e">${openingBalance !== null ? openingBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'לא נמצאה'}</b></div>
+        <div>💎 יתרת סגירה (lastBalance): <b style="color:#a78bfa">${lastBalance !== null ? lastBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'NULL'}</b></div>
+        <div>🏦 Hapoalim first balance: <b>${hapoalimFirstBalance !== null ? hapoalimFirstBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'NULL'}</b></div>
+        <div>📊 סה״כ עסקאות שזוהו: <b>${transactions.length}</b></div>
+        <div>➕ סכום העסקאות: <b style="color:${sumTx>=0?'#22c55e':'#ef4444'}">${sumTx.toLocaleString('en-US',{minimumFractionDigits:2})}</b></div>
+        <div>🎯 חישוב סופי: <b style="color:#f59e0b">${computedFinal.toLocaleString('en-US',{minimumFractionDigits:2})}</b></div>
+        <div>✅ נשמר כ-actualClosingBalance: <b style="color:#22c55e">${actualClosingBalance !== null ? actualClosingBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'NULL'}</b></div>
+        <div style="margin-top:10px;color:#94a3b8">לחץ "המשך" כדי לשמור</div>
+      </div>
+      <button onclick="window.__continueImport()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(90deg,#7c3aed,#9333ea);color:white;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit">המשך ושמור</button>
+    `;
+    statusEl.innerHTML = debugInfo;
+
+    // המתן ללחיצה על המשך
+    await new Promise(resolve => {
+      window.__continueImport = () => { delete window.__continueImport; resolve(); };
+    });
 
     setStatus(statusEl, 'loading', '✅ ' + transactions.length + ' עסקאות — מסווג...');
     await saveImportedTx(transactions, file.name, statusEl);
