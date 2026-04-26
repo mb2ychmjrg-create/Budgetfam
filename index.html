@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -223,7 +224,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   <div class="card fu fu4" style="margin-top:8px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div class="rubik sec-title" style="margin-bottom:0">📋 ייבואים אחרונים</div>
-      <button id="clear-history-btn" onclick="clearAllImports()" style="background:transparent;border:none;color:var(--red);font-size:11px;cursor:pointer;font-family:'Heebo',sans-serif;display:none">🗑 מחק הכל</button>
+      <button onclick="clearAllImports()" style="background:var(--red-soft);border:1px solid var(--red);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;padding:6px 12px;border-radius:8px">🧹 נקה הכל</button>
     </div>
     <div id="import-history"></div>
   </div>
@@ -382,6 +383,10 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 async function callEdgeVision(payload) {
   try {
+    // 60 second timeout to avoid hanging forever
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     const r = await fetch(VISION_URL, {
       method: 'POST',
       headers: {
@@ -389,17 +394,31 @@ async function callEdgeVision(payload) {
         'Authorization': `Bearer ${SUPABASE_ANON}`,
         'apikey': SUPABASE_ANON
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
+
     if (!r.ok) {
       const errText = await r.text();
       console.error('Edge function error:', r.status, errText);
-      return { transactions: [], error: `server_${r.status}` };
+      return { transactions: [], error: `server_${r.status}: ${errText.substring(0,200)}` };
     }
-    return await r.json();
+    const result = await r.json();
+    // Normalize field names: Edge Function might return "description" instead of "label"
+    if (result.transactions && Array.isArray(result.transactions)) {
+      result.transactions = result.transactions.map(t => ({
+        date: t.date || new Date().toISOString().split('T')[0],
+        label: t.label || t.description || t.merchant || t.name || 'עסקה',
+        amount: typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0,
+        category: t.category || 'Divers'
+      })).filter(t => t.amount !== 0 && t.label);
+    }
+    return result;
   } catch (err) {
     console.error('Network error:', err);
-    return { transactions: [], error: 'network_error' };
+    if (err.name === 'AbortError') return { transactions: [], error: 'timeout' };
+    return { transactions: [], error: 'network_error: ' + err.message };
   }
 }
 
@@ -433,7 +452,11 @@ async function handlePDFImport(input) {
     }
     showImportProgress('🤖 בינה מלאכותית מנתחת את העסקאות...');
     const result = await extractTransactionsFromText(allText);
-    if (result.error || !result.transactions?.length) {
+    if (result.error) {
+      showImportError('שגיאה: ' + result.error);
+      return;
+    }
+    if (!result.transactions?.length) {
       showImportError('לא זוהו עסקאות. נסה במצב תמונה.');
       return;
     }
@@ -473,6 +496,7 @@ async function handlePhotoImport(input) {
     showImportProgress('🤖 בינה מלאכותית קוראת את הדף...');
     const result = await extractTransactionsFromImage(base64, mediaType);
     if (result.error === 'not_a_statement') { showImportError('התמונה אינה דף בנק.'); return; }
+    if (result.error) { showImportError('שגיאה: ' + result.error); return; }
     if (!result.transactions?.length) { showImportError('לא זוהו עסקאות. נסה תמונה ברורה יותר.'); return; }
     extractedTxs = result.transactions;
     showReviewModal(file.name, 'Photo');
@@ -611,15 +635,12 @@ function showImportError(msg) {
 
 function loadImportHistory() {
   const el = document.getElementById('import-history');
-  const clearBtn = document.getElementById('clear-history-btn');
   if (!el||!currentUser) return;
   const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
   if (!history.length) {
     el.innerHTML='<div style="font-size:12px;color:var(--muted)">אין ייבואים עדיין.</div>';
-    if (clearBtn) clearBtn.style.display='none';
     return;
   }
-  if (clearBtn) clearBtn.style.display='block';
   el.innerHTML = history.map(h=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);font-size:12px">
       <div style="flex:1;min-width:0">
@@ -647,13 +668,14 @@ async function deleteImport(importId) {
 }
 
 async function clearAllImports() {
-  if (!confirm('למחוק את כל ההיסטוריה ואת כל העסקאות שיובאו?')) return;
-  const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-  const allTxIds = history.flatMap(h => h.txIds || []);
-  if (allTxIds.length) {
-    await sb.from('transactions').delete().in('id', allTxIds).eq('user_id', currentUser.id);
-  }
+  if (!confirm('⚠️ זה ימחק את כל העסקאות שלך (כולל ישנות ויבואים) — בטוח?')) return;
+  if (!confirm('שים לב: זה לא ניתן לביטול. להמשיך?')) return;
+  // Nuclear delete: wipe ALL transactions for this user from DB (not just imports)
+  const { error } = await sb.from('transactions').delete().eq('user_id', currentUser.id);
+  if (error) { alert('שגיאה: ' + error.message); return; }
+  // Clear all local storage related to imports
   localStorage.removeItem('budgetfam_imports_'+currentUser.id);
+  alert('✅ הכל נמחק! העסקאות והיבואים נוקו.');
   await loadDashboard(); await loadTransactions(); loadImportHistory();
 }
 
