@@ -748,15 +748,44 @@ async function importPDF(file, statusEl) {
     const transactions = [];
 
     // ── זיהוי בנק אוטומטי מהתוכן ───────────────────────────
+    // חשוב: PDF של לאומי מכיל "בנק הפועלים" כי זה הבנק ממנו מתקבלות העברות!
+    // לכן אנחנו מחפשים סימנים *ייחודיים* לכל בנק, לא רק שם הבנק.
     let detectedBank = selectedBank || 'unknown';
     const allText = lines.join(' ');
-    if (/לאומי לישראל|בנק לאומי\b|^לאומי$/i.test(allText) && !/בנק הפועלים/i.test(allText)) detectedBank = 'leumi';
-    else if (/בנק הפועלים|hapoalim/i.test(allText) && !/לאומי לישראל/i.test(allText)) detectedBank = 'hapoalim';
-    else if (/בנק דיסקונט|discount.bank/i.test(allText)) detectedBank = 'discount';
-    else if (/מזרחי.{0,4}טפחות|mizrahi.tefahot|טפחות בע/i.test(allText)) detectedBank = 'mizrahi';
-    else if (/בנק הבינלאומי|fibi/i.test(allText)) detectedBank = 'beinleumi';
-    else if (/בנק יהב|yahav/i.test(allText)) detectedBank = 'yahav';
-    else if (/one zero|וואן זירו|onezerobank/i.test(allText)) detectedBank = 'onezero';
+
+    // סדר עדיפות: סימנים ייחודיים → שם הבנק
+    if (/דף חשבון מט|מספר זה.{0,2}ב.{0,4}IBAN.{0,4}IL66|לאומי לישראל|לאומי ויזה/i.test(allText)) {
+      detectedBank = 'leumi';
+    }
+    else if (/תנועות עו.{0,2}ש|טפחות.{0,4}משכנתא|בנק הפועלים בע|פועלים אקספרס/i.test(allText)) {
+      detectedBank = 'hapoalim';
+    }
+    else if (/בנק דיסקונט לישראל|מרכנתיל|discount.{0,4}bank/i.test(allText)) {
+      detectedBank = 'discount';
+    }
+    else if (/בנק מזרחי טפחות|mizrahi.{0,4}tefahot/i.test(allText)) {
+      detectedBank = 'mizrahi';
+    }
+    else if (/הבינלאומי הראשון|fibi/i.test(allText)) {
+      detectedBank = 'beinleumi';
+    }
+    else if (/בנק יהב לעובדי המדינה|yahav/i.test(allText)) {
+      detectedBank = 'yahav';
+    }
+    else if (/one.?zero|וואן.?זירו/i.test(allText)) {
+      detectedBank = 'onezero';
+    }
+    // נפילה לאחור: אם לא נמצא סימן ייחודי, השתמש בפורמט התאריכים
+    // הפועלים: DD/MM/YYYY מלא | לאומי/אחרים: DD/MM קצר
+    else {
+      const fullDateLines = lines.filter(l => /\d{2}\/\d{2}\/\d{4}/.test(l) && !/[–-]\s*\d{2}\/\d{2}\/\d{4}/.test(l));
+      const shortDateLines = lines.filter(l => /^(?!.*\d{2}\/\d{2}\/\d{4})\d{1,2}\/\d{2}\b/.test(l.trim()));
+      if (shortDateLines.length > fullDateLines.length * 2) {
+        detectedBank = 'leumi'; // יש הרבה יותר תאריכים קצרים
+      } else {
+        detectedBank = 'hapoalim';
+      }
+    }
 
     console.log('Detected bank:', detectedBank);
 
