@@ -666,130 +666,156 @@ async function importPDF(file, statusEl) {
     setStatus(statusEl, 'error', 'PDF.js לא נטען. רענן את הדף.');
     return;
   }
-  setStatus(statusEl, 'loading', '📄 פותח את ה-PDF...');
+  setStatus(statusEl, 'loading', '📄 קורא את ה-PDF...');
   try {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const numPages = Math.min(pdf.numPages, 6);
+    const numPages = pdf.numPages;
 
-    setStatus(statusEl, 'loading', '🖼️ ממיר ' + numPages + ' עמודים...');
-
-    // המר כל עמוד לתמונה — scale קטן למניעת קריסה על iPhone
-    const images = [];
+    // חילוץ שורות מ-PDF.js (ממוין לפי Y לשמירת מבנה הטבלה)
+    const lines = [];
     for (let p = 1; p <= numPages; p++) {
-      try {
-        const page = await pdf.getPage(p);
-        const baseViewport = page.getViewport({ scale: 1.2 });
-        // הגבל גודל מקסימלי ל-1400px
-        const maxDim = 1400;
-        let scale = 1.2;
-        if (baseViewport.width > maxDim || baseViewport.height > maxDim) {
-          scale = Math.min(maxDim / baseViewport.width, maxDim / baseViewport.height);
-        }
-        const viewport = page.getViewport({ scale });
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const b64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-        images.push(b64);
-        // שחרר זיכרון
-        canvas.width = 0; canvas.height = 0;
-        setStatus(statusEl, 'loading', '🖼️ עמוד ' + p + '/' + numPages + ' מוכן...');
-      } catch (pageErr) {
-        console.error('Page ' + p + ' error:', pageErr);
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      const byY = {};
+      for (const item of tc.items) {
+        if (!item.str || !item.str.trim()) continue;
+        const y = Math.round(item.transform[5] / 5) * 5;
+        if (!byY[y]) byY[y] = [];
+        byY[y].push({ x: item.transform[4], s: item.str.trim() });
       }
+      Object.keys(byY).map(Number).sort((a,b)=>b-a).forEach(y => {
+        const line = byY[y].sort((a,b)=>a.x-b.x).map(i=>i.s).join(' ');
+        if (line.trim()) lines.push(line.trim());
+      });
     }
 
-    if (!images.length) {
-      setStatus(statusEl, 'error', 'לא ניתן לקרוא את ה-PDF. נסה להוריד אותו שוב מאתר הבנק.');
+    if (lines.length < 3) {
+      setStatus(statusEl, 'error', 'PDF לא קריא. הורד PDF דיגיטלי מאתר הבנק.');
       return;
     }
 
-    setStatus(statusEl, 'loading', '🤖 Claude קורא את דף החשבון (' + images.length + ' עמודים)...');
+    setStatus(statusEl, 'loading', '📋 ניתוח ' + lines.length + ' שורות...');
 
-    // שלח 2 עמודים בכל פעם
-    let allTransactions = [];
+    const HEADER_RE = /תאריך|פעולה|חובה|זכות|יתרה|תקופה|בנק הפועלים|חשבון|סניף|מקור|אסמכתא|ערך/;
+    const transactions = [];
 
-    for (let batch = 0; batch < images.length; batch += 2) {
-      const batchImages = images.slice(batch, batch + 2);
-      if (images.length > 2) {
-        setStatus(statusEl, 'loading', '🤖 Claude מנתח עמודים ' + (batch+1) + '-' + Math.min(batch+2, images.length) + '...');
+    // זיהוי שנה ויתרת פתיחה
+    let docYear = new Date().getFullYear(), docMonth = new Date().getMonth() + 1;
+    for (const line of lines) {
+      const m = line.match(/(\d{1,2})\/(\d{2})\/(\d{4})/);
+      if (m) { docYear = parseInt(m[3]); docMonth = parseInt(m[2]); break; }
+    }
+    function resolveYear(dd, mm) {
+      return parseInt(mm) > docMonth ? docYear - 1 : docYear;
+    }
+
+    // ── זיהוי יתרת פתיחה ────────────────────────────────────
+    let openingBalance = null;
+    for (const line of lines) {
+      const m1 = line.match(/יתרה[:\s]+(-?[\d,]+\.?\d*)/);
+      if (m1 && (line.includes('מדף קודם') || line.includes('פתיחה') || line.includes('להעברה') || line.includes('שהופק'))) {
+        openingBalance = parseFloat(m1[1].replace(/,/g, ''));
+        break;
       }
-
-      const content = [];
-      batchImages.forEach((b64, i) => {
-        content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } });
-        content.push({ type: 'text', text: 'עמוד ' + (batch + i + 1) + ':' });
-      });
-
-      content.push({
-        type: 'text',
-        text: 'דף חשבון בנקאי ישראלי' + (selectedBank ? ' (' + selectedBank + ')' : '') + '.\n\n' +
-          'חלץ את כל העסקאות מהטבלה.\n\n' +
-          'כללים:\n' +
-          '- חובה / הוצאה = amount שלילי\n' +
-          '- זכות / הכנסה = amount חיובי\n' +
-          '- יתרת פתיחה / העברה מדף קודם = amount חיובי עם label "יתרת פתיחה"\n' +
-          '- תאריך: YYYY-MM-DD\n' +
-          '- התעלם משורות כותרת, סיכומים, וטבלאות ריבית\n\n' +
-          'JSON בלבד, ללא markdown:\n' +
-          '[{"date":"2025-12-14","label":"העברה דיגיטל","amount":-5804.00}]'
-      });
-
-      try {
-        const r = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 4096,
-            messages: [{ role: 'user', content }]
-          })
-        });
-
-        if (!r.ok) {
-          console.error('API HTTP error:', r.status);
-          continue;
-        }
-
-        const d = await r.json();
-        if (d.error) { console.error('Claude error:', d.error); continue; }
-
-        const raw = (d.content?.[0]?.text || '[]')
-          .replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-
-        try {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) allTransactions = allTransactions.concat(parsed);
-        } catch(e) {
-          const match = raw.match(/\[[\s\S]*\]/);
-          if (match) {
-            try {
-              const p = JSON.parse(match[0]);
-              if (Array.isArray(p)) allTransactions = allTransactions.concat(p);
-            } catch {}
-          }
-        }
-      } catch (batchErr) {
-        console.error('Batch error:', batchErr);
+      const m2 = line.match(/(-?[\d,]+\.\d+)\s+יתרה/);
+      if (m2 && (line.includes('מדף קודם') || line.includes('פתיחה') || line.includes('שהופק'))) {
+        openingBalance = parseFloat(m2[1].replace(/,/g, ''));
+        break;
       }
     }
 
-    // הסר כפולות
-    const seen = new Set();
-    const transactions = allTransactions.filter(t => {
-      if (!t.date || !t.label || t.amount === undefined) return false;
-      const k = t.date + '|' + t.label + '|' + t.amount;
-      if (seen.has(k)) return false;
-      seen.add(k); return true;
-    });
+    // ── שיטה 1: הפועלים — DD/MM/YYYY מלא ──────────────────────
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].replace(/^#+\s*/, '').trim();
+      if (HEADER_RE.test(line)) continue;
+      if (!/\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
+      if (/\d{2}\/\d{2}\/\d{4}\s*[–-]\s*\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
+      const dm = line.match(/(\d{2}\/\d{2}\/\d{4})/);
+      if (!dm) continue;
+      const dateStr = dm[1], datePos = dm.index;
+      const before = line.substring(0, datePos).trim();
+      const after = line.substring(datePos + dateStr.length).trim();
+      const allNums = before.match(/([\d,]+\.?\d*|\.\d+)/g);
+      if (!allNums || !allNums.length) continue;
+      const amtStr = allNums[allNums.length - 1];
+      const amt = parseFloat(amtStr.replace(/,/g, ''));
+      if (!amt || isNaN(amt) || amt === 0) continue;
+      let desc = '';
+      const lastPos = before.lastIndexOf(amtStr);
+      const afterNum = before.substring(lastPos + amtStr.length).trim();
+      if (afterNum && afterNum.length >= 2 && /[\u0590-\u05FF\u05F3\u05F4a-zA-Z]/.test(afterNum)) {
+        desc = afterNum.replace(/\s*\d+$/, '').trim();
+      }
+      if (!desc || desc.length < 2) {
+        const ac = after.replace(/\s*\d+$/, '').trim();
+        if (ac && ac.length >= 2 && /[\u0590-\u05FF]/.test(ac)) desc = ac;
+      }
+      if (!desc || desc.length < 1 || HEADER_RE.test(desc)) continue;
+      const next = (lines[i + 1] || '').trim();
+      const signed = (next === '1') ? +Math.abs(amt) : -Math.abs(amt);
+      const [dd, mm, yyyy] = dateStr.split('/');
+      transactions.push({
+        date: yyyy + '-' + mm.padStart(2, '0') + '-' + dd.padStart(2, '0'),
+        label: desc,
+        amount: signed
+      });
+    }
+
+    // ── שיטה 2: לאומי/דיסקונט — DD/MM קצר ─────────────────────
+    if (transactions.length < 3) {
+      transactions.length = 0;
+      let prevBalance = openingBalance;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].replace(/^#+\s*/, '').trim();
+        if (HEADER_RE.test(line)) continue;
+        const sdMatch = line.match(/(\d{1,2})\/(\d{2})(?!\d{2})/);
+        if (!sdMatch) continue;
+        const mNum = parseInt(sdMatch[2]);
+        if (mNum < 1 || mNum > 12) continue;
+        const dd = sdMatch[1], mm = sdMatch[2];
+        const isoDate = resolveYear(dd, mm) + '-' + mm.padStart(2, '0') + '-' + dd.padStart(2, '0');
+        const noDate = line.replace(sdMatch[0], '').trim();
+        // רק מספרים עם נקודה עשרונית = סכומים אמיתיים (לא אסמכתאות)
+        const decNums = (noDate.match(/\d[\d,]*\.\d+/g) || []).map(n => parseFloat(n.replace(/,/g, ''))).filter(n => n > 0);
+        if (decNums.length < 1) continue;
+        decNums.sort((a, b) => b - a);
+        const balance = decNums[0];
+        const amt = decNums.length >= 2 ? decNums[1] : decNums[0];
+        if (!amt || amt === 0) continue;
+        const hebWords = (noDate.match(/[\u0590-\u05FF][\u0590-\u05FF\s\-\.׳״'"\/]*/g) || []);
+        const desc = hebWords.join(' ').replace(/\s+/g, ' ').trim();
+        if (!desc || desc.length < 2 || HEADER_RE.test(desc)) continue;
+        let signed;
+        if (prevBalance !== null) {
+          signed = balance > prevBalance ? +Math.abs(amt) : -Math.abs(amt);
+        } else {
+          signed = /הפקד|שיק|בנק הפועלים|בנק הדואר|זיכוי|העברה/.test(desc) ? +Math.abs(amt) : -Math.abs(amt);
+        }
+        prevBalance = balance;
+        transactions.push({ date: isoDate, label: desc, amount: signed });
+      }
+    }
+
+    // הוסף יתרת פתיחה כעסקה בתחילת הרשימה
+    if (openingBalance !== null && openingBalance !== 0) {
+      const firstDate = transactions.length > 0
+        ? transactions[transactions.length - 1].date
+        : docYear + '-' + String(docMonth).padStart(2,'0') + '-01';
+      // חשב תאריך יום אחד לפני העסקה הראשונה
+      const d = new Date(firstDate);
+      d.setDate(d.getDate() - 1);
+      const openDate = d.toISOString().split('T')[0];
+      transactions.push({
+        date: openDate,
+        label: 'יתרת פתיחה',
+        amount: openingBalance
+      });
+    }
 
     if (!transactions.length) {
-      setStatus(statusEl, 'error', 'Claude לא מצא עסקאות. נסה שוב או עלה קובץ CSV מהבנק.');
+      setStatus(statusEl, 'error', 'לא נמצאו עסקאות (' + lines.length + ' שורות).<br><div style="font-size:10px;font-family:monospace;margin-top:6px;color:#aaa;line-height:1.6">' + lines.slice(0, 15).join('<br>').replace(/</g, '&lt;') + '</div>');
       return;
     }
 
@@ -801,6 +827,7 @@ async function importPDF(file, statusEl) {
     setStatus(statusEl, 'error', 'שגיאה: ' + err.message);
   }
 }
+
 async function saveImportedTx(txs, fileName, statusEl) {
   const valid = txs.filter(t => t.label && parseFloat(t.amount) !== 0 && t.date);
   if (!valid.length) { setStatus(statusEl, 'error', 'אין עסקאות תקינות.'); return; }
