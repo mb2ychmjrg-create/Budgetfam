@@ -505,7 +505,7 @@ async function loadHome(){
     totalSource = 'pdf';
 
     // הצג את הבנקים בהודעה
-    const bankNames = { hapoalim:'הפועלים', leumi:'לאומי', discount:'דיסקונט', mizrahi:'מזרחי', other:'אחר', unknown:'בנק' };
+    const bankNames = { hapoalim:'הפועלים', leumi:'לאומי', discount:'דיסקונט', mizrahi:'מזרחי-טפחות', beinleumi:'בינלאומי', yahav:'יהב', onezero:'וואן זירו', other:'אחר', unknown:'בנק' };
     banksInfo = Object.entries(byBank).map(([bank, info]) =>
       `${bankNames[bank] || bank}: ${info.balance.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})}₪`
     ).join(' + ');
@@ -879,11 +879,9 @@ async function importPDF(file, statusEl) {
     }
 
     // ── שיטה 2: לאומי/דיסקונט/מזרחי — DD/MM קצר ─────────────
-    // לאומי משתמש 4 עמודות: אסמכתא | זכות | חובה | יתרה
-    // - אסמכתא = מספר שלם (4-7 ספרות) ללא נקודה
-    // - זכות = מספר עם נקודה עשרונית
-    // - חובה = מספר עם נקודה עשרונית
-    // - יתרה = מספר עם נקודה עשרונית (תמיד יתרה הולכת ועולה/יורדת)
+    // אסטרטגיה: רק מספרים עם נקודה עשרונית = סכומים אמיתיים
+    // הקטן ביותר = סכום העסקה, הגדול ביותר = יתרה
+    // סימן: השוואת יתרה ליתרה הקודמת
     let lastBalance = null;
     if (transactions.length < 3) {
       transactions.length = 0;
@@ -900,57 +898,28 @@ async function importPDF(file, statusEl) {
         const isoDate = resolveYear(dd, mm) + '-' + mm.padStart(2, '0') + '-' + dd.padStart(2, '0');
         const noDate = line.replace(sdMatch[0], '').trim();
 
-        // רק מספרים עם נקודה עשרונית = סכומים אמיתיים
-        const decNums = (noDate.match(/\d[\d,]*\.\d+/g) || []).map(n => parseFloat(n.replace(/,/g, ''))).filter(n => n > 0);
-        if (decNums.length < 1) continue;
+        // רק מספרים עם נקודה עשרונית (לא אסמכתאות)
+        const decNums = (noDate.match(/\d[\d,]*\.\d+/g) || [])
+          .map(n => parseFloat(n.replace(/,/g, '')))
+          .filter(n => n > 0)
+          .sort((a, b) => b - a); // descending
 
-        // ── זיהוי יתרה: המספר שמתאים לרצף הצפוי ─────────
-        let balance = null;
-        let amt = null;
+        if (decNums.length < 2) continue; // צריך לפחות יתרה + סכום
 
-        if (prevBalance !== null && decNums.length >= 2) {
-          // נסה כל זוג (amt, balance) שמתאים: balance = prevBalance + amt או prevBalance - amt
-          for (const candidate_balance of decNums) {
-            for (const candidate_amt of decNums) {
-              if (candidate_balance === candidate_amt) continue;
-              if (Math.abs((prevBalance + candidate_amt) - candidate_balance) < 0.01) {
-                balance = candidate_balance;
-                amt = candidate_amt;
-                break;
-              }
-              if (Math.abs((prevBalance - candidate_amt) - candidate_balance) < 0.01) {
-                balance = candidate_balance;
-                amt = -candidate_amt;
-                break;
-              }
-            }
-            if (balance !== null) break;
-          }
-        }
-
-        // נפילה לאחור: הגדול ביותר = יתרה, השני = סכום
-        if (balance === null) {
-          const sorted = [...decNums].sort((a, b) => b - a);
-          balance = sorted[0];
-          amt = sorted.length >= 2 ? sorted[1] : sorted[0];
-          if (amt === balance) continue;
-        }
-
-        if (!amt || amt === 0) continue;
+        // הגדול = יתרה, הקטן = סכום
+        const balance = decNums[0];
+        const amt = decNums[decNums.length - 1];
+        if (!amt || amt === 0 || amt === balance) continue;
 
         const hebWords = (noDate.match(/[\u0590-\u05FF][\u0590-\u05FF\s\-\.׳״'"\/]*/g) || []);
         const desc = hebWords.join(' ').replace(/\s+/g, ' ').trim();
         if (!desc || desc.length < 2 || HEADER_RE.test(desc)) continue;
 
-        // ── סימון: השוואה ליתרה הקודמת ─────────────
+        // סימון: השוואה ליתרה הקודמת
         let signed;
         if (prevBalance !== null) {
-          // אם יתרה גדלה → זכות, ירדה → חובה
           signed = balance > prevBalance ? +Math.abs(amt) : -Math.abs(amt);
-        } else if (amt < 0) {
-          signed = amt; // הסכום כבר חתום
         } else {
-          // אין יתרה קודמת — נחש לפי טקסט
           signed = /הפקד|שיק|בנק.{0,4}הפועלים|בנק.{0,4}הדואר|זיכוי|העברה.{0,4}דיגיטל|הע\..{0,4}אינטרנט/.test(desc) ? +Math.abs(amt) : -Math.abs(amt);
         }
 
@@ -1003,6 +972,17 @@ async function importPDF(file, statusEl) {
       actualClosingBalance = openingBalance;
     }
 
+    // ── זיהוי בנק אוטומטי מתוכן ה-PDF ─────────────────────
+    let detectedBank = selectedBank || 'unknown';
+    const allText = lines.join(' ');
+    if (/בנק לאומי|leumi|לאומי לישראל/i.test(allText)) detectedBank = 'leumi';
+    else if (/בנק הפועלים|hapoalim|פועלים בע/i.test(allText)) detectedBank = 'hapoalim';
+    else if (/בנק דיסקונט|discount/i.test(allText)) detectedBank = 'discount';
+    else if (/בנק מזרחי|טפחות|mizrahi|tefahot/i.test(allText)) detectedBank = 'mizrahi';
+    else if (/בנק הבינלאומי|בינלאומי|fibi/i.test(allText)) detectedBank = 'beinleumi';
+    else if (/בנק יהב|yahav/i.test(allText)) detectedBank = 'yahav';
+    else if (/one zero|וואן זירו/i.test(allText)) detectedBank = 'onezero';
+
     // ── שמור את היתרה האמיתית ב-localStorage ──────────────
     if (actualClosingBalance !== null) {
       const balKey = 'fi_real_balance_' + user.id;
@@ -1010,7 +990,7 @@ async function importPDF(file, statusEl) {
       existing[file.name] = {
         balance: actualClosingBalance,
         date: new Date().toISOString(),
-        bank: selectedBank || 'unknown'
+        bank: detectedBank
       };
       localStorage.setItem(balKey, JSON.stringify(existing));
     }
