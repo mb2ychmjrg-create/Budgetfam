@@ -747,6 +747,19 @@ async function importPDF(file, statusEl) {
     const HEADER_RE = /תאריך|פעולה|חובה|זכות|יתרה|תקופה|בנק הפועלים|חשבון|סניף|מקור|אסמכתא|ערך/;
     const transactions = [];
 
+    // ── זיהוי בנק אוטומטי מהתוכן ───────────────────────────
+    let detectedBank = selectedBank || 'unknown';
+    const allText = lines.join(' ');
+    if (/לאומי לישראל|בנק לאומי\b|^לאומי$/i.test(allText) && !/בנק הפועלים/i.test(allText)) detectedBank = 'leumi';
+    else if (/בנק הפועלים|hapoalim/i.test(allText) && !/לאומי לישראל/i.test(allText)) detectedBank = 'hapoalim';
+    else if (/בנק דיסקונט|discount.bank/i.test(allText)) detectedBank = 'discount';
+    else if (/מזרחי.{0,4}טפחות|mizrahi.tefahot|טפחות בע/i.test(allText)) detectedBank = 'mizrahi';
+    else if (/בנק הבינלאומי|fibi/i.test(allText)) detectedBank = 'beinleumi';
+    else if (/בנק יהב|yahav/i.test(allText)) detectedBank = 'yahav';
+    else if (/one zero|וואן זירו|onezerobank/i.test(allText)) detectedBank = 'onezero';
+
+    console.log('Detected bank:', detectedBank);
+
     // זיהוי שנה ויתרת פתיחה
     let docYear = new Date().getFullYear(), docMonth = new Date().getMonth() + 1;
     for (const line of lines) {
@@ -779,9 +792,13 @@ async function importPDF(file, statusEl) {
     }
 
     // ── שיטה 1: הפועלים — DD/MM/YYYY מלא ──────────────────────
-    let hapoalimLastBalance = null; // יתרה אחרונה מה-PDF להפועלים
-    let hapoalimFirstBalance = null; // יתרה ראשונה מה-PDF להפועלים
-    for (let i = 0; i < lines.length; i++) {
+    // נדלג על שיטה 1 אם זוהה כבנק עם פורמט קצר (לאומי וכו׳)
+    let hapoalimLastBalance = null;
+    let hapoalimFirstBalance = null;
+    const skipHapoalimMethod = ['leumi','discount','mizrahi','beinleumi','yahav','onezero'].includes(detectedBank);
+
+    if (!skipHapoalimMethod) {
+      for (let i = 0; i < lines.length; i++) {
       const line = lines[i].replace(/^#+\s*/, '').trim();
       if (HEADER_RE.test(line)) continue;
       if (!/\d{2}\/\d{2}\/\d{4}/.test(line)) continue;
@@ -840,6 +857,7 @@ async function importPDF(file, statusEl) {
         amount: signed
       });
     }
+    } // סוף if (!skipHapoalimMethod)
 
     // אם הפועלים נמצא — חשב יתרת פתיחה אמיתית
     if (transactions.length > 0 && hapoalimFirstBalance !== null && hapoalimLastBalance !== null) {
@@ -881,9 +899,8 @@ async function importPDF(file, statusEl) {
     // ── שיטה 2: לאומי/דיסקונט/מזרחי — DD/MM קצר ─────────────
     // אסטרטגיה: רק מספרים עם נקודה עשרונית = סכומים אמיתיים
     // הקטן ביותר = סכום העסקה, הגדול ביותר = יתרה
-    // סימן: השוואת יתרה ליתרה הקודמת
     let lastBalance = null;
-    if (transactions.length < 3) {
+    if (skipHapoalimMethod || transactions.length < 3) {
       transactions.length = 0;
       let prevBalance = openingBalance;
 
@@ -972,17 +989,6 @@ async function importPDF(file, statusEl) {
       actualClosingBalance = openingBalance;
     }
 
-    // ── זיהוי בנק אוטומטי מתוכן ה-PDF ─────────────────────
-    let detectedBank = selectedBank || 'unknown';
-    const allText = lines.join(' ');
-    if (/בנק לאומי|leumi|לאומי לישראל/i.test(allText)) detectedBank = 'leumi';
-    else if (/בנק הפועלים|hapoalim|פועלים בע/i.test(allText)) detectedBank = 'hapoalim';
-    else if (/בנק דיסקונט|discount/i.test(allText)) detectedBank = 'discount';
-    else if (/בנק מזרחי|טפחות|mizrahi|tefahot/i.test(allText)) detectedBank = 'mizrahi';
-    else if (/בנק הבינלאומי|בינלאומי|fibi/i.test(allText)) detectedBank = 'beinleumi';
-    else if (/בנק יהב|yahav/i.test(allText)) detectedBank = 'yahav';
-    else if (/one zero|וואן זירו/i.test(allText)) detectedBank = 'onezero';
-
     // ── שמור את היתרה האמיתית ב-localStorage ──────────────
     if (actualClosingBalance !== null) {
       const balKey = 'fi_real_balance_' + user.id;
@@ -1006,10 +1012,11 @@ async function importPDF(file, statusEl) {
     const debugInfo = `
       <div style="padding:14px;background:#0f1729;border:1px solid #3b82f6;border-radius:14px;margin-bottom:12px;font-family:monospace;font-size:11px;line-height:1.8;direction:ltr;text-align:left;color:#cbd5e1">
         <div style="color:#60a5fa;font-weight:700;margin-bottom:8px;font-size:12px">🔍 DEBUG — נתוני קובץ</div>
+        <div>🏦 בנק זוהה: <b style="color:#fbbf24">${detectedBank.toUpperCase()}</b> (skipMethod1: ${skipHapoalimMethod})</div>
         <div>📅 שנת מסמך: <b>${docYear}</b></div>
         <div>💰 יתרת פתיחה זוהתה: <b style="color:#22c55e">${openingBalance !== null ? openingBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'לא נמצאה'}</b></div>
         <div>💎 יתרת סגירה (lastBalance): <b style="color:#a78bfa">${lastBalance !== null ? lastBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'NULL'}</b></div>
-        <div>🏦 Hapoalim first balance: <b>${hapoalimFirstBalance !== null ? hapoalimFirstBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'NULL'}</b></div>
+        <div>🏛️ Hapoalim first balance: <b>${hapoalimFirstBalance !== null ? hapoalimFirstBalance.toLocaleString('en-US',{minimumFractionDigits:2}) : 'NULL'}</b></div>
         <div>📊 סה״כ עסקאות שזוהו: <b>${transactions.length}</b></div>
         <div>➕ סכום העסקאות: <b style="color:${sumTx>=0?'#22c55e':'#ef4444'}">${sumTx.toLocaleString('en-US',{minimumFractionDigits:2})}</b></div>
         <div>🎯 חישוב סופי: <b style="color:#f59e0b">${computedFinal.toLocaleString('en-US',{minimumFractionDigits:2})}</b></div>
