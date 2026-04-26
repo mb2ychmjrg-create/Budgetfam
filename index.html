@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -481,22 +482,37 @@ async function loadHome(){
   const mBal=mIn-mEx;
   const pct=mIn>0?Math.min(100,Math.round(mBal/mIn*100)):0;
 
-  // ── סה״כ מצטבר: השתמש ביתרה אמיתית מ-PDF אם קיימת ──
-  // אחרת חשב מסכום העסקאות
+  // ── סה״כ מצטבר: סכום היתרות של כל הבנקים ──
   let total = all.reduce((s,t)=>s+t.amount,0);
-  let totalSource = 'computed'; // 'computed' או 'pdf'
+  let totalSource = 'computed';
+  let banksInfo = '';
 
   const realBalances = JSON.parse(localStorage.getItem('fi_real_balance_' + user.id) || '{}');
-  const balanceEntries = Object.values(realBalances);
+  const balanceEntries = Object.entries(realBalances);
+
   if (balanceEntries.length > 0) {
-    // מצא את היתרה הכי חדשה
-    balanceEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-    total = balanceEntries[0].balance;
+    // קבץ לפי בנק — קח רק את היתרה האחרונה לכל בנק
+    const byBank = {};
+    balanceEntries.forEach(([fileName, info]) => {
+      const bank = info.bank || 'unknown';
+      if (!byBank[bank] || new Date(info.date) > new Date(byBank[bank].date)) {
+        byBank[bank] = { ...info, fileName };
+      }
+    });
+
+    // סכום כל היתרות מכל הבנקים
+    total = Object.values(byBank).reduce((s, b) => s + b.balance, 0);
     totalSource = 'pdf';
 
-    // הוסף לסה״כ את כל העסקאות שנוספו אחרי הייבוא
-    const importDate = new Date(balanceEntries[0].date);
-    const newTxAfterImport = all.filter(t => new Date(t.created_at) > importDate);
+    // הצג את הבנקים בהודעה
+    const bankNames = { hapoalim:'הפועלים', leumi:'לאומי', discount:'דיסקונט', mizrahi:'מזרחי', other:'אחר', unknown:'בנק' };
+    banksInfo = Object.entries(byBank).map(([bank, info]) =>
+      `${bankNames[bank] || bank}: ${info.balance.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})}₪`
+    ).join(' + ');
+
+    // הוסף עסקאות שנוספו אחרי כל ייבוא
+    const newestImportDate = Math.max(...Object.values(byBank).map(b => new Date(b.date).getTime()));
+    const newTxAfterImport = all.filter(t => new Date(t.created_at) > new Date(newestImportDate));
     const sumNew = newTxAfterImport.reduce((s, t) => s + t.amount, 0);
     total += sumNew;
   }
@@ -509,7 +525,8 @@ async function loadHome(){
   el.innerHTML=`<div class="hero">
     <div class="hero-label">${now.toLocaleDateString('he-IL',{month:'long',year:'numeric'}).toUpperCase()}</div>
     <div class="hero-amount" style="color:${total>=0?'white':'#ef4444'}">${total.toLocaleString('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2})} ₪</div>
-    <div class="hero-sub">סה״כ בחשבון ${totalSource==='pdf'?'· מסונכרן מהבנק ✓':''} · החודש: <b style="color:${mBal>=0?'#22c55e':'#ef4444'}">${mBal.toLocaleString('he-IL')} ₪</b></div>
+    ${banksInfo?`<div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:4px;font-weight:500">${banksInfo}</div>`:''}
+    <div class="hero-sub" style="margin-top:8px">סה״כ בכל החשבונות ${totalSource==='pdf'?'· מסונכרן ✓':''} · החודש: <b style="color:${mBal>=0?'#22c55e':'#ef4444'}">${mBal.toLocaleString('he-IL')} ₪</b></div>
     <div class="stats-row">
       <div class="stat-box"><label>הכנסות</label><b style="color:var(--green)">${mIn.toLocaleString('he-IL')} ₪</b></div>
       <div class="stat-box"><label>הוצאות</label><b style="color:var(--red)">${mEx.toLocaleString('he-IL')} ₪</b></div>
@@ -783,8 +800,21 @@ async function importPDF(file, statusEl) {
       // יתרה = המספר הראשון בשורה (ב-Hapoalim)
       if (allNums.length >= 2) {
         const balanceStr = allNums[0];
-        const bal = parseFloat(balanceStr.replace(/,/g, ''));
+        let bal = parseFloat(balanceStr.replace(/,/g, ''));
         if (!isNaN(bal)) {
+          // זיהוי יתרת חובה (negative): חיפוש ₪- או - לפני המספר
+          // הפועלים מציג: "₪-5,073.50" או "5,073.50-" כשהיתרה שלילית
+          const balanceIdx = before.indexOf(balanceStr);
+          const charsBeforeBalance = before.substring(Math.max(0, balanceIdx - 5), balanceIdx);
+          const charsAfterBalance = before.substring(balanceIdx + balanceStr.length, balanceIdx + balanceStr.length + 5);
+          // בדיקה אם יש סימן מינוס לפני או אחרי המספר
+          if (/[-]/.test(charsBeforeBalance) || /^[-]/.test(charsAfterBalance)) {
+            bal = -Math.abs(bal);
+          }
+          // בדיקה נוספת: אם השורה מכילה "ח" (חובה) או "-" סמוך ליתרה
+          if (line.includes('₪-') || /\bח\b/.test(after)) {
+            bal = -Math.abs(bal);
+          }
           if (hapoalimFirstBalance === null) hapoalimFirstBalance = bal;
           hapoalimLastBalance = bal;
         }
@@ -814,10 +844,31 @@ async function importPDF(file, statusEl) {
     // אם הפועלים נמצא — חשב יתרת פתיחה אמיתית
     if (transactions.length > 0 && hapoalimFirstBalance !== null && hapoalimLastBalance !== null) {
       // ב-Hapoalim, השורה הראשונה היא העסקה החדשה ביותר
-      // לכן: הfirstBalance = יתרה אחרי העסקה החדשה ביותר (= יתרה סופית כיום)
-      // הlastBalance = יתרה אחרי העסקה הישנה ביותר (= יתרה אחרי הפתיחה)
+      // לכן: hapoalimFirstBalance = יתרה אחרי העסקה החדשה ביותר (= יתרה סופית)
+      // hapoalimLastBalance = יתרה אחרי העסקה הישנה ביותר
+
+      // ── זיהוי אוטומטי של סימן היתרה ─────────────────────────
+      // נבדוק האם היתרות עוקבות באמת מסתדרות מתמטית
+      // אם לא — ננסה את היתרה כשלילית
       const sumTx = transactions.reduce((s, t) => s + t.amount, 0);
-      // יתרה סופית = firstBalance (השורה הראשונה ב-PDF היא העדכנית ביותר)
+
+      // השורה הראשונה ב-PDF = העסקה האחרונה
+      // האם hapoalimFirstBalance + סכום העסקאות הפוך = hapoalimLastBalance?
+      // sumTx_reversed (חשבון מהראשונה לאחרונה ב-PDF) = -sumTx
+      // אז: lastBalance + sumTx = firstBalance, או: firstBalance - sumTx = lastBalance
+
+      const checkPositive = Math.abs(hapoalimFirstBalance - sumTx - hapoalimLastBalance);
+      const checkNegFirst = Math.abs(-hapoalimFirstBalance - sumTx - hapoalimLastBalance);
+      const checkNegBoth = Math.abs(-hapoalimFirstBalance - sumTx - (-hapoalimLastBalance));
+
+      // אם hapoalimFirstBalance שלילי וה-Last גם שלילי = הסכומים מסתדרים
+      if (checkNegBoth < checkPositive && checkNegBoth < 1) {
+        hapoalimFirstBalance = -Math.abs(hapoalimFirstBalance);
+        hapoalimLastBalance = -Math.abs(hapoalimLastBalance);
+      } else if (checkNegFirst < checkPositive && checkNegFirst < 1) {
+        hapoalimFirstBalance = -Math.abs(hapoalimFirstBalance);
+      }
+
       // יתרה פתיחה = יתרה סופית - סכום העסקאות
       const calcOpening = hapoalimFirstBalance - sumTx;
       if (Math.abs(calcOpening) > 0.01) {
