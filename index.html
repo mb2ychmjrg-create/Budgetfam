@@ -377,57 +377,39 @@ function autoDetectCat(val) {
   } else { detected.textContent = ''; }
 }
 
-// ── CLAUDE VISION (multi-bank) ───────────────────────────────
+// ── EDGE FUNCTION VISION (no more CORS) ──────────────────────
+const VISION_URL = 'https://nyywcxcahalxazienuav.supabase.co/functions/v1/vision-extract';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM';
+
+async function callEdgeVision(payload) {
+  try {
+    const r = await fetch(VISION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'apikey': SUPABASE_ANON
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      console.error('Edge function error:', r.status, errText);
+      return { transactions: [], error: `server_${r.status}` };
+    }
+    return await r.json();
+  } catch (err) {
+    console.error('Network error:', err);
+    return { transactions: [], error: 'network_error' };
+  }
+}
+
 async function extractTransactionsFromImage(base64Image, mediaType) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: `You are an expert at extracting Israeli bank transaction data. You can read statements from ALL Israeli banks: Hapoalim (הפועלים), Leumi (לאומי), Discount (דיסקונט), Mizrahi-Tefahot (מזרחי טפחות), One Zero, International (הבינלאומי), Otsar HaHayal (אוצר החייל), Mercantile (מרכנתיל), Yahav (יהב), and ALL Israeli credit cards (Isracard, Cal, Max, American Express, Leumi Card). You read Hebrew, English, French.
-
-Reply ONLY with valid JSON (no markdown, no explanation):
-{"transactions": [{"date":"YYYY-MM-DD","label":"description in original language","amount":-123.45,"category":"Alimentation"}]}
-
-Rules:
-- amount is negative for expenses (חיובים), positive for income (זיכויים)
-- Categories must be exactly one of: Alimentation, Logement, Transport, Loisirs, Santé, Épargne, Abonnements, Éducation, Salaire, Divers
-- Date in ISO YYYY-MM-DD format
-- If image is not a bank statement: {"transactions":[],"error":"not_a_statement"}
-- Recognize Israeli merchants in Hebrew/English: שפרסל, רמי לוי, סופר פארם, גט, בזק, הוט, ארנונה, פלאפון, סלקום, פרטנר, וולט, תן ביס, etc.`,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Image } },
-          { type: 'text', text: 'Extract all visible transactions. Return JSON only.' }
-        ]
-      }]
-    })
-  });
-  const d = await r.json();
-  const text = d.content?.[0]?.text || '{}';
-  const cleaned = text.replace(/```json|```/g, '').trim();
-  try { return JSON.parse(cleaned); } catch { return { transactions: [], error: 'parse_error' }; }
+  return await callEdgeVision({ type: 'image', data: base64Image, mediaType });
 }
 
 async function extractTransactionsFromText(text) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514', max_tokens: 4000,
-      system: `Expert in extracting transactions from Israeli bank statements (ALL banks: Hapoalim, Leumi, Discount, Mizrahi, One Zero, International, etc.) and credit cards (Isracard, Cal, Max, etc.). Reply ONLY with valid JSON:
-{"transactions":[{"date":"YYYY-MM-DD","label":"description","amount":-123.45,"category":"Alimentation"}]}
-Categories: Alimentation, Logement, Transport, Loisirs, Santé, Épargne, Abonnements, Éducation, Salaire, Divers
-amount negative=expense, positive=income`,
-      messages: [{ role: 'user', content: `Extract transactions from this statement:\n\n${text.substring(0, 30000)}` }]
-    })
-  });
-  const d = await r.json();
-  const responseText = d.content?.[0]?.text || '{}';
-  const cleaned = responseText.replace(/```json|```/g, '').trim();
-  try { return JSON.parse(cleaned); } catch { return { transactions: [], error: 'parse_error' }; }
+  return await callEdgeVision({ type: 'text', data: text.substring(0, 30000) });
 }
 
 // ── PDF IMPORT ────────────────────────────────────────────────
@@ -869,17 +851,9 @@ async function loadAiTip() {
   const catMap = {};
   all.filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catMap[c]=(catMap[c]||0)+Math.abs(t.amount);});
   const top = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,2).map(e=>catHe(e[0])).join(' ו-');
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:120,
-        system:'יועץ פיננסי למשפחות בישראל. ענה בעברית, 2 משפטים מקסימום, התחל באמוג׳י.',
-        messages:[{role:'user',content: all.length>0 ? `הכנסות: ${income}₪, הוצאות: ${expenses}₪, קטגוריות מובילות: ${top||'?'}. תן עצה אחת.` : `עצה למשפחה ישראלית שמתחילה לנהל תקציב.`}]
-      })
-    });
-    const d = await r.json();
-    if (el) el.textContent = d.content?.[0]?.text || "💡 ייבא את 3 החודשים האחרונים כדי לראות לאן הולך הכסף שלך!";
-  } catch { if (el) el.textContent = "💡 ייבא את 3 החודשים האחרונים כדי לראות לאן הולך הכסף שלך!"; }
+  if (el) el.textContent = all.length>0
+    ? `💡 בחודש זה הוצאת ${expenses.toLocaleString('he-IL')} ₪. הקטגוריות העיקריות: ${top||'—'}.`
+    : "💡 ייבא את 3 החודשים האחרונים כדי לראות לאן הולך הכסף שלך!";
 }
 
 async function deleteTx(id) {
@@ -962,37 +936,55 @@ async function runAiWizard() {
   const pct=document.getElementById('w-pct')?.value||'25';
   wizardMeta={who,dateVal,guests,budget,style,region,pct};
   const c=document.getElementById('proj-modal-content');
-  c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div><div style="text-align:center;padding:24px 0"><div style="font-size:40px;margin-bottom:12px">${getProjEmoji(wizardType)}</div><div class="rubik" style="font-size:16px;font-weight:700;margin-bottom:12px">בינה מלאכותית מייצרת תכנית...</div><div class="ai-dots" style="justify-content:center;display:flex"><span></span><span></span><span></span></div></div>`;
-  const prompts={
-    mariage:`חתונה של ${who||'הילד שלי'} בישראל. אורחים: ${guests}, סגנון: ${style}, תאריך: ${dateVal||'בעוד שנתיים'}.\n1. עלות כוללת ₪ בישראל 2025-2026\n2. תקציב לפי סעיף\n3. חיסכון חודשי\n4. שתי עצות`,
-    voiture:`רכב בישראל: ${style}, ${budget}₪, ${dateVal}. תכנית + עצות לשוק הישראלי.`,
-    immobilier:`נדל״ן בישראל ב${region}, ${budget}₪, הון עצמי ${pct}%, ${dateVal}. הון, חודשי, משכנתא, סיוע.`,
-    autre:`${who||'פרויקט'}, ${budget}₪, ${dateVal}. תכנית חיסכון ועצות.`,
-  };
-  try {
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',max_tokens:600,
-      system:'יועץ פיננסי מומחה למשפחות ישראליות. ענה בעברית, ₪ לשנים 2025-2026, אמוג׳ים, תמציתי.',
-      messages:[{role:'user',content:prompts[wizardType]||prompts.autre}]
-    })});
-    const d=await r.json();
-    const aiText=d.content?.[0]?.text||'';
-    let target=parseInt(budget)||0;
-    if (!target&&wizardType==='mariage') target=parseInt(guests||200)*850;
-    const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
-    const months=targetDate?Math.max(1,Math.round((new Date(targetDate)-new Date())/(30.44*86400000))):24;
-    const monthly=target>0?Math.round(target/months):0;
-    const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏠 דירה ${region}`:who||'🎯 פרויקט';
-    c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div></div>
-      <div class="rubik" style="font-size:16px;font-weight:800;margin-bottom:12px;text-align:center">✅ התכנית מוכנה!</div>
-      <div class="ai-result">${aiText.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
-      <div class="card" style="margin:12px 0;background:var(--divider)">
-        <label class="field-label">יעד (₪)</label>
-        <input class="field" id="w-final" type="number" value="${target}" style="background:var(--card);direction:ltr">
-        <div style="text-align:center;padding:6px 0;font-size:18px;font-weight:800;color:var(--accent);font-family:'Rubik',sans-serif;direction:ltr">${monthly.toLocaleString('he-IL')} ₪ / חודש</div>
-      </div>
-      <button onclick="saveProject('${projName.replace(/'/g,"&#39;")}','${wizardType}','${targetDate||''}',${monthly})" class="submit-btn">💾 שמור</button>`;
-  } catch { c.innerHTML='<div style="text-align:center;padding:20px;color:var(--red)">שגיאה. נסה שוב.</div>'; }
+  c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div><div style="text-align:center;padding:24px 0"><div style="font-size:40px;margin-bottom:12px">${getProjEmoji(wizardType)}</div><div class="rubik" style="font-size:16px;font-weight:700;margin-bottom:12px">מחשב את התכנית...</div><div class="ai-dots" style="justify-content:center;display:flex"><span></span><span></span><span></span></div></div>`;
+
+  // Calcul local intelligent (pas d'API directe à cause de CORS)
+  await new Promise(r => setTimeout(r, 800));
+
+  let target=parseInt(budget)||0;
+  let aiText = '';
+
+  if (wizardType==='mariage') {
+    const g = parseInt(guests||200);
+    const styleMul = style==='luxe' ? 1500 : style==='simple' ? 500 : 850;
+    target = target || g * styleMul;
+    const venue = Math.round(target * 0.35);
+    const food = Math.round(target * 0.30);
+    const photo = Math.round(target * 0.10);
+    const dress = Math.round(target * 0.10);
+    const other = target - venue - food - photo - dress;
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'} עבור ${g} אורחים</strong><br><br>📊 <strong>תקציב משוער:</strong> ${target.toLocaleString('he-IL')} ₪<br><br>🏛 אולם: ${venue.toLocaleString('he-IL')} ₪<br>🍽 קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo.toLocaleString('he-IL')} ₪<br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🎵 שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הזמן את האולם 12 חודשים מראש לקבלת הנחות<br>• חודשי שיא (אוגוסט-ספטמבר) יקרים ב-20%`;
+  } else if (wizardType==='voiture') {
+    target = target || 80000;
+    const downPayment = Math.round(target * 0.25);
+    const insurance = Math.round(target * 0.05);
+    aiText = `🚗 <strong>${style||'רכב'} בתקציב ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>⛽ דלק חודשי: ~1,500 ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך לפני קנייה<br>• השווה ביטוחים ב-clalit/ayalon`;
+  } else if (wizardType==='immobilier') {
+    target = target || 1500000;
+    const downPct = parseInt(pct)||25;
+    const apport = Math.round(target * downPct / 100);
+    const loan = target - apport;
+    const monthlyPay = Math.round(loan * 0.005);
+    aiText = `🏠 <strong>דירה ב${region||'ישראל'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי (${downPct}%): ${apport.toLocaleString('he-IL')} ₪<br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי משוער: ${monthlyPay.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• דרוש מינימום 25% הון עצמי בישראל<br>• השווה משכנתאות ב-3 בנקים לפחות<br>• בדוק זכאות לדירה בהישג יד / מחיר למשתכן`;
+  } else {
+    target = target || 15000;
+    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
+  }
+
+  const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
+  const months=targetDate?Math.max(1,Math.round((new Date(targetDate)-new Date())/(30.44*86400000))):24;
+  const monthly=target>0?Math.round(target/months):0;
+  const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏠 דירה ${region}`:who||'🎯 פרויקט';
+
+  c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div></div>
+    <div class="rubik" style="font-size:16px;font-weight:800;margin-bottom:12px;text-align:center">✅ התכנית מוכנה!</div>
+    <div class="ai-result">${aiText}</div>
+    <div class="card" style="margin:12px 0;background:var(--divider)">
+      <label class="field-label">יעד (₪)</label>
+      <input class="field" id="w-final" type="number" value="${target}" style="background:var(--card);direction:ltr">
+      <div style="text-align:center;padding:6px 0;font-size:18px;font-weight:800;color:var(--accent);font-family:'Rubik',sans-serif;direction:ltr">${monthly.toLocaleString('he-IL')} ₪ / חודש</div>
+    </div>
+    <button onclick="saveProject('${projName.replace(/'/g,"&#39;")}','${wizardType}','${targetDate||''}',${monthly})" class="submit-btn">💾 שמור</button>`;
 }
 async function saveProject(name,type,date,monthly) {
   const amount=parseFloat(document.getElementById('w-final')?.value)||0;
