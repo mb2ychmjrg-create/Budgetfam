@@ -18,77 +18,86 @@
   --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
   --text:#e2e2f0;--muted:#8888aa;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;overflow:hidden;direction:rtl}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display','Helvetica Neue',Arial,sans-serif;overflow:hidden;direction:rtl;-webkit-font-smoothing:antialiased}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
-#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;background:var(–bg)}
 #auth-page{flex:1;overflow-y:auto}
 
 /* HEADER */
-header{padding:16px 18px;background:linear-gradient(135deg,#3b0764,#5b21b6,#7c3aed);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:max(16px,env(safe-area-inset-top));box-shadow:0 4px 24px rgba(124,58,237,.3)}
-.h-title{font-size:18px;font-weight:800;letter-spacing:-.3px}
-.h-sub{font-size:10px;opacity:.7;margin-top:2px}
-.logout-btn{background:rgba(255,255,255,.12);border:none;border-radius:10px;padding:6px 12px;color:white;font-size:11px;cursor:pointer}
+header{padding:14px 18px 16px;background:linear-gradient(135deg,#3b0764 0%,#5b21b6 50%,#7c3aed 100%);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top));box-shadow:0 6px 24px rgba(124,58,237,.35);position:relative;z-index:10}
+header::before{content:’’;position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent)}
+.h-title{font-size:19px;font-weight:800;letter-spacing:-.4px;color:white;text-shadow:0 1px 3px rgba(0,0,0,.2)}
+.h-sub{font-size:11px;opacity:.85;margin-top:2px;color:white}
+.logout-btn{background:rgba(255,255,255,.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:7px 14px;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.logout-btn:active{transform:scale(.96);background:rgba(255,255,255,.22)}
 
 /* LAYOUT */
-.content{flex:1;overflow-y:auto;padding:14px 14px 88px;-webkit-overflow-scrolling:touch}
-.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(–card);border-top:1px solid var(–border);display:flex;z-index:100;padding-bottom:max(8px,env(safe-area-inset-bottom))}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:none;border:none;color:var(–muted);cursor:pointer;font-family:inherit;transition:color .2s}
-.nav-btn.active{color:var(–p2)}
-.nav-btn span:first-child{font-size:20px}
-.nav-btn span:last-child{font-size:9px;font-weight:700}
+.content{flex:1;overflow-y:auto;padding:14px 14px 92px;-webkit-overflow-scrolling:touch}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(17,17,26,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(–border);display:flex;z-index:100;padding-bottom:max(8px,env(safe-area-inset-bottom));padding-top:6px}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:none;border:none;color:var(–muted);cursor:pointer;font-family:inherit;transition:all .2s;position:relative}
+.nav-btn.active{color:var(–p3)}
+.nav-btn.active::before{content:’’;position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:30px;height:2px;background:linear-gradient(90deg,var(–p1),var(–p2));border-radius:0 0 2px 2px}
+.nav-btn span:first-child{font-size:21px;transition:transform .2s}
+.nav-btn.active span:first-child{transform:scale(1.1)}
+.nav-btn span:last-child{font-size:10px;font-weight:700}
 
 /* PAGES */
-.page{display:none;animation:fadeUp .3s ease both}
+.page{display:none;animation:fadeUp .35s cubic-bezier(.2,.8,.2,1) both}
 .page.active{display:block}
 
 /* AUTH */
 .auth-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;overflow-y:auto}
-.auth-logo{font-size:52px;margin-bottom:10px}
-.auth-title{font-size:26px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-.auth-sub{font-size:12px;color:var(–muted);margin-bottom:28px;text-align:center;line-height:1.6}
-.tabs{display:flex;background:var(–card);border-radius:14px;padding:4px;width:100%;margin-bottom:20px}
-.tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;background:transparent;color:var(–muted);font-family:inherit;transition:all .2s}
-.tab.active{background:var(–p1);color:white}
-.field{width:100%;padding:13px 14px;border-radius:12px;background:var(–card);border:1px solid var(–border);color:var(–text);font-size:14px;outline:none;font-family:inherit;margin-bottom:12px;text-align:right}
-.field:focus{border-color:var(–p2)}
-.btn{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(90deg,var(–p1),var(–p2));color:white;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px}
-.btn:active{opacity:.85}
-.msg-ok{background:#14532d;color:var(–green);border-radius:10px;padding:10px;font-size:12px;margin-bottom:10px;text-align:center}
-.msg-err{background:#450a0a;color:var(–red);border-radius:10px;padding:10px;font-size:12px;margin-bottom:10px;text-align:center}
+.auth-logo{font-size:56px;margin-bottom:10px;filter:drop-shadow(0 4px 12px rgba(124,58,237,.4))}
+.auth-title{font-size:28px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;letter-spacing:-.5px}
+.auth-sub{font-size:13px;color:var(–muted);margin-bottom:28px;text-align:center;line-height:1.6}
+.tabs{display:flex;background:var(–card);border-radius:14px;padding:4px;width:100%;margin-bottom:20px;border:1px solid var(–border)}
+.tab{flex:1;padding:11px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;background:transparent;color:var(–muted);font-family:inherit;transition:all .25s}
+.tab.active{background:linear-gradient(90deg,var(–p1),var(–p2));color:white;box-shadow:0 4px 12px rgba(124,58,237,.3)}
+.field{width:100%;padding:14px 16px;border-radius:14px;background:var(–card);border:1px solid var(–border);color:var(–text);font-size:15px;outline:none;font-family:inherit;margin-bottom:12px;text-align:right;transition:all .2s}
+.field:focus{border-color:var(–p2);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+.btn{width:100%;padding:15px;border-radius:14px;border:none;background:linear-gradient(90deg,var(–p1),var(–p2));color:white;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:4px;box-shadow:0 6px 20px rgba(124,58,237,.35);transition:all .2s;letter-spacing:-.2px}
+.btn:active{transform:scale(.98);box-shadow:0 3px 12px rgba(124,58,237,.4)}
+.msg-ok{background:linear-gradient(135deg,#14532d,#166534);color:var(–green);border-radius:12px;padding:12px;font-size:13px;margin-bottom:12px;text-align:center;border:1px solid rgba(34,197,94,.3)}
+.msg-err{background:linear-gradient(135deg,#450a0a,#7f1d1d);color:#fca5a5;border-radius:12px;padding:12px;font-size:13px;margin-bottom:12px;text-align:center;border:1px solid rgba(239,68,68,.3)}
 
 /* CARDS */
-.card{background:var(–card);border:1px solid var(–border);border-radius:18px;padding:16px 18px;margin-bottom:12px}
-.card-title{font-size:14px;font-weight:700;margin-bottom:12px}
+.card{background:var(–card);border:1px solid var(–border);border-radius:18px;padding:16px 18px;margin-bottom:12px;transition:transform .15s}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px;letter-spacing:-.2px}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#1e0a4e,#2d1264,#1a0533);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:20px;margin-bottom:12px;position:relative;overflow:hidden}
-.hero::before{content:’’;position:absolute;top:-40px;left:-40px;width:140px;height:140px;background:var(–p2);border-radius:50%;opacity:.08}
-.hero-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px}
-.hero-amount{font-size:32px;font-weight:800;margin:6px 0 2px}
-.hero-sub{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:16px}
-.stats-row{display:flex;gap:8px;margin-bottom:14px}
-.stat-box{flex:1;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 8px;text-align:center}
-.stat-box label{font-size:9px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px}
-.stat-box b{font-size:14px;font-weight:700}
-.progress-bar{background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;height:5px}
-.progress-fill{border-radius:99px;height:5px;background:linear-gradient(90deg,var(–p1),var(–p2));transition:width .8s}
+.hero{background:linear-gradient(135deg,#1e0a4e 0%,#2d1264 50%,#1a0533 100%);border:1px solid rgba(124,58,237,.4);border-radius:22px;padding:22px;margin-bottom:14px;position:relative;overflow:hidden;box-shadow:0 8px 28px rgba(124,58,237,.2)}
+.hero::before{content:’’;position:absolute;top:-50px;left:-50px;width:160px;height:160px;background:radial-gradient(circle,var(–p3) 0%,transparent 70%);opacity:.18;border-radius:50%}
+.hero::after{content:’’;position:absolute;bottom:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(circle,var(–p1) 0%,transparent 70%);opacity:.12;border-radius:50%}
+.hero-label{font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:1.5px;font-weight:600}
+.hero-amount{font-size:36px;font-weight:800;margin:8px 0 4px;letter-spacing:-1px;text-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:18px}
+.stats-row{display:flex;gap:8px;margin-bottom:14px;position:relative;z-index:1}
+.stat-box{flex:1;background:rgba(255,255,255,.07);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px;padding:12px 8px;text-align:center;border:1px solid rgba(255,255,255,.06)}
+.stat-box label{font-size:9px;color:rgba(255,255,255,.55);display:block;margin-bottom:4px;font-weight:600;letter-spacing:.5px}
+.stat-box b{font-size:14px;font-weight:800}
+.progress-bar{background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;height:6px;position:relative;z-index:1}
+.progress-fill{border-radius:99px;height:6px;background:linear-gradient(90deg,#22c55e,#a78bfa,var(–p2));transition:width 1s cubic-bezier(.4,0,.2,1);box-shadow:0 0 12px rgba(167,139,250,.5)}
 
 /* QUICK */
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-.quick-btn{padding:10px 4px;border-radius:14px;border:1px solid var(–border);background:var(–card);color:var(–text);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;transition:all .15s}
-.quick-btn:active{transform:scale(.93)}
-.q-emoji{font-size:20px;display:block;margin-bottom:3px}
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.quick-btn{padding:12px 4px;border-radius:16px;border:1px solid var(–border);background:linear-gradient(135deg,var(–card),var(–card2));color:var(–text);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;transition:all .15s}
+.quick-btn:active{transform:scale(.93);border-color:var(–p2)}
+.q-emoji{font-size:22px;display:block;margin-bottom:4px}
 
 /* TRANSACTIONS */
-.tx-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(–border)}
+.tx-item{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(–border);transition:background .15s}
 .tx-item:last-child{border-bottom:none}
-.tx-icon{width:36px;height:36px;border-radius:10px;background:var(–card2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.tx-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
-.tx-meta{font-size:10px;color:var(–muted);margin-top:2px}
-.tx-amount{font-weight:700;font-size:14px}
+.tx-item:active{background:rgba(124,58,237,.05)}
+.tx-icon{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(–card2),var(–card));display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.tx-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.tx-meta{font-size:10px;color:var(–muted);margin-top:3px}
+.tx-amount{font-weight:800;font-size:14px;letter-spacing:-.3px}
+.del-btn{background:rgba(239,68,68,.1);border:none;border-radius:10px;width:30px;height:30px;color:var(–red);cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.del-btn:active{transform:scale(.9);background:rgba(239,68,68,.2)}
 .del-btn{background:#3a0a0a;border:none;border-radius:8px;width:28px;height:28px;color:var(–red);cursor:pointer;font-size:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 
 /* FORM */
@@ -734,6 +743,8 @@ async function importPDF(file, statusEl) {
     }
 
     // ── שיטה 1: הפועלים — DD/MM/YYYY מלא ──────────────────────
+    let hapoalimLastBalance = null; // יתרה אחרונה מה-PDF להפועלים
+    let hapoalimFirstBalance = null; // יתרה ראשונה מה-PDF להפועלים
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].replace(/^#+\s*/, '').trim();
       if (HEADER_RE.test(line)) continue;
@@ -749,6 +760,17 @@ async function importPDF(file, statusEl) {
       const amtStr = allNums[allNums.length - 1];
       const amt = parseFloat(amtStr.replace(/,/g, ''));
       if (!amt || isNaN(amt) || amt === 0) continue;
+
+      // יתרה = המספר הראשון בשורה (ב-Hapoalim)
+      if (allNums.length >= 2) {
+        const balanceStr = allNums[0];
+        const bal = parseFloat(balanceStr.replace(/,/g, ''));
+        if (!isNaN(bal)) {
+          if (hapoalimFirstBalance === null) hapoalimFirstBalance = bal;
+          hapoalimLastBalance = bal;
+        }
+      }
+
       let desc = '';
       const lastPos = before.lastIndexOf(amtStr);
       const afterNum = before.substring(lastPos + amtStr.length).trim();
@@ -770,7 +792,29 @@ async function importPDF(file, statusEl) {
       });
     }
 
-    // ── שיטה 2: לאומי/דיסקונט — DD/MM קצר ─────────────────────
+    // אם הפועלים נמצא — חשב יתרת פתיחה אמיתית
+    if (transactions.length > 0 && hapoalimFirstBalance !== null && hapoalimLastBalance !== null) {
+      // ב-Hapoalim, השורה הראשונה היא העסקה החדשה ביותר
+      // לכן: הfirstBalance = יתרה אחרי העסקה החדשה ביותר (= יתרה סופית כיום)
+      // הlastBalance = יתרה אחרי העסקה הישנה ביותר (= יתרה אחרי הפתיחה)
+      const sumTx = transactions.reduce((s, t) => s + t.amount, 0);
+      // יתרה סופית = firstBalance (השורה הראשונה ב-PDF היא העדכנית ביותר)
+      // יתרה פתיחה = יתרה סופית - סכום העסקאות
+      const calcOpening = hapoalimFirstBalance - sumTx;
+      if (Math.abs(calcOpening) > 0.01) {
+        if (openingBalance === null || Math.abs(calcOpening - openingBalance) > 0.5) {
+          openingBalance = calcOpening;
+        }
+      }
+    }
+
+    // ── שיטה 2: לאומי/דיסקונט/מזרחי — DD/MM קצר ─────────────
+    // לאומי משתמש 4 עמודות: אסמכתא | זכות | חובה | יתרה
+    // - אסמכתא = מספר שלם (4-7 ספרות) ללא נקודה
+    // - זכות = מספר עם נקודה עשרונית
+    // - חובה = מספר עם נקודה עשרונית
+    // - יתרה = מספר עם נקודה עשרונית (תמיד יתרה הולכת ועולה/יורדת)
+    let lastBalance = null;
     if (transactions.length < 3) {
       transactions.length = 0;
       let prevBalance = openingBalance;
@@ -785,38 +829,98 @@ async function importPDF(file, statusEl) {
         const dd = sdMatch[1], mm = sdMatch[2];
         const isoDate = resolveYear(dd, mm) + '-' + mm.padStart(2, '0') + '-' + dd.padStart(2, '0');
         const noDate = line.replace(sdMatch[0], '').trim();
-        // רק מספרים עם נקודה עשרונית = סכומים אמיתיים (לא אסמכתאות)
+
+        // רק מספרים עם נקודה עשרונית = סכומים אמיתיים
         const decNums = (noDate.match(/\d[\d,]*\.\d+/g) || []).map(n => parseFloat(n.replace(/,/g, ''))).filter(n => n > 0);
         if (decNums.length < 1) continue;
-        decNums.sort((a, b) => b - a);
-        const balance = decNums[0];
-        const amt = decNums.length >= 2 ? decNums[1] : decNums[0];
+
+        // ── זיהוי יתרה: המספר שמתאים לרצף הצפוי ─────────
+        let balance = null;
+        let amt = null;
+
+        if (prevBalance !== null && decNums.length >= 2) {
+          // נסה כל זוג (amt, balance) שמתאים: balance = prevBalance + amt או prevBalance - amt
+          for (const candidate_balance of decNums) {
+            for (const candidate_amt of decNums) {
+              if (candidate_balance === candidate_amt) continue;
+              if (Math.abs((prevBalance + candidate_amt) - candidate_balance) < 0.01) {
+                balance = candidate_balance;
+                amt = candidate_amt;
+                break;
+              }
+              if (Math.abs((prevBalance - candidate_amt) - candidate_balance) < 0.01) {
+                balance = candidate_balance;
+                amt = -candidate_amt;
+                break;
+              }
+            }
+            if (balance !== null) break;
+          }
+        }
+
+        // נפילה לאחור: הגדול ביותר = יתרה, השני = סכום
+        if (balance === null) {
+          const sorted = [...decNums].sort((a, b) => b - a);
+          balance = sorted[0];
+          amt = sorted.length >= 2 ? sorted[1] : sorted[0];
+          if (amt === balance) continue;
+        }
+
         if (!amt || amt === 0) continue;
+
         const hebWords = (noDate.match(/[\u0590-\u05FF][\u0590-\u05FF\s\-\.׳״'"\/]*/g) || []);
         const desc = hebWords.join(' ').replace(/\s+/g, ' ').trim();
         if (!desc || desc.length < 2 || HEADER_RE.test(desc)) continue;
+
+        // ── סימון: השוואה ליתרה הקודמת ─────────────
         let signed;
         if (prevBalance !== null) {
+          // אם יתרה גדלה → זכות, ירדה → חובה
           signed = balance > prevBalance ? +Math.abs(amt) : -Math.abs(amt);
+        } else if (amt < 0) {
+          signed = amt; // הסכום כבר חתום
         } else {
-          signed = /הפקד|שיק|בנק הפועלים|בנק הדואר|זיכוי|העברה/.test(desc) ? +Math.abs(amt) : -Math.abs(amt);
+          // אין יתרה קודמת — נחש לפי טקסט
+          signed = /הפקד|שיק|בנק.{0,4}הפועלים|בנק.{0,4}הדואר|זיכוי|העברה.{0,4}דיגיטל|הע\..{0,4}אינטרנט/.test(desc) ? +Math.abs(amt) : -Math.abs(amt);
         }
+
         prevBalance = balance;
+        lastBalance = balance;
         transactions.push({ date: isoDate, label: desc, amount: signed });
       }
     }
 
-    // הוסף יתרת פתיחה כעסקה בתחילת הרשימה
-    if (openingBalance !== null && openingBalance !== 0) {
-      const firstDate = transactions.length > 0
-        ? transactions[transactions.length - 1].date
-        : docYear + '-' + String(docMonth).padStart(2,'0') + '-01';
-      // חשב תאריך יום אחד לפני העסקה הראשונה
-      const d = new Date(firstDate);
-      d.setDate(d.getDate() - 1);
-      const openDate = d.toISOString().split('T')[0];
+    // ── יתרת פתיחה — חישוב מדויק ─────────────────────────────
+    // החישוב: יתרת פתיחה צריכה להיות כך שיתרה סופית = יתרת פתיחה + סכום עסקאות
+    if (transactions.length > 0) {
+      const sumTx = transactions.reduce((s, t) => s + t.amount, 0);
+
+      // אם יש יתרת סגירה ידועה מה-PDF
+      if (lastBalance !== null) {
+        // יתרת פתיחה צריכה להיות: lastBalance - sumTx
+        const calculatedOpening = lastBalance - sumTx;
+        // אם יש סתירה עם openingBalance שזיהינו, נסמוך על החישוב
+        if (Math.abs(calculatedOpening - (openingBalance || 0)) > 0.5) {
+          openingBalance = calculatedOpening;
+        }
+      }
+
+      // הוסף יתרת פתיחה כעסקה ראשונה
+      if (openingBalance !== null && Math.abs(openingBalance) > 0.01) {
+        const firstDate = transactions[transactions.length - 1].date;
+        const d = new Date(firstDate);
+        d.setDate(d.getDate() - 1);
+        const openDate = d.toISOString().split('T')[0];
+        transactions.push({
+          date: openDate,
+          label: 'יתרת פתיחה',
+          amount: openingBalance
+        });
+      }
+    } else if (openingBalance !== null && openingBalance !== 0) {
+      // אין עסקאות אבל יש יתרת פתיחה
       transactions.push({
-        date: openDate,
+        date: docYear + '-' + String(docMonth).padStart(2,'0') + '-01',
         label: 'יתרת פתיחה',
         amount: openingBalance
       });
