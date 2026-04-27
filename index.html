@@ -1254,15 +1254,16 @@ async function runAiWizard() {
       myShare = Math.round(totalCost * (myGuests / totalGuests));
     }
     target = target || myShare;
-    // Répartition Israël (salle+repas inclus, donc ~55% du budget)
-    const venueAndFood = Math.round(target * 0.50); // salle+repas combinés
-    const photo = Math.round(target * 0.10);
-    const dj = Math.round(target * 0.07);
-    const dress = Math.round(target * 0.13); // robe rentre plus dans le budget
-    const flowers = Math.round(target * 0.07);
+    // Répartition Israël (salle+repas inclus = environ moitié)
+    // Photo+vidéo et robe en Israël sont chers : on alloue plus
+    const venueAndFood = Math.round(target * 0.42);
+    const photo = Math.round(target * 0.13); // photo+vidéo Israël souvent 5000-10000₪
+    const dj = Math.round(target * 0.06);
+    const dress = Math.round(target * 0.16); // robe location 8000-15000₪ moyenne
+    const flowers = Math.round(target * 0.10); // déco+fleurs en Israël ~10-15k
     const other = target - venueAndFood - photo - dj - dress - flowers;
     const shareLabel = sharedCost === 'all' ? 'אתה משלם הכל' : sharedCost === 'half' ? 'מתחלקים 50/50' : `לפי אורחים (${myGuests}/${totalGuests})`;
-    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(סטנדרטי 1,500-4,000₪ · יוקרתי 4,000-8,000₪)</small><br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(סטנדרטי 2,500-4,500₪)</small><br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(השכרת שמלה ממוצעת 8,000-12,000₪ · יוקרתי עד 60,000₪)</small><br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• בישראל משכירים שמלות, לא קונים<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• חודשי שיא יקרים ב-15-20%<br>• הזמן את האולם 12 חודשים מראש`;
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(שוק ישראלי: 5,000-10,000₪ סטנדרטי, 10,000-20,000₪ פרימיום)</small><br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(2,500-4,500₪)</small><br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(שמלה ממוצעת 8,000-15,000₪, יוקרתי 15,000-30,000₪)</small><br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(8,000-15,000₪ סטנדרטי)</small><br>✨ שאר (כיפה, הזמנות, איפור...): ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• בישראל משכירים שמלות, לא קונים<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• חודשי שיא יקרים ב-15-20%<br>• הזמן את האולם 12 חודשים מראש`;
   } else if (wizardType==='voiture') {
     target = target || 80000;
     const downPayment = Math.round(target * 0.25);
@@ -1283,7 +1284,7 @@ async function runAiWizard() {
     const monthlyPay = Math.round(loan * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1));
     const projectTarget = apport;
     aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>📅 ${months} חודשים לחיסכון<br><br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש<br><small style="color:var(--muted)">(חישוב: ${yearTerms} שנים, ריבית 5%)</small><br><br>💡 <strong>טיפים בנק ישראל 2026:</strong><br>• <strong>מינימום 25% הון עצמי</strong> לדירה ראשונה (75% מימון מקסימום)<br>• דירה שנייה: 50% הון עצמי<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהנחה? אפשר פחות מ-25%`;
-    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות (מעבר להון עצמי):</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪<br>👨‍⚖️ עו"ד+תיווך: ~${Math.round(target*0.04).toLocaleString('he-IL')} ₪<br>🛠 שיפוץ ראשוני: לפי מצב הדירה</div>`;
+    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות (מעבר להון עצמי):</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪ <small>(5%, דירה ראשונה לרוב פטור עד 1.97M)</small><br>👨‍⚖️ עו"ד: ${Math.round(target*0.005).toLocaleString('he-IL')}-${Math.round(target*0.01).toLocaleString('he-IL')} ₪ <small>(0.5-1% + מע"מ)</small><br>🏘 תיווך: ${Math.round(target*0.01).toLocaleString('he-IL')}-${Math.round(target*0.02).toLocaleString('he-IL')} ₪ <small>(1-2% + מע"מ, ניתן למו"מ)</small><br>🛠 שיפוץ ראשוני: לפי מצב הדירה</div>`;
     target = projectTarget;
   } else if (wizardType==='epargne') {
     target = target || 50000;
@@ -1412,7 +1413,6 @@ async function loadStats() {
   all.filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catMap[c]=(catMap[c]||0)+Math.abs(t.amount);});
   const catLabels=Object.keys(catMap),catValues=Object.values(catMap);
 
-  // Time series grouping based on period
   const groupKey = (d) => {
     if (statsPeriod === 'week') return d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});
     if (statsPeriod === 'month') return d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});
@@ -1432,8 +1432,58 @@ async function loadStats() {
   const savings=income-expenses;
   const periodLabel = {week:'שבוע',month:'חודש',quarter:'רבעון',year:'שנה',all:'הכל'}[statsPeriod];
 
+  // Compare with previous period
+  const periodMs = end - start;
+  const prevStart = new Date(start.getTime() - periodMs);
+  const prevEnd = new Date(start.getTime() - 1);
+  const prev = allRaw.filter(t => { const d = new Date(t.created_at); return d >= prevStart && d <= prevEnd; });
+  const prevIncome = prev.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const prevExpenses = prev.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const prevSavings = prevIncome - prevExpenses;
+
+  const pctChange = (curr, prev) => {
+    if (prev === 0) return null;
+    return Math.round(((curr - prev) / Math.abs(prev)) * 100);
+  };
+  const fmtPct = (pct, isExpense) => {
+    if (pct === null) return '<span style="font-size:10px;color:var(--muted)">חדש</span>';
+    const goodDirection = isExpense ? pct < 0 : pct > 0;
+    const color = pct === 0 ? 'var(--muted)' : (goodDirection ? 'var(--green)' : 'var(--red)');
+    const arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '=';
+    return `<span style="font-size:10px;color:${color};font-weight:700">${arrow} ${Math.abs(pct)}%</span>`;
+  };
+
+  const incomeChange = pctChange(income, prevIncome);
+  const expensesChange = pctChange(expenses, prevExpenses);
+  const savingsChange = pctChange(savings, prevSavings);
+
+  // Show comparison only if there is previous data
+  const hasComparison = prev.length > 0;
+  const comparisonBlock = hasComparison ? `
+    <div class="card fu fu1" style="margin-top:8px">
+      <div class="rubik" style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--muted)">📊 השוואה ל${periodLabel} הקודם</div>
+      <div style="display:flex;gap:8px;justify-content:space-between">
+        <div style="flex:1;text-align:center;padding:8px;background:var(--green-soft);border-radius:10px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px">הכנסות</div>
+          <div style="font-size:11px;font-weight:700;color:var(--green);direction:ltr;margin-bottom:2px">${prevIncome.toLocaleString('he-IL')} ₪</div>
+          ${fmtPct(incomeChange, false)}
+        </div>
+        <div style="flex:1;text-align:center;padding:8px;background:var(--red-soft);border-radius:10px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px">הוצאות</div>
+          <div style="font-size:11px;font-weight:700;color:var(--red);direction:ltr;margin-bottom:2px">${prevExpenses.toLocaleString('he-IL')} ₪</div>
+          ${fmtPct(expensesChange, true)}
+        </div>
+        <div style="flex:1;text-align:center;padding:8px;background:var(--accent-soft);border-radius:10px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px">חיסכון</div>
+          <div style="font-size:11px;font-weight:700;color:${prevSavings>=0?'var(--accent)':'var(--red)'};direction:ltr;margin-bottom:2px">${prevSavings.toLocaleString('he-IL')} ₪</div>
+          ${fmtPct(savingsChange, false)}
+        </div>
+      </div>
+    </div>` : '';
+
   el.innerHTML=`<div class="card fu fu1"><div class="rubik sec-title">סיכום ${periodLabel}</div><div style="display:flex;gap:8px"><div class="stat-mini"><label>הכנסות</label><b style="color:var(--green);direction:ltr">${income.toLocaleString('he-IL')} ₪</b></div><div class="stat-mini"><label>הוצאות</label><b style="color:var(--red);direction:ltr">${expenses.toLocaleString('he-IL')} ₪</b></div><div class="stat-mini"><label>חיסכון</label><b style="direction:ltr;color:${savings>=0?'var(--accent)':'var(--red)'}">${savings.toLocaleString('he-IL')} ₪</b></div></div></div>
-    <div class="card fu fu2"><div class="chart-tabs"><button class="chart-tab active" onclick="switchChart('donut',this)">🍩 קטגוריות</button><button class="chart-tab" onclick="switchChart('bar',this)">📊 ${periodLabel}</button><button class="chart-tab" onclick="switchChart('line',this)">📈 יתרה</button></div>
+    ${comparisonBlock}
+    <div class="card fu fu2" style="margin-top:8px"><div class="chart-tabs"><button class="chart-tab active" onclick="switchChart('donut',this)">🍩 קטגוריות</button><button class="chart-tab" onclick="switchChart('bar',this)">📊 ${periodLabel}</button><button class="chart-tab" onclick="switchChart('line',this)">📈 יתרה</button></div>
       <div id="panel-donut" class="chart-panel active"><div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;"><canvas id="chart-donut"></canvas></div><div id="donut-legend" style="margin-top:12px"></div></div>
       <div id="panel-bar" class="chart-panel"><div style="position:relative;height:220px;"><canvas id="chart-bar"></canvas></div></div>
       <div id="panel-line" class="chart-panel"><div style="position:relative;height:220px;"><canvas id="chart-line"></canvas></div></div>
