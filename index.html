@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -357,11 +358,19 @@ const RULES = [
   [/hot.?mobile|partner|פרטנר|cellcom|סלקום|019|012|amazon|אמזון|microsoft|adobe|icloud|google.?one|dropbox|subscription|מנוי|חבילה|פלאפון/i, 'Abonnements'],
   [/university|אוניברסיטה|college|מכללה|ulpan|אולפן|school|בית.?ספר|kindergarten|גן.?ילדים|tutor|שיעורים|לימודים/i, 'Éducation'],
   [/pension|פנסיה|insurance|ביטוח|savings|חיסכון|investment|השקעה|bank.?fee|עמלת|loan|הלוואה|gemel|גמל|השתלמות/i, 'Épargne'],
-  [/salary|משכורת|payroll|bituach.?leumi|ביטוח.?לאומי|zikuy|זיכוי/i, 'Salaire'],
+  [/salary|משכורת|payroll|שכר חודשי|zikuy|זיכוי/i, 'Salaire'],
 ];
 
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
+  // Special handling for ביטוח לאומי : if it's a charge (negative) it's a tax/cotisation, not salaire
+  if (/ביטוח.?לאומי|bituach.?leumi/i.test(label)) {
+    return amount > 0 ? 'Salaire' : 'Logement'; // allocations reçues vs cotisation payée
+  }
+  // Tax / impôts always Logement (charges fixes)
+  if (/מס הכנסה|income.?tax|מע.?מ|vat|tax|מס/i.test(label) && !/משכורת|salary/i.test(label)) {
+    return 'Logement';
+  }
   for (const [re, cat] of RULES) { if (re.test(label)) return cat; }
   return amount > 0 ? 'Salaire' : 'Divers';
 }
@@ -846,11 +855,7 @@ async function loadDashboard() {
   const { data:txs } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
   const all = txs||[];
   const now = new Date();
-  const thisMonth = all.filter(t => { const d=new Date(t.created_at); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); });
-  const income = thisMonth.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
-  const expenses = thisMonth.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
-  const balance = income-expenses;
-  const pct = income>0?Math.min(100,Math.round((balance/income)*100)):0;
+
   if (all.length===0) {
     el.innerHTML=`<div class="hero fu fu1">
       <div style="font-size:11px;color:var(--muted)">ברוכים הבאים 👋</div>
@@ -859,10 +864,30 @@ async function loadDashboard() {
       <button onclick="showView('bank',document.querySelectorAll('.nav-item')[1])" style="padding:10px 20px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Rubik',sans-serif;">📥 ייבא עכשיו</button>
     </div>`; return;
   }
+
+  // Smart period: try current month first, if empty fall back to last month with data
+  let displayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  let displayTxs = all.filter(t => { const d=new Date(t.created_at); return d.getMonth()===displayMonth.getMonth()&&d.getFullYear()===displayMonth.getFullYear(); });
+  let isCurrentMonth = true;
+
+  if (displayTxs.length === 0) {
+    // Find the most recent month that has transactions
+    const mostRecentTx = new Date(all[0].created_at);
+    displayMonth = new Date(mostRecentTx.getFullYear(), mostRecentTx.getMonth(), 1);
+    displayTxs = all.filter(t => { const d=new Date(t.created_at); return d.getMonth()===displayMonth.getMonth()&&d.getFullYear()===displayMonth.getFullYear(); });
+    isCurrentMonth = false;
+  }
+
+  const income = displayTxs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const expenses = displayTxs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const balance = income-expenses;
+  const pct = income>0?Math.min(100,Math.round((balance/income)*100)):0;
+  const monthLabel = displayMonth.toLocaleDateString('he-IL',{month:'long',year:'numeric'});
+
   el.innerHTML=`<div class="hero fu fu1">
-    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${now.toLocaleDateString('he-IL',{month:'long',year:'numeric'})}</div>
+    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${monthLabel}${isCurrentMonth?'':' (אחרון)'}</div>
     <div class="rubik" style="font-size:28px;font-weight:800;margin:4px 0;direction:ltr;text-align:right;color:${balance>=0?'var(--text)':'var(--red)'}">${balance.toLocaleString('he-IL')} ₪</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">יתרה חודשית</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">${isCurrentMonth?'יתרה חודשית':'חודש אחרון עם נתונים'}</div>
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <div class="stat-mini"><label>הכנסות</label><b style="color:var(--green);direction:ltr">${income.toLocaleString('he-IL')} ₪</b></div>
       <div class="stat-mini"><label>הוצאות</label><b style="color:var(--red);direction:ltr">${expenses.toLocaleString('he-IL')} ₪</b></div>
