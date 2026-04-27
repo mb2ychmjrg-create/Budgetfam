@@ -364,6 +364,10 @@ const RULES = [
 
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
+  // Priority: Mortgage / housing loan (משכנתא) is ALWAYS Logement, even if combined with הלוואה
+  if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) {
+    return 'Logement';
+  }
   // Allocations / aides sociales (toujours, peu importe le signe)
   if (/קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|disability|הבטחת.?הכנסה/i.test(label)) {
     return 'Allocations';
@@ -670,7 +674,7 @@ function showReviewModal(fileName, source) {
   extractedTxs.forEach(t => {
     const local = localCategorize(t.label, t.amount);
     // Override Claude's category for these specific Israeli cases
-    const overridePatterns = /קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|הבטחת.?הכנסה|ביטוח.?לאומי|bituach.?leumi|מס הכנסה|income.?tax|מע.?מ|vat/i;
+    const overridePatterns = /קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|הבטחת.?הכנסה|ביטוח.?לאומי|bituach.?leumi|מס הכנסה|income.?tax|מע.?מ|vat|משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא/i;
     if (overridePatterns.test(t.label)) {
       t.category = local;
     } else if (!t.category || t.category === 'Divers') {
