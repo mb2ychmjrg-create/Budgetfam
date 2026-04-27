@@ -345,7 +345,8 @@ const PALETTE = ['#4F8EF7','#2ECC8A','#F7506A','#F7C948','#A78BFA','#FB923C','#3
 const CAT_HE = {
   'Alimentation':'מזון','Logement':'דיור','Transport':'תחבורה','Loisirs':'בילויים',
   'Santé':'בריאות','Épargne':'חיסכון','Divers':'שונות','Salaire':'משכורת',
-  'Cadeau':'מתנה','Investissement':'השקעה','Abonnements':'מנויים','Éducation':'חינוך'
+  'Cadeau':'מתנה','Investissement':'השקעה','Abonnements':'מנויים','Éducation':'חינוך',
+  'Allocations':'קצבאות'
 };
 function catHe(cat){return CAT_HE[cat]||cat;}
 
@@ -363,12 +364,16 @@ const RULES = [
 
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
-  // Special handling for ביטוח לאומי : if it's a charge (negative) it's a tax/cotisation, not salaire
-  if (/ביטוח.?לאומי|bituach.?leumi/i.test(label)) {
-    return amount > 0 ? 'Salaire' : 'Logement'; // allocations reçues vs cotisation payée
+  // Allocations / aides sociales (toujours, peu importe le signe)
+  if (/קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|disability|הבטחת.?הכנסה/i.test(label)) {
+    return 'Allocations';
   }
-  // Tax / impôts always Logement (charges fixes)
-  if (/מס הכנסה|income.?tax|מע.?מ|vat|tax|מס/i.test(label) && !/משכורת|salary/i.test(label)) {
+  // ביטוח לאומי seul (sans précision) : si crédit = allocation, si débit = cotisation
+  if (/ביטוח.?לאומי|bituach.?leumi/i.test(label)) {
+    return amount > 0 ? 'Allocations' : 'Logement';
+  }
+  // Taxes / impôts always Logement (charges fixes)
+  if (/מס הכנסה|income.?tax|מע.?מ|vat|^tax$|מס שבח|מס רכישה/i.test(label) && !/משכורת|salary/i.test(label)) {
     return 'Logement';
   }
   for (const [re, cat] of RULES) { if (re.test(label)) return cat; }
@@ -447,7 +452,7 @@ function normalizeCategory(raw) {
   if (!raw) return null;
   const r = raw.toString().toLowerCase().trim();
   // French (already correct) - check first
-  const validCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Sante','Épargne','Epargne','Divers','Salaire','Cadeau','Investissement','Abonnements','Éducation','Education'];
+  const validCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Sante','Épargne','Epargne','Divers','Salaire','Cadeau','Investissement','Abonnements','Éducation','Education','Allocations'];
   for (const v of validCats) {
     if (r === v.toLowerCase()) return v.replace('Sante','Santé').replace('Epargne','Épargne').replace('Education','Éducation');
   }
@@ -462,6 +467,7 @@ function normalizeCategory(raw) {
     'מנויים':'Abonnements','מנוי':'Abonnements','חבילה':'Abonnements','טלפון':'Abonnements','אינטרנט':'Abonnements',
     'חינוך':'Éducation','לימודים':'Éducation','בית ספר':'Éducation','אוניברסיטה':'Éducation',
     'משכורת':'Salaire','שכר':'Salaire','הכנסה':'Salaire',
+    'קצבה':'Allocations','קצבאות':'Allocations','קצבת ילדים':'Allocations','דמי לידה':'Allocations','אבטלה':'Allocations',
     'שונות':'Divers','אחר':'Divers','אחרים':'Divers'
   };
   for (const [he, fr] of Object.entries(heMap)) {
@@ -478,6 +484,7 @@ function normalizeCategory(raw) {
     'subscription':'Abonnements','phone':'Abonnements','internet':'Abonnements',
     'education':'Éducation','school':'Éducation',
     'salary':'Salaire','income':'Salaire',
+    'allocation':'Allocations','benefit':'Allocations','child benefit':'Allocations','unemployment':'Allocations','maternity':'Allocations',
     'other':'Divers','misc':'Divers','miscellaneous':'Divers'
   };
   for (const [en, fr] of Object.entries(enMap)) {
@@ -648,10 +655,16 @@ async function handleCSVImport(input) {
 }
 
 function showReviewModal(fileName, source) {
-  // Re-categorize locally only if category is missing or still Divers
+  // ALWAYS re-categorize locally to catch Israeli-specific cases (bituach leumi, etc.)
+  // This overrides Claude's category if local rules detect a more specific match
   extractedTxs.forEach(t => {
-    if (!t.category || t.category === 'Divers') {
-      const local = localCategorize(t.label, t.amount);
+    const local = localCategorize(t.label, t.amount);
+    // Override Claude's category for these specific Israeli cases
+    const overridePatterns = /קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|הבטחת.?הכנסה|ביטוח.?לאומי|bituach.?leumi|מס הכנסה|income.?tax|מע.?מ|vat/i;
+    if (overridePatterns.test(t.label)) {
+      t.category = local;
+    } else if (!t.category || t.category === 'Divers') {
+      // For other transactions, only override if still Divers
       if (local !== 'Divers') t.category = local;
     }
     // Special: if income (positive amount) and label suggests salary
@@ -927,7 +940,7 @@ async function loadTransactions() {
 async function openEditTx(id) {
   const { data: t } = await sb.from('transactions').select('*').eq('id', id).single();
   if (!t) return;
-  const cats = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Abonnements','Éducation','Salaire','Cadeau','Investissement','Divers'];
+  const cats = ['Alimentation','Logement','Transport','Loisirs','Santé','Épargne','Abonnements','Éducation','Salaire','Allocations','Cadeau','Investissement','Divers'];
   const c = document.getElementById('edit-modal-content');
   c.innerHTML = `
     <div style="text-align:center;margin-bottom:16px">
@@ -1255,7 +1268,7 @@ async function loadFamilyData(){
   if(data?.families){currentFamily=data.families;const{data:m}=await sb.from('family_members').select('*').eq('family_id',currentFamily.id);familyMembers=m||[];}
 }
 
-function getCatIcon(cat){const m={Alimentation:'🛒',Logement:'🏠',Transport:'🚗',Loisirs:'🎮',Santé:'💊',Épargne:'💰',Divers:'📦',Salaire:'💼',Cadeau:'🎁',Investissement:'📈',Abonnements:'📱',Éducation:'🎓'};return m[cat]||'💸';}
+function getCatIcon(cat){const m={Alimentation:'🛒',Logement:'🏠',Transport:'🚗',Loisirs:'🎮',Santé:'💊',Épargne:'💰',Divers:'📦',Salaire:'💼',Cadeau:'🎁',Investissement:'📈',Abonnements:'📱',Éducation:'🎓',Allocations:'🤝'};return m[cat]||'💸';}
 function formatDate(d){if(!d)return'';return new Date(d).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});}
 function setType(t){
   txType=t;
