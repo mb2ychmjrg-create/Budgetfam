@@ -1175,7 +1175,7 @@ function renderWizardStep1() {
   c.innerHTML=`<div class="steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
     <div class="rubik" style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center">איזה פרויקט? 🎯</div>
     <div class="proj-type-grid">
-      ${[{k:'mariage',e:'💒',l:'חתונה'},{k:'voiture',e:'🚗',l:'רכב'},{k:'immobilier',e:'🏠',l:'דירה'},{k:'vacances',e:'✈️',l:'חופשה'},{k:'etudes',e:'🎓',l:'לימודים'},{k:'autre',e:'🎯',l:'אחר'}].map(t=>`<button class="proj-type-btn ${wizardType===t.k?'active':''}" onclick="wizardType='${t.k}';document.querySelectorAll('.proj-type-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')"><span class="pt-emoji">${t.e}</span>${t.l}</button>`).join('')}
+      ${[{k:'mariage',e:'💒',l:'חתונה'},{k:'voiture',e:'🚗',l:'רכב'},{k:'immobilier',e:'🏠',l:'דירה'},{k:'vacances',e:'✈️',l:'חופשה'},{k:'etudes',e:'🎓',l:'לימודים'},{k:'epargne',e:'🪙',l:'חיסכון'},{k:'autre',e:'🎯',l:'אחר'}].map(t=>`<button class="proj-type-btn ${wizardType===t.k?'active':''}" onclick="wizardType='${t.k}';document.querySelectorAll('.proj-type-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')"><span class="pt-emoji">${t.e}</span>${t.l}</button>`).join('')}
     </div>
     <button onclick="renderWizardStep2()" class="submit-btn">המשך ←</button>`;
 }
@@ -1183,9 +1183,30 @@ function renderWizardStep2() {
   const c=document.getElementById('proj-modal-content');
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
     <div class="rubik" style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center">${getProjEmoji(wizardType)} פרטים</div>
-    ${wizardType==='mariage'?`<label class="field-label">עבור מי?</label><input class="field" id="w-who" placeholder="לדוגמה: שרה" type="text"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month"><label class="field-label">מספר אורחים</label><input class="field" id="w-guests" placeholder="200" type="number"><label class="field-label">סגנון</label><select class="select-field" id="w-style"><option value="simple">פשוט</option><option value="classique" selected>קלאסי</option><option value="luxe">יוקרתי</option></select>`:
+    ${wizardType==='mariage'?`
+      <label class="field-label">עבור מי?</label>
+      <input class="field" id="w-who" placeholder="לדוגמה: שרה" type="text">
+      <label class="field-label">תאריך</label>
+      <input class="field" id="w-date" type="month">
+      <label class="field-label">סך כל האורחים (שני הצדדים)</label>
+      <input class="field" id="w-guests" placeholder="200" type="number" style="direction:ltr">
+      <label class="field-label">אורחים מצידך בלבד (אופציונלי)</label>
+      <input class="field" id="w-guests-mine" placeholder="100" type="number" style="direction:ltr">
+      <label class="field-label">איך מתחלקות ההוצאות?</label>
+      <select class="select-field" id="w-shared">
+        <option value="half" selected>50/50 בין שתי המשפחות</option>
+        <option value="guests">לפי מספר אורחים מכל צד</option>
+        <option value="all">אני משלם את הכל</option>
+      </select>
+      <label class="field-label">סגנון</label>
+      <select class="select-field" id="w-style">
+        <option value="simple">פשוט (~500₪/אורח)</option>
+        <option value="classique" selected>קלאסי (~850₪/אורח)</option>
+        <option value="luxe">יוקרתי (~1500₪/אורח)</option>
+      </select>`:
     wizardType==='voiture'?`<label class="field-label">סוג</label><select class="select-field" id="w-style"><option>יד שנייה</option><option>חדש</option><option>SUV</option><option>חשמלי</option></select><label class="field-label">תקציב (₪)</label><input class="field" id="w-budget" placeholder="80000" type="number" style="direction:ltr"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`:
-    wizardType==='immobilier'?`<label class="field-label">מחיר (₪)</label><input class="field" id="w-budget" placeholder="1500000" type="number" style="direction:ltr"><label class="field-label">הון עצמי (%)</label><input class="field" id="w-pct" placeholder="25" type="number" style="direction:ltr"><label class="field-label">עיר</label><input class="field" id="w-region" placeholder="תל אביב" type="text"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`:
+    wizardType==='immobilier'?`<label class="field-label">מחיר הדירה (₪)</label><input class="field" id="w-budget" placeholder="1500000" type="number" style="direction:ltr"><label class="field-label">הון עצמי (%)</label><input class="field" id="w-pct" placeholder="25" type="number" style="direction:ltr"><label class="field-label">עיר</label><input class="field" id="w-region" placeholder="תל אביב" type="text"><label class="field-label">תאריך רכישה</label><input class="field" id="w-date" type="month">`:
+    wizardType==='epargne'?`<label class="field-label">מטרת החיסכון</label><input class="field" id="w-who" placeholder="קופת חירום, גמלאות..." type="text"><label class="field-label">סכום היעד (₪)</label><input class="field" id="w-budget" placeholder="50000" type="number" style="direction:ltr"><label class="field-label">תאריך יעד</label><input class="field" id="w-date" type="month">`:
     `<label class="field-label">תיאור</label><input class="field" id="w-who" placeholder="הפרויקט שלי" type="text"><label class="field-label">תקציב (₪)</label><input class="field" id="w-budget" placeholder="15000" type="number" style="direction:ltr"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`}
     <div style="display:flex;gap:8px;margin-top:6px">
       <button onclick="renderWizardStep1()" style="flex:1;padding:13px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-family:'Heebo',sans-serif;">→</button>
@@ -1196,42 +1217,61 @@ async function runAiWizard() {
   const who=document.getElementById('w-who')?.value||'';
   const dateVal=document.getElementById('w-date')?.value||'';
   const guests=document.getElementById('w-guests')?.value||'200';
+  const guestsMine=document.getElementById('w-guests-mine')?.value||'';
+  const sharedCost=document.getElementById('w-shared')?.value||'half';
   const budget=document.getElementById('w-budget')?.value||'';
   const style=document.getElementById('w-style')?.value||'';
   const region=document.getElementById('w-region')?.value||'';
   const pct=document.getElementById('w-pct')?.value||'25';
-  wizardMeta={who,dateVal,guests,budget,style,region,pct};
+  wizardMeta={who,dateVal,guests,guestsMine,sharedCost,budget,style,region,pct};
   const c=document.getElementById('proj-modal-content');
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div><div style="text-align:center;padding:24px 0"><div style="font-size:40px;margin-bottom:12px">${getProjEmoji(wizardType)}</div><div class="rubik" style="font-size:16px;font-weight:700;margin-bottom:12px">מחשב את התכנית...</div><div class="ai-dots" style="justify-content:center;display:flex"><span></span><span></span><span></span></div></div>`;
 
-  // Calcul local intelligent (pas d'API directe à cause de CORS)
   await new Promise(r => setTimeout(r, 800));
 
   let target=parseInt(budget)||0;
   let aiText = '';
+  let extraInfo = ''; // info supplémentaire à afficher (frais annexes etc.)
 
   if (wizardType==='mariage') {
-    const g = parseInt(guests||200);
+    const totalGuests = parseInt(guests||200);
+    const myGuests = parseInt(guestsMine) || Math.round(totalGuests/2);
     const styleMul = style==='luxe' ? 1500 : style==='simple' ? 500 : 850;
-    target = target || g * styleMul;
+    const totalCost = totalGuests * styleMul;
+    // Coût pour MA part selon le partage
+    let myShare;
+    if (sharedCost === 'all') {
+      myShare = totalCost; // je paie tout
+    } else if (sharedCost === 'half') {
+      myShare = Math.round(totalCost / 2); // 50/50
+    } else { // 'guests' = au prorata de mes invités
+      myShare = Math.round(totalCost * (myGuests / totalGuests));
+    }
+    target = target || myShare;
     const venue = Math.round(target * 0.35);
     const food = Math.round(target * 0.30);
     const photo = Math.round(target * 0.10);
     const dress = Math.round(target * 0.10);
     const other = target - venue - food - photo - dress;
-    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'} עבור ${g} אורחים</strong><br><br>📊 <strong>תקציב משוער:</strong> ${target.toLocaleString('he-IL')} ₪<br><br>🏛 אולם: ${venue.toLocaleString('he-IL')} ₪<br>🍽 קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo.toLocaleString('he-IL')} ₪<br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🎵 שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הזמן את האולם 12 חודשים מראש לקבלת הנחות<br>• חודשי שיא (אוגוסט-ספטמבר) יקרים ב-20%`;
+    const shareLabel = sharedCost === 'all' ? 'אתה משלם הכל' : sharedCost === 'half' ? 'מתחלקים 50/50' : `לפי מספר אורחים (${myGuests}/${totalGuests})`;
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים סה"כ · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(עלות כוללת לחתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם: ${venue.toLocaleString('he-IL')} ₪<br>🍽 קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo.toLocaleString('he-IL')} ₪<br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🎵 שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הזמן את האולם 12 חודשים מראש<br>• חודשי שיא (אוגוסט-ספטמבר) יקרים ב-20%`;
   } else if (wizardType==='voiture') {
     target = target || 80000;
     const downPayment = Math.round(target * 0.25);
     const insurance = Math.round(target * 0.05);
-    aiText = `🚗 <strong>${style||'רכב'} בתקציב ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>⛽ דלק חודשי: ~1,500 ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך לפני קנייה<br>• השווה ביטוחים ב-clalit/ayalon`;
+    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך לפני קנייה<br>• השווה ביטוחים`;
+    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות שוטפות (לא בתקציב הפרויקט):</strong><br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>⛽ דלק חודשי: ~1,500 ₪<br>🔧 טיפולים+אגרה: ~3,000 ₪/שנה</div>`;
   } else if (wizardType==='immobilier') {
     target = target || 1500000;
     const downPct = parseInt(pct)||25;
     const apport = Math.round(target * downPct / 100);
     const loan = target - apport;
     const monthlyPay = Math.round(loan * 0.005);
-    aiText = `🏠 <strong>דירה ב${region||'ישראל'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי (${downPct}%): ${apport.toLocaleString('he-IL')} ₪<br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי משוער: ${monthlyPay.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• דרוש מינימום 25% הון עצמי בישראל<br>• השווה משכנתאות ב-3 בנקים לפחות<br>• בדוק זכאות לדירה בהישג יד / מחיר למשתכן`;
+    // IMPORTANT : pour l'immobilier, le PROJET d'épargne = l'apport, pas le prix total
+    const projectTarget = apport;
+    aiText = `🏠 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br><br>🏦 משכנתא לאחר רכישה: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי משוער: ${monthlyPay.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• מינימום 25% הון עצמי בישראל<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהישג יד / מחיר למשתכן?`;
+    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות (מעבר להון עצמי):</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪<br>👨‍⚖️ עו"ד+תיווך: ~${Math.round(target*0.04).toLocaleString('he-IL')} ₪<br>🛠 שיפוץ ראשוני: לפי מצב הדירה</div>`;
+    target = projectTarget; // l'épargne vise l'apport
   } else {
     target = target || 15000;
     aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
@@ -1240,17 +1280,47 @@ async function runAiWizard() {
   const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
   const months=targetDate?Math.max(1,Math.round((new Date(targetDate)-new Date())/(30.44*86400000))):24;
   const monthly=target>0?Math.round(target/months):0;
-  const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏠 דירה ${region}`:who||'🎯 פרויקט';
+  const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏠 דירה ${region||''}`:who||'🎯 פרויקט';
+
+  // Stocke les données dans une variable globale au lieu d'inliner dans onclick (évite bug apostrophes)
+  window._pendingProject = { name: projName, type: wizardType, date: targetDate, monthly: monthly, target: target };
 
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div></div>
     <div class="rubik" style="font-size:16px;font-weight:800;margin-bottom:12px;text-align:center">✅ התכנית מוכנה!</div>
     <div class="ai-result">${aiText}</div>
+    ${extraInfo}
     <div class="card" style="margin:12px 0;background:var(--divider)">
       <label class="field-label">יעד (₪)</label>
       <input class="field" id="w-final" type="number" value="${target}" style="background:var(--card);direction:ltr">
       <div style="text-align:center;padding:6px 0;font-size:18px;font-weight:800;color:var(--accent);font-family:'Rubik',sans-serif;direction:ltr">${monthly.toLocaleString('he-IL')} ₪ / חודש</div>
     </div>
-    <button onclick="saveProject('${projName.replace(/'/g,"&#39;")}','${wizardType}','${targetDate||''}',${monthly})" class="submit-btn">💾 שמור</button>`;
+    <button onclick="saveProjectFromPending()" class="submit-btn">💾 שמור</button>`;
+}
+
+async function saveProjectFromPending() {
+  const p = window._pendingProject;
+  if (!p) { alert('שגיאה - אין נתוני פרויקט'); return; }
+  const finalAmount = parseFloat(document.getElementById('w-final')?.value) || p.target || 0;
+  if (finalAmount <= 0) { alert('יעד לא תקין'); return; }
+  // Recalcule monthly avec le montant final
+  const months = p.date ? Math.max(1, Math.round((new Date(p.date)-new Date())/(30.44*86400000))) : 24;
+  const monthly = Math.round(finalAmount / months);
+  try {
+    const { error } = await sb.from('projects').insert({
+      user_id: currentUser.id,
+      name: p.name,
+      type: p.type,
+      target_amount: finalAmount,
+      target_date: p.date || null,
+      monthly_saving: monthly,
+      saved_amount: 0,
+      ...(currentFamily ? { family_id: currentFamily.id } : {})
+    });
+    if (error) { alert('שגיאה: ' + error.message); return; }
+    document.getElementById('proj-modal').style.display = 'none';
+    window._pendingProject = null;
+    showView('projects', document.querySelectorAll('.nav-item')[3]);
+  } catch (err) { alert('שגיאה: ' + err.message); }
 }
 async function saveProject(name,type,date,monthly) {
   const amount=parseFloat(document.getElementById('w-final')?.value)||0;
@@ -1266,7 +1336,7 @@ async function addToProject(id,name) {
   loadProjects();
 }
 async function deleteProject(id) { if (!confirm('למחוק?')) return; await sb.from('projects').delete().eq('id',id); loadProjects(); }
-function getProjEmoji(t) { return {mariage:'💒',voiture:'🚗',immobilier:'🏠',vacances:'✈️',etudes:'🎓',autre:'🎯'}[t]||'🎯'; }
+function getProjEmoji(t) { return {mariage:'💒',voiture:'🚗',immobilier:'🏡',vacances:'✈️',etudes:'📚',epargne:'🪙',autre:'🎯'}[t]||'🎯'; }
 
 // ── STATS WITH PERIOD FILTER ─────────────────────────────────
 function changePeriod(period, btn) {
