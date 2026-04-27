@@ -259,7 +259,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     <button class="submit-btn" id="submit-btn" onclick="submitTx()">הוסף עסקה</button>
   </div>
   <div class="card fu fu3" style="background:var(--accent-soft);border-color:#4F8EF722">
-    <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px">🤖 עצה מבינה מלאכותית</div>
+    <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px">👔 עצה מבינה מלאכותית</div>
     <div style="font-size:13px;line-height:1.6" id="ai-tip"><span class="ai-dots"><span></span><span></span><span></span></span></div>
   </div>
 </div>
@@ -418,6 +418,16 @@ async function callEdgeVision(payload) {
       return { transactions: [], error: `server_${r.status}: ${errText.substring(0,200)}` };
     }
     const result = await r.json();
+    // Save balance if returned by Edge Function (יתרה)
+    if (result.balance !== undefined && result.balance !== null && currentUser) {
+      const balanceVal = parseFloat(result.balance);
+      if (!isNaN(balanceVal)) {
+        localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
+          amount: balanceVal,
+          date: new Date().toISOString()
+        }));
+      }
+    }
     // Normalize field names + categories
     if (result.transactions && Array.isArray(result.transactions)) {
       result.transactions = result.transactions.map(t => {
@@ -539,7 +549,7 @@ async function handlePDFImport(input) {
   // STEP 2: If text OK, try Claude with text
   if (textOk) {
     try {
-      showImportProgress('🤖 בינה מלאכותית מנתחת...');
+      showImportProgress('👔 בינה מלאכותית מנתחת...');
       const result = await extractTransactionsFromText(extractedText);
       if (result.transactions?.length) {
         extractedTxs = result.transactions;
@@ -599,7 +609,7 @@ async function handlePhotoImport(input) {
   try {
     const base64 = await fileToBase64(file);
     const mediaType = file.type || 'image/jpeg';
-    showImportProgress('🤖 בינה מלאכותית קוראת את הדף...');
+    showImportProgress('👔 בינה מלאכותית קוראת את הדף...');
     const result = await extractTransactionsFromImage(base64, mediaType);
     if (result.error === 'not_a_statement') { showImportError('התמונה אינה דף בנק.'); return; }
     if (result.error) { showImportError('שגיאה: ' + result.error); return; }
@@ -707,10 +717,18 @@ function showReviewModal(fileName, source) {
   document.getElementById('review-modal').style.display = 'flex';
 }
 
+// Generate a fingerprint for duplicate detection
+function txFingerprint(t) {
+  const date = new Date(t.created_at || t.date).toISOString().split('T')[0];
+  const amount = Math.round(parseFloat(t.amount) * 100) / 100;
+  const label = (t.label || '').toLowerCase().replace(/\s+/g,'').substring(0,50);
+  return `${date}|${amount}|${label}`;
+}
+
 async function confirmImport(source, fileName) {
   const importId = 'imp_' + Date.now();
   const btnEl = document.querySelector('#review-modal-content .submit-btn');
-  if (btnEl) { btnEl.textContent = '⏳ שומר...'; btnEl.style.opacity = '0.6'; btnEl.disabled = true; }
+  if (btnEl) { btnEl.textContent = '⏳ בודק כפילויות...'; btnEl.style.opacity = '0.6'; btnEl.disabled = true; }
 
   try {
     const toInsert = extractedTxs.map(t => ({
@@ -727,7 +745,42 @@ async function confirmImport(source, fileName) {
       return;
     }
 
-    const { data: inserted, error } = await sb.from('transactions').insert(toInsert).select('id');
+    // STEP 1: Check for duplicates against existing DB transactions
+    const dates = toInsert.map(t => t.created_at.split('T')[0]);
+    const minDate = dates.sort()[0];
+    const maxDate = dates.sort().reverse()[0];
+    const startISO = new Date(minDate).toISOString();
+    const endISO = new Date(new Date(maxDate).getTime() + 86400000).toISOString();
+
+    const { data: existing } = await sb.from('transactions')
+      .select('label, amount, created_at')
+      .eq('user_id', currentUser.id)
+      .gte('created_at', startISO)
+      .lte('created_at', endISO);
+
+    const existingFps = new Set((existing||[]).map(t => txFingerprint(t)));
+    const duplicates = toInsert.filter(t => existingFps.has(txFingerprint(t)));
+    const uniques = toInsert.filter(t => !existingFps.has(txFingerprint(t)));
+
+    let finalToInsert = toInsert;
+    if (duplicates.length > 0) {
+      const msg = `⚠️ זוהו ${duplicates.length} עסקאות שכבר קיימות במערכת.\n\n` +
+                  `${uniques.length} עסקאות חדשות יתווספו.\n\n` +
+                  `לחץ "אישור" לייבא רק את החדשות (${uniques.length})\n` +
+                  `לחץ "ביטול" כדי לייבא הכל כולל הכפילויות`;
+      const skipDuplicates = confirm(msg);
+      finalToInsert = skipDuplicates ? uniques : toInsert;
+      if (finalToInsert.length === 0) {
+        alert('אין עסקאות חדשות לייבוא.');
+        document.getElementById('review-modal').style.display = 'none';
+        if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
+        return;
+      }
+    }
+
+    // STEP 2: Insert
+    if (btnEl) btnEl.textContent = '⏳ שומר...';
+    const { data: inserted, error } = await sb.from('transactions').insert(finalToInsert).select('id');
     if (error) {
       console.error('Insert error:', error);
       alert('שגיאת בסיס נתונים: ' + error.message);
@@ -737,16 +790,18 @@ async function confirmImport(source, fileName) {
 
     const txIds = (inserted || []).map(r => r.id);
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-    history.unshift({ id: importId, date: new Date().toISOString(), count: toInsert.length, file: fileName, source, txIds });
+    history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
 
     document.getElementById('review-modal').style.display = 'none';
     extractedTxs = [];
+    const dupeMsg = duplicates.length > 0 ? `<div style="font-size:11px;color:var(--yellow);margin-top:4px">${duplicates.length} כפילויות דולגו</div>` : '';
     document.getElementById('import-status').innerHTML = `
       <div style="text-align:center;padding:18px;background:var(--green-soft);border-radius:14px;border:1px solid var(--green)">
         <div style="font-size:32px;margin-bottom:6px">🎉</div>
-        <div style="font-weight:700;color:var(--green);font-size:16px">${toInsert.length} עסקאות יובאו!</div>
+        <div style="font-weight:700;color:var(--green);font-size:16px">${finalToInsert.length} עסקאות יובאו!</div>
         <div style="font-size:11px;color:var(--muted);margin-top:6px">קוטלגו אוטומטית</div>
+        ${dupeMsg}
       </div>`;
     await loadDashboard(); await loadTransactions(); loadImportHistory();
   } catch (err) {
@@ -759,7 +814,7 @@ async function confirmImport(source, fileName) {
 function showImportProgress(msg) {
   document.getElementById('import-status').innerHTML = `
     <div class="scan-box">
-      <div style="font-size:32px;margin-bottom:8px">🤖</div>
+      <div style="font-size:32px;margin-bottom:8px">👔</div>
       <div class="rubik" style="font-size:14px;font-weight:700;margin-bottom:6px">${msg}</div>
       <div class="ai-dots" style="display:flex;justify-content:center;margin-top:8px"><span></span><span></span><span></span></div>
       <div style="font-size:10px;color:var(--muted);margin-top:8px">10-30 שניות</div>
@@ -878,13 +933,17 @@ async function loadDashboard() {
     </div>`; return;
   }
 
-  // Smart period: try current month first, if empty fall back to last month with data
+  // Get balance from last import (stored when extracting PDF/photo)
+  const balanceData = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
+  const realBalance = balanceData?.amount;
+  const balanceDate = balanceData?.date ? new Date(balanceData.date) : null;
+
+  // Smart period for monthly flow
   let displayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   let displayTxs = all.filter(t => { const d=new Date(t.created_at); return d.getMonth()===displayMonth.getMonth()&&d.getFullYear()===displayMonth.getFullYear(); });
   let isCurrentMonth = true;
 
   if (displayTxs.length === 0) {
-    // Find the most recent month that has transactions
     const mostRecentTx = new Date(all[0].created_at);
     displayMonth = new Date(mostRecentTx.getFullYear(), mostRecentTx.getMonth(), 1);
     displayTxs = all.filter(t => { const d=new Date(t.created_at); return d.getMonth()===displayMonth.getMonth()&&d.getFullYear()===displayMonth.getFullYear(); });
@@ -893,21 +952,47 @@ async function loadDashboard() {
 
   const income = displayTxs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const expenses = displayTxs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
-  const balance = income-expenses;
-  const pct = income>0?Math.min(100,Math.round((balance/income)*100)):0;
+  const monthFlow = income-expenses;
   const monthLabel = displayMonth.toLocaleDateString('he-IL',{month:'long',year:'numeric'});
 
-  el.innerHTML=`<div class="hero fu fu1">
+  // Balance display: if we have it from import, show it big. Otherwise show monthly flow as fallback.
+  const showRealBalance = realBalance !== undefined && realBalance !== null;
+  const bigNumber = showRealBalance ? realBalance : monthFlow;
+  const bigLabel = showRealBalance ? 'יתרה בחשבון 💎' : 'יתרה חודשית';
+  const bigDate = showRealBalance && balanceDate ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">עודכן ${balanceDate.toLocaleDateString('he-IL',{day:'2-digit',month:'short'})}</div>` : '';
+
+  el.innerHTML=`<div class="hero fu fu1" style="cursor:pointer" onclick="editBalance()">
     <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${monthLabel}${isCurrentMonth?'':' (אחרון)'}</div>
-    <div class="rubik" style="font-size:28px;font-weight:800;margin:4px 0;direction:ltr;text-align:right;color:${balance>=0?'var(--text)':'var(--red)'}">${balance.toLocaleString('he-IL')} ₪</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">${isCurrentMonth?'יתרה חודשית':'חודש אחרון עם נתונים'}</div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <div class="stat-mini"><label>הכנסות</label><b style="color:var(--green);direction:ltr">${income.toLocaleString('he-IL')} ₪</b></div>
-      <div class="stat-mini"><label>הוצאות</label><b style="color:var(--red);direction:ltr">${expenses.toLocaleString('he-IL')} ₪</b></div>
-      <div class="stat-mini"><label>חיסכון</label><b style="color:var(--accent)">${pct}%</b></div>
+    <div class="rubik" style="font-size:30px;font-weight:800;margin:4px 0;direction:ltr;text-align:right;color:${bigNumber>=0?'var(--text)':'var(--red)'}">${bigNumber.toLocaleString('he-IL')} ₪</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${bigLabel} <span style="font-size:10px;opacity:0.5">✏️</span></div>
+    ${bigDate}
+    <div style="display:flex;gap:8px;margin-top:14px;margin-bottom:10px" onclick="event.stopPropagation()">
+      <div class="stat-mini"><label>📈 הכנסות</label><b style="color:var(--green);direction:ltr">${income.toLocaleString('he-IL')} ₪</b></div>
+      <div class="stat-mini"><label>📉 הוצאות</label><b style="color:var(--red);direction:ltr">${expenses.toLocaleString('he-IL')} ₪</b></div>
+      <div class="stat-mini"><label>🪙 חודש</label><b style="color:${monthFlow>=0?'var(--accent)':'var(--red)'};direction:ltr">${monthFlow>=0?'+':''}${monthFlow.toLocaleString('he-IL')}</b></div>
     </div>
-    <div class="bar-wrap" style="height:5px"><div class="bar" style="width:${pct}%;height:5px;background:var(--accent)"></div></div>
   </div>`;
+}
+
+function editBalance() {
+  const current = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
+  const promptValue = current?.amount?.toString() || '';
+  const newVal = prompt('💎 עדכן את היתרה בחשבון (ש״ח):\n\nהזן את היתרה הנוכחית מאפליקציית הבנק שלך', promptValue);
+  if (newVal === null) return; // cancel
+  if (newVal === '') {
+    if (confirm('להסיר את היתרה?')) {
+      localStorage.removeItem('budgetfam_balance_'+currentUser.id);
+      loadDashboard();
+    }
+    return;
+  }
+  const num = parseFloat(newVal.replace(/,/g,''));
+  if (isNaN(num)) { alert('סכום לא תקין'); return; }
+  localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
+    amount: num,
+    date: new Date().toISOString()
+  }));
+  loadDashboard();
 }
 
 async function loadTransactions() {
@@ -1052,7 +1137,7 @@ async function loadProjects() {
       <div class="card fu fu2" style="background:linear-gradient(135deg,#1A2540,#1E1640);border-color:var(--accent)">
         <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:8px">✨ תכנית מותאמת אישית מבינה מלאכותית</div>
         <div style="font-size:13px;color:var(--muted);line-height:2">💒 חתונה · 🚗 רכב · 🏠 דירה · ✈️ חופשה · 🎓 לימודים</div>
-        <button onclick="openProjectWizard()" class="submit-btn" style="margin-top:12px">🤖 צור פרויקט</button>
+        <button onclick="openProjectWizard()" class="submit-btn" style="margin-top:12px">👔 צור פרויקט</button>
       </div>`; return;
   }
   el.innerHTML=all.map(p=>{
@@ -1100,7 +1185,7 @@ function renderWizardStep2() {
     `<label class="field-label">תיאור</label><input class="field" id="w-who" placeholder="הפרויקט שלי" type="text"><label class="field-label">תקציב (₪)</label><input class="field" id="w-budget" placeholder="15000" type="number" style="direction:ltr"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`}
     <div style="display:flex;gap:8px;margin-top:6px">
       <button onclick="renderWizardStep1()" style="flex:1;padding:13px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-family:'Heebo',sans-serif;">→</button>
-      <button onclick="runAiWizard()" class="submit-btn" style="flex:3">🤖 תכנית AI</button>
+      <button onclick="runAiWizard()" class="submit-btn" style="flex:3">👔 תכנית AI</button>
     </div>`;
 }
 async function runAiWizard() {
@@ -1268,7 +1353,7 @@ async function loadFamilyData(){
   if(data?.families){currentFamily=data.families;const{data:m}=await sb.from('family_members').select('*').eq('family_id',currentFamily.id);familyMembers=m||[];}
 }
 
-function getCatIcon(cat){const m={Alimentation:'🛒',Logement:'🏠',Transport:'🚗',Loisirs:'🎮',Santé:'💊',Épargne:'💰',Divers:'📦',Salaire:'💼',Cadeau:'🎁',Investissement:'📈',Abonnements:'📱',Éducation:'🎓',Allocations:'🤝'};return m[cat]||'💸';}
+function getCatIcon(cat){const m={Alimentation:'🛒',Logement:'🏡',Transport:'🚙',Loisirs:'🎭',Santé:'💊',Épargne:'🪙',Divers:'🧩',Salaire:'💵',Cadeau:'🎁',Investissement:'📊',Abonnements:'📲',Éducation:'📚',Allocations:'🤝'};return m[cat]||'💎';}
 function formatDate(d){if(!d)return'';return new Date(d).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});}
 function setType(t){
   txType=t;
