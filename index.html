@@ -1254,15 +1254,15 @@ async function runAiWizard() {
       myShare = Math.round(totalCost * (myGuests / totalGuests));
     }
     target = target || myShare;
-    // Répartition Israël (salle+repas inclus, donc ~60% du budget)
-    const venueAndFood = Math.round(target * 0.55); // salle+repas combinés
+    // Répartition Israël (salle+repas inclus, donc ~55% du budget)
+    const venueAndFood = Math.round(target * 0.50); // salle+repas combinés
     const photo = Math.round(target * 0.10);
-    const dj = Math.round(target * 0.08);
-    const dress = Math.round(target * 0.10);
+    const dj = Math.round(target * 0.07);
+    const dress = Math.round(target * 0.13); // robe rentre plus dans le budget
     const flowers = Math.round(target * 0.07);
     const other = target - venueAndFood - photo - dj - dress - flowers;
     const shareLabel = sharedCost === 'all' ? 'אתה משלם הכל' : sharedCost === 'half' ? 'מתחלקים 50/50' : `לפי אורחים (${myGuests}/${totalGuests})`;
-    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪<br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(DJ סטנדרטי 2,500-4,500₪)</small><br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• חודשי שיא יקרים ב-15-20%<br>• הזמן את האולם 12 חודשים מראש`;
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(סטנדרטי 1,500-4,000₪ · יוקרתי 4,000-8,000₪)</small><br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(סטנדרטי 2,500-4,500₪)</small><br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(השכרת שמלה ממוצעת 8,000-12,000₪ · יוקרתי עד 60,000₪)</small><br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• בישראל משכירים שמלות, לא קונים<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• חודשי שיא יקרים ב-15-20%<br>• הזמן את האולם 12 חודשים מראש`;
   } else if (wizardType==='voiture') {
     target = target || 80000;
     const downPayment = Math.round(target * 0.25);
@@ -1282,7 +1282,7 @@ async function runAiWizard() {
     const numPayments = yearTerms * 12;
     const monthlyPay = Math.round(loan * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1));
     const projectTarget = apport;
-    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>📅 ${months} חודשים לחיסכון<br><br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש<br><small style="color:var(--muted)">(חישוב: ${yearTerms} שנים, ריבית 5%)</small><br><br>💡 <strong>טיפים:</strong><br>• מינימום 25% הון עצמי בישראל<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהישג יד / מחיר למשתכן?`;
+    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>📅 ${months} חודשים לחיסכון<br><br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש<br><small style="color:var(--muted)">(חישוב: ${yearTerms} שנים, ריבית 5%)</small><br><br>💡 <strong>טיפים בנק ישראל 2026:</strong><br>• <strong>מינימום 25% הון עצמי</strong> לדירה ראשונה (75% מימון מקסימום)<br>• דירה שנייה: 50% הון עצמי<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהנחה? אפשר פחות מ-25%`;
     extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות (מעבר להון עצמי):</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪<br>👨‍⚖️ עו"ד+תיווך: ~${Math.round(target*0.04).toLocaleString('he-IL')} ₪<br>🛠 שיפוץ ראשוני: לפי מצב הדירה</div>`;
     target = projectTarget;
   } else if (wizardType==='epargne') {
@@ -1305,7 +1305,7 @@ async function runAiWizard() {
     <div class="ai-result">${aiText}</div>
     ${extraInfo}
     <div class="card" style="margin:12px 0;background:var(--divider)">
-      <label class="field-label">יעד (₪)</label>
+      <label class="field-label">${wizardType==='immobilier'?'יעד (הון עצמי)':'יעד'} (₪)</label>
       <input class="field" id="w-final" type="number" value="${target}" style="background:var(--card);direction:ltr">
       <div style="text-align:center;padding:6px 0;font-size:18px;font-weight:800;color:var(--accent);font-family:'Rubik',sans-serif;direction:ltr">${monthly.toLocaleString('he-IL')} ₪ / חודש</div>
       <div style="text-align:center;font-size:11px;color:var(--muted)">${months} חודשים</div>
@@ -1315,24 +1315,28 @@ async function runAiWizard() {
 
 async function saveProjectFromPending() {
   const btn = document.getElementById('save-proj-btn');
-  if (!btn || btn.disabled) return; // anti double-clic
+  if (!btn || btn.disabled || btn.dataset.saving === '1') return; // anti double-clic robuste
+  // DÉSACTIVATION IMMÉDIATE et SYNCHRONE (avant tout async)
+  btn.dataset.saving = '1';
   btn.disabled = true;
   btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
   btn.textContent = '⏳ שומר...';
+  // Force le repaint avant de continuer
+  await new Promise(r => requestAnimationFrame(r));
 
   const p = window._pendingProject;
   if (!p) {
     alert('שגיאה - אין נתוני פרויקט');
-    btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
     return;
   }
   const finalAmount = parseFloat(document.getElementById('w-final')?.value) || p.target || 0;
   if (finalAmount <= 0) {
     alert('יעד לא תקין');
-    btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
     return;
   }
-  // Recalcule monthly avec Math.ceil
   const months = p.date ? Math.max(1, Math.ceil((new Date(p.date)-new Date())/(30.44*86400000))) : 24;
   const monthly = Math.ceil(finalAmount / months);
   try {
@@ -1348,7 +1352,7 @@ async function saveProjectFromPending() {
     });
     if (error) {
       alert('שגיאה: ' + error.message);
-      btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+      btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
       return;
     }
     document.getElementById('proj-modal').style.display = 'none';
@@ -1356,7 +1360,7 @@ async function saveProjectFromPending() {
     showView('projects', document.querySelectorAll('.nav-item')[3]);
   } catch (err) {
     alert('שגיאה: ' + err.message);
-    btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
   }
 }
 async function saveProject(name,type,date,monthly) {
