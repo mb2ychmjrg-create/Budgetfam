@@ -500,11 +500,15 @@ async function handlePDFImport(input) {
     return;
   }
 
+  // Make 2 independent copies - pdf.js detaches the buffer after use
+  const bufferForText = arrayBuffer.slice(0);
+  const bufferForImage = arrayBuffer.slice(0);
+
   // STEP 1: Try text extraction
   let extractedText = '';
   let textOk = false;
   try {
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: bufferForText }).promise;
     showImportProgress(`📄 חילוץ טקסט (${pdf.numPages} עמודים)...`);
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
@@ -534,10 +538,10 @@ async function handlePDFImport(input) {
     }
   }
 
-  // STEP 3: Fallback to image mode (Claude Vision on each page)
+  // STEP 3: Fallback to image mode (Claude Vision on each page) - uses fresh buffer copy
   showImportProgress('🖼️ מצב תמונה (אוטומטי)...');
   try {
-    await handlePDFAsImages(arrayBuffer, file.name);
+    await handlePDFAsImages(bufferForImage, file.name);
   } catch (err) {
     showImportError('לא ניתן לקרוא את ה-PDF. נסה לצלם מסך במקום. (' + (err.message||'') + ')');
   }
