@@ -405,14 +405,26 @@ async function callEdgeVision(payload) {
       return { transactions: [], error: `server_${r.status}: ${errText.substring(0,200)}` };
     }
     const result = await r.json();
-    // Normalize field names: Edge Function might return "description" instead of "label"
+    // Normalize field names + categories
     if (result.transactions && Array.isArray(result.transactions)) {
-      result.transactions = result.transactions.map(t => ({
-        date: t.date || new Date().toISOString().split('T')[0],
-        label: t.label || t.description || t.merchant || t.name || 'עסקה',
-        amount: typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0,
-        category: t.category || 'Divers'
-      })).filter(t => t.amount !== 0 && t.label);
+      result.transactions = result.transactions.map(t => {
+        const label = t.label || t.description || t.merchant || t.name || 'עסקה';
+        const amount = typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0;
+        const rawCat = t.category || '';
+        // Normalize category to French (our internal format)
+        let category = normalizeCategory(rawCat);
+        // If still bad/missing, try local categorization based on label
+        if (!category || category === 'Divers') {
+          const localCat = localCategorize(label, amount);
+          if (localCat !== 'Divers') category = localCat;
+        }
+        return {
+          date: t.date || new Date().toISOString().split('T')[0],
+          label,
+          amount,
+          category: category || 'Divers'
+        };
+      }).filter(t => t.amount !== 0 && t.label);
     }
     return result;
   } catch (err) {
@@ -420,6 +432,50 @@ async function callEdgeVision(payload) {
     if (err.name === 'AbortError') return { transactions: [], error: 'timeout' };
     return { transactions: [], error: 'network_error: ' + err.message };
   }
+}
+
+// Map any category name (Hebrew, English, French variants) to our internal French key
+function normalizeCategory(raw) {
+  if (!raw) return null;
+  const r = raw.toString().toLowerCase().trim();
+  // French (already correct) - check first
+  const validCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Sante','Épargne','Epargne','Divers','Salaire','Cadeau','Investissement','Abonnements','Éducation','Education'];
+  for (const v of validCats) {
+    if (r === v.toLowerCase()) return v.replace('Sante','Santé').replace('Epargne','Épargne').replace('Education','Éducation');
+  }
+  // Hebrew mapping
+  const heMap = {
+    'מזון':'Alimentation','אוכל':'Alimentation','קניות':'Alimentation','סופרמרקט':'Alimentation','מכולת':'Alimentation',
+    'דיור':'Logement','שכירות':'Logement','משכנתא':'Logement','חשבונות':'Logement','ארנונה':'Logement','חשמל':'Logement','מים':'Logement','גז':'Logement',
+    'תחבורה':'Transport','דלק':'Transport','מונית':'Transport','אוטובוס':'Transport','רכבת':'Transport','חניה':'Transport',
+    'בילויים':'Loisirs','בידור':'Loisirs','מסעדה':'Loisirs','מסעדות':'Loisirs','קפה':'Loisirs','קולנוע':'Loisirs','ספורט':'Loisirs',
+    'בריאות':'Santé','רפואה':'Santé','בית מרקחת':'Santé','קופת חולים':'Santé',
+    'חיסכון':'Épargne','השקעה':'Épargne','השקעות':'Épargne','פנסיה':'Épargne','ביטוח':'Épargne',
+    'מנויים':'Abonnements','מנוי':'Abonnements','חבילה':'Abonnements','טלפון':'Abonnements','אינטרנט':'Abonnements',
+    'חינוך':'Éducation','לימודים':'Éducation','בית ספר':'Éducation','אוניברסיטה':'Éducation',
+    'משכורת':'Salaire','שכר':'Salaire','הכנסה':'Salaire',
+    'שונות':'Divers','אחר':'Divers','אחרים':'Divers'
+  };
+  for (const [he, fr] of Object.entries(heMap)) {
+    if (r.includes(he.toLowerCase())) return fr;
+  }
+  // English mapping
+  const enMap = {
+    'food':'Alimentation','grocery':'Alimentation','groceries':'Alimentation','restaurant':'Loisirs','dining':'Loisirs',
+    'rent':'Logement','housing':'Logement','utilities':'Logement','mortgage':'Logement',
+    'transport':'Transport','fuel':'Transport','gas':'Transport','taxi':'Transport','parking':'Transport',
+    'entertainment':'Loisirs','leisure':'Loisirs','sport':'Loisirs',
+    'health':'Santé','medical':'Santé','pharmacy':'Santé',
+    'savings':'Épargne','investment':'Épargne','insurance':'Épargne',
+    'subscription':'Abonnements','phone':'Abonnements','internet':'Abonnements',
+    'education':'Éducation','school':'Éducation',
+    'salary':'Salaire','income':'Salaire',
+    'other':'Divers','misc':'Divers','miscellaneous':'Divers'
+  };
+  for (const [en, fr] of Object.entries(enMap)) {
+    if (r.includes(en)) return fr;
+  }
+  return 'Divers';
 }
 
 async function extractTransactionsFromImage(base64Image, mediaType) {
@@ -435,55 +491,86 @@ async function handlePDFImport(input) {
   const file = input.files[0];
   if (!file) return;
   showImportProgress('📄 קורא PDF...');
+  let arrayBuffer;
   try {
-    const arrayBuffer = await file.arrayBuffer();
+    arrayBuffer = await file.arrayBuffer();
+  } catch (err) {
+    showImportError('לא ניתן לקרוא את הקובץ: ' + err.message);
+    input.value = '';
+    return;
+  }
+
+  // STEP 1: Try text extraction
+  let extractedText = '';
+  let textOk = false;
+  try {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     showImportProgress(`📄 חילוץ טקסט (${pdf.numPages} עמודים)...`);
-    let allText = '';
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      allText += content.items.map(item => item.str).join(' ') + '\n\n';
+      extractedText += content.items.map(item => item.str).join(' ') + '\n\n';
     }
-    if (allText.trim().length < 50) {
-      showImportProgress('🔍 PDF סרוק, קריאה עם בינה מלאכותית...');
-      await handlePDFAsImages(arrayBuffer, file.name);
-      return;
+    if (extractedText.trim().length >= 50) textOk = true;
+  } catch (err) {
+    console.error('PDF text extraction failed:', err);
+    extractedText = '';
+  }
+
+  // STEP 2: If text OK, try Claude with text
+  if (textOk) {
+    try {
+      showImportProgress('🤖 בינה מלאכותית מנתחת...');
+      const result = await extractTransactionsFromText(extractedText);
+      if (result.transactions?.length) {
+        extractedTxs = result.transactions;
+        showReviewModal(file.name, 'PDF');
+        input.value = '';
+        return;
+      }
+      console.log('Text mode returned no transactions, trying image mode...');
+    } catch (err) {
+      console.error('Text mode error:', err);
     }
-    showImportProgress('🤖 בינה מלאכותית מנתחת את העסקאות...');
-    const result = await extractTransactionsFromText(allText);
-    if (result.error) {
-      showImportError('שגיאה: ' + result.error);
-      return;
-    }
-    if (!result.transactions?.length) {
-      showImportError('לא זוהו עסקאות. נסה במצב תמונה.');
-      return;
-    }
-    extractedTxs = result.transactions;
-    showReviewModal(file.name, 'PDF');
-  } catch (err) { showImportError('שגיאת PDF: ' + err.message); }
+  }
+
+  // STEP 3: Fallback to image mode (Claude Vision on each page)
+  showImportProgress('🖼️ מצב תמונה (אוטומטי)...');
+  try {
+    await handlePDFAsImages(arrayBuffer, file.name);
+  } catch (err) {
+    showImportError('לא ניתן לקרוא את ה-PDF. נסה לצלם מסך במקום. (' + (err.message||'') + ')');
+  }
   input.value = '';
 }
 
 async function handlePDFAsImages(arrayBuffer, fileName) {
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const allTxs = [];
-  for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
-    showImportProgress(`🖼️ עמוד ${i}/${pdf.numPages} → בינה מלאכותית...`);
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 2 });
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    const base64 = canvas.toDataURL('image/png').split(',')[1];
-    const result = await extractTransactionsFromImage(base64, 'image/png');
-    if (result.transactions?.length) allTxs.push(...result.transactions);
+  const maxPages = Math.min(pdf.numPages, 5);
+  for (let i = 1; i <= maxPages; i++) {
+    showImportProgress(`🖼️ עמוד ${i}/${maxPages} → בינה מלאכותית...`);
+    try {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const base64 = dataUrl.split(',')[1];
+      const result = await extractTransactionsFromImage(base64, 'image/jpeg');
+      if (result.transactions?.length) allTxs.push(...result.transactions);
+    } catch (pageErr) {
+      console.error(`Page ${i} error:`, pageErr);
+    }
   }
-  if (!allTxs.length) { showImportError('לא זוהו עסקאות.'); return; }
+  if (!allTxs.length) {
+    showImportError('לא זוהו עסקאות בקובץ.');
+    return;
+  }
   extractedTxs = allTxs;
-  showReviewModal(fileName, 'PDF (Vision)');
+  showReviewModal(fileName, 'PDF');
 }
 
 async function handlePhotoImport(input) {
@@ -549,10 +636,15 @@ async function handleCSVImport(input) {
 }
 
 function showReviewModal(fileName, source) {
+  // Re-categorize locally only if category is missing or still Divers
   extractedTxs.forEach(t => {
-    if (!t.category || t.category === 'Divers' || t.category === 'Salaire') {
+    if (!t.category || t.category === 'Divers') {
       const local = localCategorize(t.label, t.amount);
       if (local !== 'Divers') t.category = local;
+    }
+    // Special: if income (positive amount) and label suggests salary
+    if (t.amount > 0 && (t.category === 'Divers' || !t.category)) {
+      if (/משכורת|שכר|salary|paycheck|payroll/i.test(t.label)) t.category = 'Salaire';
     }
   });
   const totalIn = extractedTxs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
@@ -592,28 +684,51 @@ function showReviewModal(fileName, source) {
 
 async function confirmImport(source, fileName) {
   const importId = 'imp_' + Date.now();
-  const toInsert = extractedTxs.map(t => ({
-    user_id: currentUser.id,
-    label: t.label.substring(0,120),
-    amount: t.amount,
-    category: t.category || 'Divers',
-    created_at: new Date(t.date || Date.now()).toISOString(),
-  }));
-  const { data: inserted, error } = await sb.from('transactions').insert(toInsert).select('id');
-  if (error) { alert('שגיאה: ' + error.message); return; }
-  const txIds = (inserted || []).map(r => r.id);
-  const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-  history.unshift({ id: importId, date: new Date().toISOString(), count: toInsert.length, file: fileName, source, txIds });
-  localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
-  document.getElementById('review-modal').style.display = 'none';
-  extractedTxs = [];
-  document.getElementById('import-status').innerHTML = `
-    <div style="text-align:center;padding:18px;background:var(--green-soft);border-radius:14px;border:1px solid var(--green)">
-      <div style="font-size:32px;margin-bottom:6px">🎉</div>
-      <div style="font-weight:700;color:var(--green);font-size:16px">${toInsert.length} עסקאות יובאו!</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">קוטלגו אוטומטית</div>
-    </div>`;
-  await loadDashboard(); await loadTransactions(); loadImportHistory();
+  const btnEl = document.querySelector('#review-modal-content .submit-btn');
+  if (btnEl) { btnEl.textContent = '⏳ שומר...'; btnEl.style.opacity = '0.6'; btnEl.disabled = true; }
+
+  try {
+    const toInsert = extractedTxs.map(t => ({
+      user_id: currentUser.id,
+      label: (t.label || 'עסקה').substring(0,120),
+      amount: typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0,
+      category: t.category || 'Divers',
+      created_at: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
+    })).filter(t => t.amount !== 0);
+
+    if (!toInsert.length) {
+      alert('אין עסקאות תקינות לייבוא.');
+      if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
+      return;
+    }
+
+    const { data: inserted, error } = await sb.from('transactions').insert(toInsert).select('id');
+    if (error) {
+      console.error('Insert error:', error);
+      alert('שגיאת בסיס נתונים: ' + error.message);
+      if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
+      return;
+    }
+
+    const txIds = (inserted || []).map(r => r.id);
+    const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
+    history.unshift({ id: importId, date: new Date().toISOString(), count: toInsert.length, file: fileName, source, txIds });
+    localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
+
+    document.getElementById('review-modal').style.display = 'none';
+    extractedTxs = [];
+    document.getElementById('import-status').innerHTML = `
+      <div style="text-align:center;padding:18px;background:var(--green-soft);border-radius:14px;border:1px solid var(--green)">
+        <div style="font-size:32px;margin-bottom:6px">🎉</div>
+        <div style="font-weight:700;color:var(--green);font-size:16px">${toInsert.length} עסקאות יובאו!</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">קוטלגו אוטומטית</div>
+      </div>`;
+    await loadDashboard(); await loadTransactions(); loadImportHistory();
+  } catch (err) {
+    console.error('Confirm import error:', err);
+    alert('שגיאה לא צפויה: ' + err.message);
+    if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
+  }
 }
 
 function showImportProgress(msg) {
