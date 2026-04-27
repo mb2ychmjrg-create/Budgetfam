@@ -1200,9 +1200,9 @@ function renderWizardStep2() {
       </select>
       <label class="field-label">סגנון</label>
       <select class="select-field" id="w-style">
-        <option value="simple">פשוט (~500₪/אורח)</option>
-        <option value="classique" selected>קלאסי (~850₪/אורח)</option>
-        <option value="luxe">יוקרתי (~1500₪/אורח)</option>
+        <option value="simple">פשוט (~250₪/אורח)</option>
+        <option value="classique" selected>קלאסי (~340₪/אורח, אולם+אוכל)</option>
+        <option value="luxe">יוקרתי (~550₪/אורח)</option>
       </select>`:
     wizardType==='voiture'?`<label class="field-label">סוג</label><select class="select-field" id="w-style"><option>יד שנייה</option><option>חדש</option><option>SUV</option><option>חשמלי</option></select><label class="field-label">תקציב (₪)</label><input class="field" id="w-budget" placeholder="80000" type="number" style="direction:ltr"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`:
     wizardType==='immobilier'?`<label class="field-label">מחיר הדירה (₪)</label><input class="field" id="w-budget" placeholder="1500000" type="number" style="direction:ltr"><label class="field-label">הון עצמי (%)</label><input class="field" id="w-pct" placeholder="25" type="number" style="direction:ltr"><label class="field-label">עיר</label><input class="field" id="w-region" placeholder="תל אביב" type="text"><label class="field-label">תאריך רכישה</label><input class="field" id="w-date" type="month">`:
@@ -1227,62 +1227,77 @@ async function runAiWizard() {
   const c=document.getElementById('proj-modal-content');
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div><div style="text-align:center;padding:24px 0"><div style="font-size:40px;margin-bottom:12px">${getProjEmoji(wizardType)}</div><div class="rubik" style="font-size:16px;font-weight:700;margin-bottom:12px">מחשב את התכנית...</div><div class="ai-dots" style="justify-content:center;display:flex"><span></span><span></span><span></span></div></div>`;
 
-  await new Promise(r => setTimeout(r, 800));
+  await new Promise(r => setTimeout(r, 600));
 
   let target=parseInt(budget)||0;
   let aiText = '';
-  let extraInfo = ''; // info supplémentaire à afficher (frais annexes etc.)
+  let extraInfo = '';
+
+  // Calcul du nombre de mois (utilisé partout)
+  const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
+  const monthsRaw = targetDate ? (new Date(targetDate)-new Date())/(30.44*86400000) : 24;
+  const months = Math.max(1, Math.ceil(monthsRaw)); // Math.ceil pour arrondir vers le haut
 
   if (wizardType==='mariage') {
     const totalGuests = parseInt(guests||200);
     const myGuests = parseInt(guestsMine) || Math.round(totalGuests/2);
-    const styleMul = style==='luxe' ? 1500 : style==='simple' ? 500 : 850;
+    // PRIX RÉELS Israël 2025-2026 : salle + repas inclus ~340₪/invité (90€)
+    // Source: salles israéliennes incluent traiteur dans le prix
+    const styleMul = style==='luxe' ? 550 : style==='simple' ? 250 : 340;
     const totalCost = totalGuests * styleMul;
-    // Coût pour MA part selon le partage
     let myShare;
     if (sharedCost === 'all') {
-      myShare = totalCost; // je paie tout
+      myShare = totalCost;
     } else if (sharedCost === 'half') {
-      myShare = Math.round(totalCost / 2); // 50/50
-    } else { // 'guests' = au prorata de mes invités
+      myShare = Math.round(totalCost / 2);
+    } else {
       myShare = Math.round(totalCost * (myGuests / totalGuests));
     }
     target = target || myShare;
-    const venue = Math.round(target * 0.35);
-    const food = Math.round(target * 0.30);
+    // Répartition Israël (salle+repas inclus, donc ~60% du budget)
+    const venueAndFood = Math.round(target * 0.55); // salle+repas combinés
     const photo = Math.round(target * 0.10);
+    const dj = Math.round(target * 0.08);
     const dress = Math.round(target * 0.10);
-    const other = target - venue - food - photo - dress;
-    const shareLabel = sharedCost === 'all' ? 'אתה משלם הכל' : sharedCost === 'half' ? 'מתחלקים 50/50' : `לפי מספר אורחים (${myGuests}/${totalGuests})`;
-    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים סה"כ · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(עלות כוללת לחתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם: ${venue.toLocaleString('he-IL')} ₪<br>🍽 קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo.toLocaleString('he-IL')} ₪<br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🎵 שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הזמן את האולם 12 חודשים מראש<br>• חודשי שיא (אוגוסט-ספטמבר) יקרים ב-20%`;
+    const flowers = Math.round(target * 0.07);
+    const other = target - venueAndFood - photo - dj - dress - flowers;
+    const shareLabel = sharedCost === 'all' ? 'אתה משלם הכל' : sharedCost === 'half' ? 'מתחלקים 50/50' : `לפי אורחים (${myGuests}/${totalGuests})`;
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪<br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(DJ סטנדרטי 2,500-4,500₪)</small><br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• חודשי שיא יקרים ב-15-20%<br>• הזמן את האולם 12 חודשים מראש`;
   } else if (wizardType==='voiture') {
     target = target || 80000;
     const downPayment = Math.round(target * 0.25);
     const insurance = Math.round(target * 0.05);
-    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך לפני קנייה<br>• השווה ביטוחים`;
-    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות שוטפות (לא בתקציב הפרויקט):</strong><br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>⛽ דלק חודשי: ~1,500 ₪<br>🔧 טיפולים+אגרה: ~3,000 ₪/שנה</div>`;
+    const youngDriverExtra = Math.round(insurance * 0.5); // +50% pour jeune conducteur
+    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br>📅 ${months} חודשים לחיסכון<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך לפני קנייה<br>• השווה ביטוחים ב-3 חברות לפחות`;
+    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות שוטפות (מעבר לתקציב הפרויקט):</strong><br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>🆕 נהג חדש/צעיר: +${youngDriverExtra.toLocaleString('he-IL')} ₪/שנה (פרמיה +50%)<br>⛽ דלק חודשי: ~1,500 ₪<br>🔧 טיפולים+אגרה: ~3,000 ₪/שנה<br>🚗 רישוי+מבחן רישוי: ~600 ₪/שנה</div>`;
   } else if (wizardType==='immobilier') {
     target = target || 1500000;
     const downPct = parseInt(pct)||25;
     const apport = Math.round(target * downPct / 100);
     const loan = target - apport;
-    const monthlyPay = Math.round(loan * 0.005);
-    // IMPORTANT : pour l'immobilier, le PROJET d'épargne = l'apport, pas le prix total
+    // Calcul mensuel mashkanta plus précis (taux 5% sur 25 ans)
+    const annualRate = 0.05;
+    const yearTerms = 25;
+    const monthlyRate = annualRate / 12;
+    const numPayments = yearTerms * 12;
+    const monthlyPay = Math.round(loan * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1));
     const projectTarget = apport;
-    aiText = `🏠 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br><br>🏦 משכנתא לאחר רכישה: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי משוער: ${monthlyPay.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• מינימום 25% הון עצמי בישראל<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהישג יד / מחיר למשתכן?`;
+    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>📅 ${months} חודשים לחיסכון<br><br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש<br><small style="color:var(--muted)">(חישוב: ${yearTerms} שנים, ריבית 5%)</small><br><br>💡 <strong>טיפים:</strong><br>• מינימום 25% הון עצמי בישראל<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהישג יד / מחיר למשתכן?`;
     extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות (מעבר להון עצמי):</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪<br>👨‍⚖️ עו"ד+תיווך: ~${Math.round(target*0.04).toLocaleString('he-IL')} ₪<br>🛠 שיפוץ ראשוני: לפי מצב הדירה</div>`;
-    target = projectTarget; // l'épargne vise l'apport
+    target = projectTarget;
+  } else if (wizardType==='epargne') {
+    target = target || 50000;
+    const monthlyAmount = Math.ceil(target / months);
+    aiText = `🪙 <strong>${who||'חיסכון'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💵 <strong>סכום חודשי לחיסכון:</strong> ${monthlyAmount.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הפקדה אוטומטית בתחילת החודש<br>• שקול קרן השתלמות לפטור ממס<br>• חשבון נפרד לחיסכון - לא לגעת!<br>• בדוק תשואות בנק vs בית השקעות`;
   } else {
     target = target || 15000;
-    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
+    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
   }
 
-  const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
-  const months=targetDate?Math.max(1,Math.round((new Date(targetDate)-new Date())/(30.44*86400000))):24;
-  const monthly=target>0?Math.round(target/months):0;
-  const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏠 דירה ${region||''}`:who||'🎯 פרויקט';
+  // Math.ceil pour éviter le bug 5000/10 = 500 (mauvais arrondi)
+  const monthly = target > 0 ? Math.ceil(target / months) : 0;
+  const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏡 דירה ${region||''}`:wizardType==='epargne'?`🪙 ${who||'חיסכון'}`:who||'🎯 פרויקט';
 
-  // Stocke les données dans une variable globale au lieu d'inliner dans onclick (évite bug apostrophes)
   window._pendingProject = { name: projName, type: wizardType, date: targetDate, monthly: monthly, target: target };
 
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div></div>
@@ -1293,18 +1308,33 @@ async function runAiWizard() {
       <label class="field-label">יעד (₪)</label>
       <input class="field" id="w-final" type="number" value="${target}" style="background:var(--card);direction:ltr">
       <div style="text-align:center;padding:6px 0;font-size:18px;font-weight:800;color:var(--accent);font-family:'Rubik',sans-serif;direction:ltr">${monthly.toLocaleString('he-IL')} ₪ / חודש</div>
+      <div style="text-align:center;font-size:11px;color:var(--muted)">${months} חודשים</div>
     </div>
-    <button onclick="saveProjectFromPending()" class="submit-btn">💾 שמור</button>`;
+    <button id="save-proj-btn" onclick="saveProjectFromPending()" class="submit-btn">💾 שמור</button>`;
 }
 
 async function saveProjectFromPending() {
+  const btn = document.getElementById('save-proj-btn');
+  if (!btn || btn.disabled) return; // anti double-clic
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = '⏳ שומר...';
+
   const p = window._pendingProject;
-  if (!p) { alert('שגיאה - אין נתוני פרויקט'); return; }
+  if (!p) {
+    alert('שגיאה - אין נתוני פרויקט');
+    btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+    return;
+  }
   const finalAmount = parseFloat(document.getElementById('w-final')?.value) || p.target || 0;
-  if (finalAmount <= 0) { alert('יעד לא תקין'); return; }
-  // Recalcule monthly avec le montant final
-  const months = p.date ? Math.max(1, Math.round((new Date(p.date)-new Date())/(30.44*86400000))) : 24;
-  const monthly = Math.round(finalAmount / months);
+  if (finalAmount <= 0) {
+    alert('יעד לא תקין');
+    btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+    return;
+  }
+  // Recalcule monthly avec Math.ceil
+  const months = p.date ? Math.max(1, Math.ceil((new Date(p.date)-new Date())/(30.44*86400000))) : 24;
+  const monthly = Math.ceil(finalAmount / months);
   try {
     const { error } = await sb.from('projects').insert({
       user_id: currentUser.id,
@@ -1316,11 +1346,18 @@ async function saveProjectFromPending() {
       saved_amount: 0,
       ...(currentFamily ? { family_id: currentFamily.id } : {})
     });
-    if (error) { alert('שגיאה: ' + error.message); return; }
+    if (error) {
+      alert('שגיאה: ' + error.message);
+      btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+      return;
+    }
     document.getElementById('proj-modal').style.display = 'none';
     window._pendingProject = null;
     showView('projects', document.querySelectorAll('.nav-item')[3]);
-  } catch (err) { alert('שגיאה: ' + err.message); }
+  } catch (err) {
+    alert('שגיאה: ' + err.message);
+    btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '💾 שמור';
+  }
 }
 async function saveProject(name,type,date,monthly) {
   const amount=parseFloat(document.getElementById('w-final')?.value)||0;
