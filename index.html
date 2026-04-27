@@ -876,7 +876,7 @@ async function loadDashboard() {
 async function loadTransactions() {
   const list = document.getElementById('tx-list');
   list.innerHTML='<div class="spinner"></div>';
-  const { data } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(20);
+  const { data } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(40);
   if (!data?.length) { list.innerHTML=`<div class="empty"><span>💸</span>אין עסקאות.<br>ייבא את הדף הראשון שלך!</div>`; return; }
   list.innerHTML=`<div class="card" style="padding:14px 16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
