@@ -344,7 +344,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 const { createClient } = supabase;
 const sb = createClient(
   'https://nyywcxcahalxazienuav.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM',
+  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
 );
 
 let currentUser = null, txType = 'expense';
@@ -944,13 +945,11 @@ async function showDailyInsight() {
   const today = new Date().toISOString().split('T')[0];
   const usageKey = 'insight_usage_'+currentUser.id+'_'+today;
   const todayUsage = parseInt(localStorage.getItem(usageKey)||'0');
-  
   if (todayUsage >= 2) {
-    document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:rgba(245,158,11,0.1);border-radius:14px;border:1px solid rgba(245,158,11,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff);text-align:center"><div style="font-size:32px;margin-bottom:8px">🌙</div>הגעת לתובנות היום!<br><small style="color:var(--muted)">חזור מחר לתובנה חדשה ✨</small></div>`;
+    document.getElementById('insight-content').innerHTML = `<div style="padding:20px;background:rgba(245,158,11,0.1);border-radius:14px;border:1px solid rgba(245,158,11,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff);text-align:center"><div style="font-size:36px;margin-bottom:10px">🌙</div><div style="font-weight:700;margin-bottom:6px">הגעת ל-2 התובנות היום</div><div style="font-size:12px;color:var(--muted)">חזור מחר לתובנות חדשות ✨</div></div>`;
     document.getElementById('insight-modal').style.display = 'flex';
     return;
   }
-  
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; }
   document.getElementById('insight-content').innerHTML = '<div class="spinner"></div>';
   document.getElementById('insight-modal').style.display = 'flex';
@@ -967,7 +966,7 @@ async function showDailyInsight() {
     const insight = data.insight || 'אין תובנה זמינה כרגע';
     localStorage.setItem(usageKey, String(todayUsage + 1));
     const remaining = 2 - (todayUsage + 1);
-    const remainingText = remaining > 0 ? `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">נותרו ${remaining} תובנות היום</div>` : `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">זו הייתה התובנה האחרונה להיום 🌙</div>`;
+    const remainingText = remaining > 0 ? `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">נותרה ${remaining} תובנה היום</div>` : `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">זו הייתה התובנה האחרונה להיום 🌙</div>`;
     document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:linear-gradient(135deg,rgba(0,229,255,0.1),rgba(0,102,255,0.1));border-radius:14px;border:1px solid rgba(0,102,255,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff)">${insight}</div>${remainingText}`;
   } catch(e) {
     document.getElementById('insight-content').innerHTML = `<div style="padding:14px;background:rgba(239,68,68,0.1);border-radius:12px;color:var(--red,#ef4444);font-size:13px">שגיאה: ${e.message}</div>`;
@@ -975,7 +974,6 @@ async function showDailyInsight() {
     if (btn) { btn.disabled = false; btn.innerHTML = '💡'; }
   }
 }
-
 function closeInsight() { document.getElementById('insight-modal').style.display='none'; }
 
 async function loadDashboard() {
@@ -1601,7 +1599,7 @@ function showView(name,btn){
 }
 
 sb.auth.onAuthStateChange((event,session)=>{
-  if(session?.user){currentUser=session.user;enterApp();}
+  if(event==='SIGNED_IN' && session?.user){currentUser=session.user;enterApp();}
 });
 </script>
 
