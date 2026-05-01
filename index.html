@@ -120,16 +120,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 </style>
 </head>
 <body>
-<button id="insight-btn" onclick="showDailyInsight()" style="position:fixed;bottom:90px;left:16px;z-index:998;width:56px;height:56px;border-radius:28px;border:none;background:linear-gradient(135deg,#00E5FF,#0066FF);box-shadow:0 8px 24px rgba(0,102,255,0.4);font-size:24px;cursor:pointer;color:white;display:none;align-items:center;justify-content:center">💡</button>
-<div id="insight-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeInsight()">
-  <div style="background:var(--bg-card,#1a1f2e);border-radius:20px;padding:24px;max-width:420px;width:100%;border:1px solid #0066FF44">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="font-size:16px;font-weight:700;color:var(--ink,#fff)">💡 תובנה יומית</div>
-      <button onclick="closeInsight()" style="background:none;border:none;font-size:24px;color:var(--muted,#888);cursor:pointer">×</button>
-    </div>
-    <div id="insight-content"><div class="spinner"></div></div>
-  </div>
-</div>
 <div id="app">
 
 <div id="auth-screen" class="auth-screen">
@@ -153,6 +143,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 </div>
 
 <div id="main-app" style="display:none;flex-direction:column;height:100%">
+  <button id="insight-btn" onclick="showDailyInsight()" style="position:fixed;bottom:90px;left:16px;z-index:998;width:54px;height:54px;border-radius:27px;border:none;background:linear-gradient(135deg,#00E5FF,#0066FF);box-shadow:0 6px 20px rgba(0,102,255,0.4);font-size:24px;cursor:pointer;color:white;display:none;align-items:center;justify-content:center;font-family:'Heebo',sans-serif">💡</button>
+  <div id="insight-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeInsight()">
+    <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:440px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:80vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:700;color:var(--ink,#fff);font-family:'Rubik',sans-serif">💡 תובנה יומית</div>
+        <button onclick="closeInsight()" style="background:none;border:none;font-size:26px;color:var(--muted,#888);cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div id="insight-content"><div class="spinner"></div></div>
+    </div>
+  </div>
   <div class="header">
     <div>
       <div class="rubik header-title">BudgetFam 🇮🇱</div>
@@ -934,7 +934,35 @@ async function enterApp() {
   await loadDashboard();
   await loadTransactions();
   loadImportHistory();
+  // Show insight button
+  const ib = document.getElementById('insight-btn');
+  if (ib) ib.style.display = 'flex';
 }
+
+async function showDailyInsight() {
+  const btn = document.getElementById('insight-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; }
+  document.getElementById('insight-content').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('insight-modal').style.display = 'flex';
+  try {
+    const { data: txs } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
+    const balanceData = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'{}');
+    const balance = balanceData.value || 0;
+    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/daily-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
+      body: JSON.stringify({ transactions: txs || [], balance })
+    });
+    const data = await resp.json();
+    const insight = data.insight || 'אין תובנה זמינה כרגע';
+    document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:linear-gradient(135deg,rgba(0,229,255,0.1),rgba(0,102,255,0.1));border-radius:14px;border:1px solid rgba(0,102,255,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff)">${insight}</div>`;
+  } catch(e) {
+    document.getElementById('insight-content').innerHTML = `<div style="padding:14px;background:rgba(239,68,68,0.1);border-radius:12px;color:var(--red,#ef4444);font-size:13px">שגיאה: ${e.message}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '💡'; }
+  }
+}
+function closeInsight() { document.getElementById('insight-modal').style.display='none'; }
 
 async function loadDashboard() {
   const el = document.getElementById('dashboard-content');
@@ -1227,15 +1255,6 @@ function renderWizardStep2() {
       <button onclick="runAiWizard()" class="submit-btn" style="flex:3">👔 תכנית AI</button>
     </div>`;
 }
-async function showDailyInsight() {
-  ...
-}
-function closeInsight() { ... }
-
-async function runAiWizard() {
-  [code existant]
-}
-
 async function runAiWizard() {
   const who=document.getElementById('w-who')?.value||'';
   const dateVal=document.getElementById('w-date')?.value||'';
