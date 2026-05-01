@@ -991,7 +991,9 @@ async function detectAnomalies(newTxs) {
       const amt = Math.abs(tx.amount);
       
       // Pattern 1: Foreign currency
-      if (/usd|eur|gbp|\$|€|£|דולר|יורו/i.test(tx.label)) {
+      const labelLower = (tx.label||'').toLowerCase();
+      const hasForeignCurrency = labelLower.includes('usd') || labelLower.includes('eur') || labelLower.includes('gbp') || labelLower.includes('dollar') || labelLower.includes('euro') || tx.label.includes('$');
+      if (hasForeignCurrency) {
         localAnomalies.push({
           tx, type: 'foreign',
           icon: '🌍',
@@ -1079,7 +1081,7 @@ function closeAnomalyModal() {
   document.getElementById('anomaly-modal').style.display='none'; 
 }
 
-
+async function showDailyInsight() {
   const btn = document.getElementById('insight-btn');
   const today = new Date().toISOString().split('T')[0];
   const usageKey = 'insight_usage_'+currentUser.id+'_'+today;
