@@ -143,7 +143,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 </div>
 
 <div id="main-app" style="display:none;flex-direction:column;height:100%">
-  <button id="insight-btn" onclick="showDailyInsight()" style="position:fixed;bottom:90px;left:16px;z-index:998;width:54px;height:54px;border-radius:27px;border:none;background:linear-gradient(135deg,#00E5FF,#0066FF);box-shadow:0 6px 20px rgba(0,102,255,0.4);font-size:24px;cursor:pointer;color:white;display:none;align-items:center;justify-content:center;font-family:'Heebo',sans-serif">💡</button>
+  <button id="insight-btn" onclick="showDailyInsight()" style="position:fixed;bottom:90px;left:16px;z-index:998;width:54px;height:54px;border-radius:27px;border:none;background:linear-gradient(135deg,#00E5FF,#0066FF);box-shadow:0 6px 20px rgba(0,102,255,0.4);font-size:24px;cursor:pointer;color:white;display:none;align-items:center;justify-content:center;font-family:'Heebo',sans-serif">💡<span id="insight-badge" style="position:absolute;top:-4px;right:-4px;background:var(--card,#1a1f2e);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;border:2px solid #0066FF;min-width:14px;text-align:center;line-height:1;display:none">2</span></button>
   <div id="insight-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeInsight()">
     <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:440px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:80vh;overflow-y:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -160,7 +160,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
         <button onclick="closeAnomalyModal()" style="background:none;border:none;font-size:26px;color:var(--muted,#888);cursor:pointer;padding:0;line-height:1">×</button>
       </div>
       <div id="anomaly-content"></div>
-      <button onclick="closeAnomalyModal()" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#00E5FF,#0066FF);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">✅ הבנתי, הכל מוכר</button>
+      <button onclick="closeAnomalyModal()" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#00E5FF,#0066FF);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
+    </div>
+  </div>
+  <div id="import-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeImportDetail()">
+    <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:480px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:85vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div id="import-detail-title" style="font-size:15px;font-weight:700;color:var(--ink,#fff);font-family:'Rubik',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">קובץ</div>
+          <div id="import-detail-meta" style="font-size:11px;color:var(--muted);margin-top:3px"></div>
+        </div>
+        <button onclick="closeImportDetail()" style="background:none;border:none;font-size:26px;color:var(--muted,#888);cursor:pointer;padding:0;line-height:1;flex-shrink:0">×</button>
+      </div>
+      <div style="height:1px;background:var(--divider);margin:12px 0"></div>
+      <div id="import-detail-content"></div>
+      <button onclick="closeImportDetail()" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#00E5FF,#0066FF);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
     </div>
   </div>
   <div class="header">
@@ -868,16 +882,73 @@ function loadImportHistory() {
     return;
   }
   el.innerHTML = history.map(h=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);font-size:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);font-size:12px;cursor:pointer" onclick="viewImport('${h.id}')">
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.source==='Photo'?'📸':h.source==='PDF'?'📄':'📊'} ${h.file||'קובץ'}</div>
-        <div style="color:var(--muted);font-size:10px">${new Date(h.date).toLocaleDateString('he-IL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+        <div style="color:var(--muted);font-size:10px">${new Date(h.date).toLocaleDateString('he-IL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})} · לחץ לצפייה ›</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
         <div style="color:var(--green);font-weight:700">+${h.count}</div>
         <button onclick="deleteImport('${h.id}')" class="action-btn" style="background:var(--red-soft);color:var(--red)" title="מחק ייבוא">🗑</button>
       </div>
     </div>`).join('');
+}
+
+async function viewImport(importId) {
+  const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
+  const imp = history.find(h => h.id === importId);
+  if (!imp) { alert('הייבוא לא נמצא'); return; }
+  if (!imp.txIds || imp.txIds.length === 0) { alert('אין עסקאות בייבוא הזה'); return; }
+  
+  document.getElementById('import-detail-title').textContent = imp.file || 'קובץ';
+  document.getElementById('import-detail-meta').innerHTML = `
+    ${imp.source==='Photo'?'📸':imp.source==='PDF'?'📄':'📊'} 
+    ${new Date(imp.date).toLocaleDateString('he-IL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+    · ${imp.count} עסקאות
+  `;
+  document.getElementById('import-detail-content').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('import-detail-modal').style.display = 'flex';
+  
+  const { data: txs } = await sb.from('transactions')
+    .select('*')
+    .in('id', imp.txIds)
+    .eq('user_id', currentUser.id)
+    .order('created_at', {ascending: false});
+  
+  const list = txs || [];
+  if (list.length === 0) {
+    document.getElementById('import-detail-content').innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">העסקאות נמחקו או הוסרו</div>`;
+    return;
+  }
+  
+  const totalIn = list.filter(t => t.amount > 0).reduce((s,t) => s+t.amount, 0);
+  const totalOut = list.filter(t => t.amount < 0).reduce((s,t) => s+Math.abs(t.amount), 0);
+  
+  document.getElementById('import-detail-content').innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1;padding:10px;background:rgba(16,185,129,0.1);border-radius:10px;text-align:center">
+        <div style="font-size:10px;color:var(--muted)">הכנסות</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green);direction:ltr">+${totalIn.toLocaleString('he-IL')} ₪</div>
+      </div>
+      <div style="flex:1;padding:10px;background:rgba(239,68,68,0.1);border-radius:10px;text-align:center">
+        <div style="font-size:10px;color:var(--muted)">הוצאות</div>
+        <div style="font-size:13px;font-weight:700;color:var(--red);direction:ltr">-${totalOut.toLocaleString('he-IL')} ₪</div>
+      </div>
+    </div>
+    ${list.map(t => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--divider);font-size:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${getCatIcon(t.category)} ${t.label||'—'}</div>
+          <div style="font-size:10px;color:var(--muted)">${catHe(t.category||'Divers')} · ${formatDate(t.created_at)}</div>
+        </div>
+        <div style="font-weight:700;font-size:12px;direction:ltr;color:${t.amount<0?'var(--red)':'var(--green)'};flex-shrink:0">${t.amount>0?'+':''}${t.amount.toLocaleString('he-IL')} ₪</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function closeImportDetail() {
+  document.getElementById('import-detail-modal').style.display = 'none';
 }
 
 async function deleteImport(importId) {
@@ -950,6 +1021,29 @@ async function enterApp() {
   // Show insight button
   const ib = document.getElementById('insight-btn');
   if (ib) ib.style.display = 'flex';
+  updateInsightBadge();
+}
+
+function updateInsightBadge() {
+  const badge = document.getElementById('insight-badge');
+  if (!badge || !currentUser) return;
+  const today = new Date().toISOString().split('T')[0];
+  const usageKey = 'insight_usage_'+currentUser.id+'_'+today;
+  const used = parseInt(localStorage.getItem(usageKey)||'0');
+  const remaining = Math.max(0, 2 - used);
+  if (remaining === 0) {
+    badge.textContent = '✓';
+    badge.style.background = 'rgba(100,116,139,0.8)';
+    badge.style.borderColor = 'rgba(100,116,139,0.6)';
+    badge.style.display = 'flex';
+  } else if (remaining === 1) {
+    badge.textContent = '1';
+    badge.style.background = 'rgba(245,158,11,0.95)';
+    badge.style.borderColor = '#f59e0b';
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 // ====== ANOMALY DETECTION (Hybrid: JS + Claude) ======
@@ -1054,9 +1148,34 @@ async function detectAnomalies(newTxs) {
 
 function showAnomaliesModal(anomalies, fromAI) {
   if (!anomalies || anomalies.length === 0) return;
+  // Filter out anomalies user already marked as known
+  const knownKey = 'known_anomalies_'+currentUser.id;
+  const knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
+  const filtered = anomalies.filter(a => {
+    const sig = (a.tx.label||'') + '|' + a.tx.amount + '|' + a.type;
+    return !knownList.includes(sig);
+  });
+  if (filtered.length === 0) return;
+  
+  window._currentAnomalies = filtered;
+  renderAnomaliesList(filtered);
+  document.getElementById('anomaly-modal').style.display = 'flex';
+}
+
+function renderAnomaliesList(anomalies) {
+  if (anomalies.length === 0) {
+    document.getElementById('anomaly-content').innerHTML = `
+      <div style="padding:24px;text-align:center;background:rgba(16,185,129,0.1);border-radius:14px;border:1px solid rgba(16,185,129,0.3)">
+        <div style="font-size:36px;margin-bottom:8px">🎉</div>
+        <div style="font-weight:700;color:var(--green,#10b981);font-size:14px">הכל בדוק!</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">סימנת את כל העסקאות כתקינות</div>
+      </div>`;
+    return;
+  }
+  
   const itemsHtml = anomalies.map((a, i) => `
-    <div style="padding:12px;background:rgba(245,158,11,0.08);border-radius:12px;border:1px solid rgba(245,158,11,0.25);margin-bottom:8px">
-      <div style="display:flex;align-items:flex-start;gap:10px">
+    <div id="anomaly-item-${i}" style="padding:12px;background:rgba(245,158,11,0.08);border-radius:12px;border:1px solid rgba(245,158,11,0.25);margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
         <div style="font-size:24px;flex-shrink:0">${a.icon}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:13px;color:var(--ink,#fff);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.tx.label}</div>
@@ -1064,21 +1183,71 @@ function showAnomaliesModal(anomalies, fromAI) {
           <div style="font-size:11px;color:var(--muted);line-height:1.5">${a.reason}</div>
         </div>
       </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="markAnomalyKnown(${i})" style="flex:1;padding:8px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:8px;color:var(--green,#10b981);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">✅ מוכר לי</button>
+        <button onclick="reportAnomaly(${i})" style="flex:1;padding:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:var(--red,#ef4444);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">⚠️ חשוד</button>
+      </div>
     </div>
   `).join('');
   
   document.getElementById('anomaly-content').innerHTML = `
     <div style="margin-bottom:14px;padding:12px;background:rgba(0,229,255,0.08);border-radius:10px;font-size:12px;color:var(--ink,#fff);text-align:center">
-      🔍 בדקתי את העסקאות שיובאו וזיהיתי <b>${anomalies.length}</b> דברים שכדאי לבדוק:
+      🔍 זיהיתי <b>${anomalies.length}</b> עסקאות לבדיקה:
     </div>
     ${itemsHtml}
-    <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:10px">אם הכל מוכר - אפשר להתעלם 👌</div>
+    <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:10px">סמן כל אחת - לא אתריע שוב על "מוכר לי"</div>
   `;
-  document.getElementById('anomaly-modal').style.display = 'flex';
+}
+
+function markAnomalyKnown(idx) {
+  const a = window._currentAnomalies?.[idx];
+  if (!a) return;
+  const knownKey = 'known_anomalies_'+currentUser.id;
+  const knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
+  const sig = (a.tx.label||'') + '|' + a.tx.amount + '|' + a.type;
+  if (!knownList.includes(sig)) {
+    knownList.push(sig);
+    localStorage.setItem(knownKey, JSON.stringify(knownList.slice(-200)));
+  }
+  // Visual feedback
+  const item = document.getElementById('anomaly-item-'+idx);
+  if (item) {
+    item.style.opacity = '0.4';
+    item.style.pointerEvents = 'none';
+    item.innerHTML = `<div style="text-align:center;padding:14px;color:var(--green,#10b981);font-size:13px;font-weight:700">✅ סומן כמוכר</div>`;
+  }
+  // Check if all are handled
+  setTimeout(() => {
+    const items = document.querySelectorAll('[id^="anomaly-item-"]');
+    const remaining = Array.from(items).filter(el => el.style.pointerEvents !== 'none').length;
+    if (remaining === 0) {
+      setTimeout(closeAnomalyModal, 800);
+    }
+  }, 100);
+}
+
+function reportAnomaly(idx) {
+  const a = window._currentAnomalies?.[idx];
+  if (!a) return;
+  const item = document.getElementById('anomaly-item-'+idx);
+  if (item) {
+    item.style.opacity = '0.5';
+    item.style.pointerEvents = 'none';
+    item.style.borderColor = 'rgba(239,68,68,0.6)';
+    item.innerHTML = `<div style="text-align:center;padding:14px;color:var(--red,#ef4444);font-size:13px;font-weight:700">⚠️ סומן כחשוד - בדוק את הבנק שלך!</div>`;
+  }
+  setTimeout(() => {
+    const items = document.querySelectorAll('[id^="anomaly-item-"]');
+    const remaining = Array.from(items).filter(el => el.style.pointerEvents !== 'none').length;
+    if (remaining === 0) {
+      setTimeout(closeAnomalyModal, 1500);
+    }
+  }, 100);
 }
 
 function closeAnomalyModal() { 
   document.getElementById('anomaly-modal').style.display='none'; 
+  window._currentAnomalies = null;
 }
 
 async function showDailyInsight() {
@@ -1109,10 +1278,11 @@ async function showDailyInsight() {
     const remaining = 2 - (todayUsage + 1);
     const remainingText = remaining > 0 ? `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">נותרה ${remaining} תובנה היום</div>` : `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">זו הייתה התובנה האחרונה להיום 🌙</div>`;
     document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:linear-gradient(135deg,rgba(0,229,255,0.1),rgba(0,102,255,0.1));border-radius:14px;border:1px solid rgba(0,102,255,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff)">${insight}</div>${remainingText}`;
+    updateInsightBadge();
   } catch(e) {
     document.getElementById('insight-content').innerHTML = `<div style="padding:14px;background:rgba(239,68,68,0.1);border-radius:12px;color:var(--red,#ef4444);font-size:13px">שגיאה: ${e.message}</div>`;
   } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '💡'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '💡<span id="insight-badge" style="position:absolute;top:-4px;right:-4px;background:var(--card,#1a1f2e);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;border:2px solid #0066FF;min-width:14px;text-align:center;line-height:1;display:none">2</span>'; updateInsightBadge(); }
   }
 }
 function closeInsight() { document.getElementById('insight-modal').style.display='none'; }
