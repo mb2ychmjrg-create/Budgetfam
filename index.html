@@ -948,7 +948,7 @@ async function showDailyInsight() {
     const { data: txs } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
     const balanceData = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'{}');
     const balance = balanceData.value || 0;
-    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/daily-insight', {
+    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/clever-worker' {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
       body: JSON.stringify({ transactions: txs || [], balance })
