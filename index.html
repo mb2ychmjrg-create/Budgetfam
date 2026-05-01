@@ -120,7 +120,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 </style>
 </head>
 <body>
-<button id="insight-btn" onclick="showDailyInsight()" style="position:fixed;bottom:90px;left:16px;z-index:998;width:56px;height:56px;border-radius:28px;border:none;background:linear-gradient(135deg,#00E5FF,#0066FF);box-shadow:0 8px 24px rgba(0,102,255,0.4);font-size:24px;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center">💡</button>
+<button id="insight-btn" onclick="showDailyInsight()" style="position:fixed;bottom:90px;left:16px;z-index:998;width:56px;height:56px;border-radius:28px;border:none;background:linear-gradient(135deg,#00E5FF,#0066FF);box-shadow:0 8px 24px rgba(0,102,255,0.4);font-size:24px;cursor:pointer;color:white;display:none;align-items:center;justify-content:center">💡</button>
 <div id="insight-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeInsight()">
   <div style="background:var(--bg-card,#1a1f2e);border-radius:20px;padding:24px;max-width:420px;width:100%;border:1px solid #0066FF44">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
