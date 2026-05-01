@@ -941,6 +941,16 @@ async function enterApp() {
 
 async function showDailyInsight() {
   const btn = document.getElementById('insight-btn');
+  const today = new Date().toISOString().split('T')[0];
+  const usageKey = 'insight_usage_'+currentUser.id+'_'+today;
+  const todayUsage = parseInt(localStorage.getItem(usageKey)||'0');
+  
+  if (todayUsage >= 2) {
+    document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:rgba(245,158,11,0.1);border-radius:14px;border:1px solid rgba(245,158,11,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff);text-align:center"><div style="font-size:32px;margin-bottom:8px">🌙</div>הגעת לתובנות היום!<br><small style="color:var(--muted)">חזור מחר לתובנה חדשה ✨</small></div>`;
+    document.getElementById('insight-modal').style.display = 'flex';
+    return;
+  }
+  
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; }
   document.getElementById('insight-content').innerHTML = '<div class="spinner"></div>';
   document.getElementById('insight-modal').style.display = 'flex';
@@ -955,13 +965,17 @@ async function showDailyInsight() {
     });
     const data = await resp.json();
     const insight = data.insight || 'אין תובנה זמינה כרגע';
-    document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:linear-gradient(135deg,rgba(0,229,255,0.1),rgba(0,102,255,0.1));border-radius:14px;border:1px solid rgba(0,102,255,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff)">${insight}</div>`;
+    localStorage.setItem(usageKey, String(todayUsage + 1));
+    const remaining = 2 - (todayUsage + 1);
+    const remainingText = remaining > 0 ? `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">נותרו ${remaining} תובנות היום</div>` : `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">זו הייתה התובנה האחרונה להיום 🌙</div>`;
+    document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:linear-gradient(135deg,rgba(0,229,255,0.1),rgba(0,102,255,0.1));border-radius:14px;border:1px solid rgba(0,102,255,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff)">${insight}</div>${remainingText}`;
   } catch(e) {
     document.getElementById('insight-content').innerHTML = `<div style="padding:14px;background:rgba(239,68,68,0.1);border-radius:12px;color:var(--red,#ef4444);font-size:13px">שגיאה: ${e.message}</div>`;
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '💡'; }
   }
 }
+
 function closeInsight() { document.getElementById('insight-modal').style.display='none'; }
 
 async function loadDashboard() {
