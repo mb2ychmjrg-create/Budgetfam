@@ -733,17 +733,19 @@ async function confirmImport(source, fileName) {
 
 function detectBankFromFile(fileName) {
   const f = (fileName||'').toLowerCase();
-  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
-  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
-  if (/discount|דיסקונט/i.test(f)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
-  if (/mizrahi|מזרחי|tefahot|טפחות/i.test(f)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
-  if (/onezero|one.?zero/i.test(f)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
-  if (/beinleumi|בינלאומי/i.test(f)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟪' };
-  if (/cal|כאל/i.test(f)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
-  if (/isracard|ישראכרט/i.test(f)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
-  if (/max/i.test(f)) return { bank: 'max', name: 'Max', emoji: '💳' };
-  const acc = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
-  return { bank: 'other_' + Date.now(), name: 'חשבון ' + (acc.length + 1), emoji: '🏦' };
+  // Détection banque
+  let bank, name, emoji;
+  if (/hapoalim|פועלים/.test(f))      { bank='hapoalim'; name='הפועלים'; emoji='🟦'; }
+  else if (/leumi|לאומי/.test(f))      { bank='leumi';    name='לאומי';   emoji='🟥'; }
+  else if (/discount|דיסקונט/.test(f)) { bank='discount'; name='דיסקונט'; emoji='🟩'; }
+  else if (/mizrahi|מזרחי|tefahot|טפחות/.test(f)) { bank='mizrahi'; name='מזרחי טפחות'; emoji='🟧'; }
+  else if (/onezero|one.?zero/.test(f)){ bank='onezero';  name='One Zero'; emoji='⬛'; }
+  else if (/beinleumi|בינלאומי/.test(f)){ bank='beinleumi'; name='הבינלאומי'; emoji='🟪'; }
+  else if (/cal|כאל/.test(f))          { bank='cal';      name='כאל';     emoji='💳'; }
+  else if (/isracard|ישראכרט/.test(f)) { bank='isracard'; name='ישראכרט'; emoji='💳'; }
+  else if (/max/.test(f))              { bank='max';       name='Max';     emoji='💳'; }
+  else { bank=null; name=null; emoji='🏦'; }
+  return { bank, name, emoji };
 }
 
 function showImportProgress(msg) {
