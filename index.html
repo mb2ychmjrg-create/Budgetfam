@@ -1456,12 +1456,12 @@ async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
   const projectedExpenses = Math.round(dailyRate * totalDays);
   const projectedFlow = currentIncome - projectedExpenses;
   
-  // Compute average of last 3 months expenses for comparison
-  const threeMonthsAgo = new Date(displayMonth);
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  // Compute average of past months expenses for comparison (look back 6 months)
+  const sixMonthsAgo = new Date(displayMonth);
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   const pastTxs = allTxs.filter(t => {
     const d = new Date(t.created_at);
-    return d >= threeMonthsAgo && d < monthStart && t.amount < 0;
+    return d >= sixMonthsAgo && d < monthStart && t.amount < 0;
   });
   // Group by month
   const monthlyTotals = {};
@@ -1483,7 +1483,7 @@ async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
     else if (pctVsAvg < -5) { arrow = '▼'; pctColor = 'var(--green)'; }
   }
   const comparisonText = avgPast > 0 ? 
-    `<span style="color:${pctColor};font-weight:700">${arrow} ${Math.abs(pctVsAvg)}%</span> מול ממוצע 3 חודשים` :
+    `<span style="color:${pctColor};font-weight:700">${arrow} ${Math.abs(pctVsAvg)}%</span> מול ממוצע ${months.length} חודשים אחרונים` :
     '<span style="color:var(--muted);font-size:11px">אין מספיק היסטוריה להשוואה</span>';
   
   el.innerHTML = `
@@ -1506,7 +1506,7 @@ async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
   `;
   
   // Optional Claude commentary (cached daily to save tokens)
-  if (!isCurrentMonth || currentMonthTxs.length < 3) {
+  if (currentMonthTxs.length < 3) {
     document.getElementById('forecast-ai-comment').innerHTML = '<span style="color:var(--muted)">📊 הוסף עוד עסקאות לתחזית מדויקת</span>';
     return;
   }
@@ -1544,9 +1544,11 @@ async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
 }
 
 function refreshForecast() {
-  // Clear today's cache and reload dashboard
+  // Clear today's cache and reload forecast section
   const cacheKey = 'forecast_comment_' + currentUser.id + '_' + new Date().toISOString().split('T')[0];
   localStorage.removeItem(cacheKey);
+  const el = document.getElementById('forecast-content');
+  if (el) el.innerHTML = '<div class="spinner"></div>';
   loadDashboard();
 }
 
@@ -2164,13 +2166,13 @@ async function loadStats() {
 
   el.innerHTML=`<div class="card fu fu1"><div class="rubik sec-title">סיכום ${periodLabel}</div><div style="display:flex;gap:8px"><div class="stat-mini"><label>הכנסות</label><b style="color:var(--green);direction:ltr">${income.toLocaleString('he-IL')} ₪</b></div><div class="stat-mini"><label>הוצאות</label><b style="color:var(--red);direction:ltr">${expenses.toLocaleString('he-IL')} ₪</b></div><div class="stat-mini"><label>חיסכון</label><b style="direction:ltr;color:${savings>=0?'var(--accent)':'var(--red)'}">${savings.toLocaleString('he-IL')} ₪</b></div></div></div>
     ${comparisonBlock}
-    <div class="card fu fu2" style="margin-top:8px"><div class="chart-tabs"><button class="chart-tab active" onclick="switchChart('donut',this)">🍩 קטגוריות</button><button class="chart-tab" onclick="switchChart('bar',this)">📊 ${periodLabel}</button><button class="chart-tab" onclick="switchChart('line',this)">📈 יתרה</button></div>
-      <div id="panel-donut" class="chart-panel active"><div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;"><canvas id="chart-donut"></canvas></div><div id="donut-legend" style="margin-top:12px"></div></div>
-      <div id="panel-bar" class="chart-panel"><div style="position:relative;height:220px;"><canvas id="chart-bar"></canvas></div></div>
-      <div id="panel-line" class="chart-panel"><div style="position:relative;height:220px;"><canvas id="chart-line"></canvas></div></div>
+    <div class="card fu fu2" style="margin-top:8px">
+      <div class="rubik sec-title">🍩 קטגוריות</div>
+      <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center;"><canvas id="chart-donut"></canvas></div>
+      <div id="donut-legend" style="margin-top:12px"></div>
     </div>
     <div class="card fu fu3"><div class="rubik sec-title">עסקאות</div><div style="font-size:36px;font-weight:800;color:var(--accent);font-family:'Rubik',sans-serif;text-align:center;padding:6px 0">${all.length}</div><div style="text-align:center;font-size:12px;color:var(--muted)">נותחו על ידי בינה מלאכותית</div></div>`;
-  requestAnimationFrame(()=>{ buildDonut(catLabels,catValues); buildBar(periods,iData,eData); buildLine(bLabels,bData); });
+  requestAnimationFrame(()=>{ buildDonut(catLabels,catValues); });
 }
 function baseOpts(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};}
 function buildDonut(labels,values){
