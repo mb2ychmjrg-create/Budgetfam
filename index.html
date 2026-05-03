@@ -461,14 +461,11 @@ async function callEdgeVision(payload) {
       return { transactions: [], error: `server_${r.status}: ${errText.substring(0,200)}` };
     }
     const result = await r.json();
-    // Save balance if returned by Edge Function (יתרה)
+    // Pending balance - will be saved only if at least 1 transaction is actually inserted
     if (result.balance !== undefined && result.balance !== null && currentUser) {
       const balanceVal = parseFloat(result.balance);
       if (!isNaN(balanceVal)) {
-        localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
-          amount: balanceVal,
-          date: new Date().toISOString()
-        }));
+        window._pendingBalance = balanceVal;
       }
     }
     // Normalize field names + categories
@@ -835,6 +832,15 @@ async function confirmImport(source, fileName) {
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
+
+    // Save balance ONLY if at least 1 transaction was actually inserted (avoid double-save bug)
+    if (finalToInsert.length > 0 && window._pendingBalance !== undefined && currentUser) {
+      localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
+        amount: window._pendingBalance,
+        date: new Date().toISOString()
+      }));
+      window._pendingBalance = undefined;
+    }
 
     document.getElementById('review-modal').style.display = 'none';
     extractedTxs = [];
