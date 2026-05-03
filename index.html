@@ -707,13 +707,33 @@ async function confirmImport(source, fileName) {
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
     if (finalToInsert.length > 0 && window._pendingBalance !== undefined && currentUser) {
       const bankInfo = detectBankFromFile(fileName);
-      const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
-      const existingIdx = accounts.findIndex(a => a.bank === bankInfo.bank);
-      if (existingIdx >= 0) { accounts[existingIdx].balance = window._pendingBalance; accounts[existingIdx].date = new Date().toISOString(); }
-      else { accounts.push({ id: 'acc_' + Date.now(), name: bankInfo.name, bank: bankInfo.bank, emoji: bankInfo.emoji, balance: window._pendingBalance, date: new Date().toISOString() }); }
-      localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
-      const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
-      localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: totalBalance, date: new Date().toISOString() }));
+      if (bankInfo.bank) {
+        // Banque identifiée → update ou création unique
+        const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+        const existingIdx = accounts.findIndex(a => a.bank === bankInfo.bank);
+        const newBalance = window._pendingBalance;
+        if (existingIdx >= 0) {
+          // Compte existant → vérifier écart avant d'écraser
+          const oldBalance = parseFloat(accounts[existingIdx].balance) || 0;
+          const ecart = oldBalance !== 0 ? Math.abs((newBalance - oldBalance) / oldBalance) : 0;
+          if (ecart > 0.20 && oldBalance !== 0) {
+            const ok = confirm(
+              `⚠️ יתרה ${bankInfo.name}:\nישנה: ${oldBalance.toLocaleString('he-IL')} ₪\nחדשה: ${newBalance.toLocaleString('he-IL')} ₪\n\nהפרש של ${Math.round(ecart*100)}% — לעדכן?`
+            );
+            if (ok) { accounts[existingIdx].balance = newBalance; accounts[existingIdx].date = new Date().toISOString(); }
+          } else {
+            accounts[existingIdx].balance = newBalance;
+            accounts[existingIdx].date = new Date().toISOString();
+          }
+        } else {
+          // Nouveau compte connu → créer une seule fois
+          accounts.push({ id: 'acc_' + Date.now(), name: bankInfo.name, bank: bankInfo.bank, emoji: bankInfo.emoji, balance: newBalance, date: new Date().toISOString() });
+        }
+        localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
+        const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
+        localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: totalBalance, date: new Date().toISOString() }));
+      }
+      // Banque inconnue (bank=null) → on ignore silencieusement, pas de compte parasite
       window._pendingBalance = undefined;
     }
     document.getElementById('review-modal').style.display = 'none';
@@ -733,19 +753,19 @@ async function confirmImport(source, fileName) {
 
 function detectBankFromFile(fileName) {
   const f = (fileName||'').toLowerCase();
-  // Détection banque
-  let bank, name, emoji;
-  if (/hapoalim|פועלים/.test(f))      { bank='hapoalim'; name='הפועלים'; emoji='🟦'; }
-  else if (/leumi|לאומי/.test(f))      { bank='leumi';    name='לאומי';   emoji='🟥'; }
-  else if (/discount|דיסקונט/.test(f)) { bank='discount'; name='דיסקונט'; emoji='🟩'; }
-  else if (/mizrahi|מזרחי|tefahot|טפחות/.test(f)) { bank='mizrahi'; name='מזרחי טפחות'; emoji='🟧'; }
-  else if (/onezero|one.?zero/.test(f)){ bank='onezero';  name='One Zero'; emoji='⬛'; }
-  else if (/beinleumi|בינלאומי/.test(f)){ bank='beinleumi'; name='הבינלאומי'; emoji='🟪'; }
-  else if (/cal|כאל/.test(f))          { bank='cal';      name='כאל';     emoji='💳'; }
-  else if (/isracard|ישראכרט/.test(f)) { bank='isracard'; name='ישראכרט'; emoji='💳'; }
-  else if (/max/.test(f))              { bank='max';       name='Max';     emoji='💳'; }
-  else { bank=null; name=null; emoji='🏦'; }
-  return { bank, name, emoji };
+  if (/hapoalim|פועלים/.test(f))           return { bank:'hapoalim', name:'הפועלים',      emoji:'🟦' };
+  if (/leumi|לאומי/.test(f))               return { bank:'leumi',    name:'לאומי',         emoji:'🟥' };
+  if (/discount|דיסקונט/.test(f))          return { bank:'discount', name:'דיסקונט',       emoji:'🟩' };
+  if (/mizrahi|מזרחי|tefahot|טפחות/.test(f)) return { bank:'mizrahi', name:'מזרחי טפחות', emoji:'🟧' };
+  if (/onezero|one.?zero/.test(f))         return { bank:'onezero',  name:'One Zero',       emoji:'⬛' };
+  if (/beinleumi|בינלאומי/.test(f))        return { bank:'beinleumi',name:'הבינלאומי',      emoji:'🟪' };
+  if (/otzar|אוצר/.test(f))               return { bank:'otzar',    name:'אוצר החייל',     emoji:'🟨' };
+  if (/mercantile|מרכנתיל/.test(f))        return { bank:'mercantile',name:'מרכנתיל',       emoji:'🔷' };
+  if (/cal|כאל/.test(f))                   return { bank:'cal',      name:'כאל',            emoji:'💳' };
+  if (/isracard|ישראכרט/.test(f))          return { bank:'isracard', name:'ישראכרט',        emoji:'💳' };
+  if (/\bmax\b/.test(f))                   return { bank:'max',      name:'Max',            emoji:'💳' };
+  // Banque inconnue → null, ne crée PAS de compte automatiquement
+  return { bank: null, name: null, emoji: '🏦' };
 }
 
 function showImportProgress(msg) {
