@@ -207,8 +207,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 <div id="view-bank" class="view">
   <div class="rubik fu fu1" style="font-size:20px;font-weight:800;margin-bottom:4px">📥 ייבוא דפי בנק</div>
   <div style="font-size:12px;color:var(--muted);margin-bottom:16px">בינה מלאכותית קוראת את הדף · קטגוריזציה אוטומטית</div>
-
-  <!-- Banks supported -->
   <div class="card fu fu1" style="margin-bottom:14px">
     <div class="rubik sec-title">🏦 כל הבנקים בישראל</div>
     <div class="bank-grid">
@@ -223,7 +221,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <div class="bank-card"><span class="b-emoji">💳</span>+ אשראי</div>
     </div>
   </div>
-
   <button class="import-btn fu fu1" onclick="document.getElementById('pdf-input').click()">
     <div class="icon" style="background:var(--red-soft);color:var(--red)">📄</div>
     <div class="info">
@@ -232,7 +229,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     </div>
     <div class="arrow">›</div>
   </button>
-
   <button class="import-btn fu fu2" onclick="document.getElementById('photo-input').click()">
     <div class="icon" style="background:var(--purple-soft);color:var(--purple)">📸</div>
     <div class="info">
@@ -241,7 +237,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     </div>
     <div class="arrow">›</div>
   </button>
-
   <button class="import-btn fu fu3" onclick="document.getElementById('csv-input').click()">
     <div class="icon" style="background:var(--green-soft);color:var(--green)">📊</div>
     <div class="info">
@@ -250,20 +245,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     </div>
     <div class="arrow">›</div>
   </button>
-
   <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
   <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
   <input type="file" id="csv-input" accept=".csv,.xlsx,.xls,.txt" style="display:none" onchange="handleCSVImport(this)">
-
   <div id="import-status" style="margin-top:14px"></div>
-
   <div class="card fu fu4" style="margin-top:14px;background:var(--accent-soft);border-color:var(--accent)">
     <div class="rubik sec-title" style="color:var(--accent)">💡 טיפ מהיר</div>
     <div style="font-size:12px;color:var(--muted);line-height:1.8">
       <b>הדרך המהירה ביותר:</b> פתח את אפליקציית הבנק שלך (כל בנק בישראל), עבור לרשימת העסקאות, צלם <b>צילום מסך</b> וייבא אותו עם הכפתור 📸. הבינה המלאכותית קוראת הכל אוטומטית!
     </div>
   </div>
-
   <div class="card fu fu4" style="margin-top:8px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div class="rubik sec-title" style="margin-bottom:0">📋 ייבואים אחרונים</div>
@@ -317,8 +308,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 
 <div id="view-stats" class="view">
   <div class="rubik fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">סטטיסטיקות 📊</div>
-
-  <!-- Period Selector -->
   <div class="card fu fu1" style="padding:8px 10px">
     <div style="display:flex;gap:6px">
       <button class="period-btn active" data-period="week" onclick="changePeriod('week',this)">שבוע</button>
@@ -328,7 +317,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <button class="period-btn" data-period="all" onclick="changePeriod('all',this)">הכל</button>
     </div>
   </div>
-
   <div id="stats-content"><div class="spinner"></div></div>
 </div>
 ```
@@ -361,8 +349,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   <div class="modal-sheet"><div class="modal-handle"></div><button class="modal-close" onclick="document.getElementById('review-modal').style.display='none'">✕</button><div id="review-modal-content"></div></div>
 </div>
 
-<!-- EDIT TRANSACTION MODAL -->
-
 <div id="edit-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-sheet"><div class="modal-handle"></div><button class="modal-close" onclick="document.getElementById('edit-modal').style.display='none'">✕</button><div id="edit-modal-content"></div></div>
 </div>
@@ -385,7 +371,10 @@ let extractedTxs = [];
 let statsPeriod = 'month';
 const PALETTE = ['#4F8EF7','#2ECC8A','#F7506A','#F7C948','#A78BFA','#FB923C','#34D399','#F472B6'];
 
-// Categories in Hebrew
+const VISION_URL = 'https://nyywcxcahalxazienuav.supabase.co/functions/v1/vision-extract';
+const WEEKLY_ADVISOR_URL = 'https://nyywcxcahalxazienuav.supabase.co/functions/v1/hyper-handler';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM';
+
 const CAT_HE = {
   'Alimentation':'מזון','Logement':'דיור','Transport':'תחבורה','Loisirs':'בילויים',
   'Santé':'בריאות','Épargne':'חיסכון','Divers':'שונות','Salaire':'משכורת',
@@ -408,22 +397,10 @@ const RULES = [
 
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
-  // Priority: Mortgage / housing loan (משכנתא) is ALWAYS Logement, even if combined with הלוואה
-  if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) {
-    return 'Logement';
-  }
-  // Allocations / aides sociales (toujours, peu importe le signe)
-  if (/קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|disability|הבטחת.?הכנסה/i.test(label)) {
-    return 'Allocations';
-  }
-  // ביטוח לאומי seul (sans précision) : si crédit = allocation, si débit = cotisation
-  if (/ביטוח.?לאומי|bituach.?leumi/i.test(label)) {
-    return amount > 0 ? 'Allocations' : 'Logement';
-  }
-  // Taxes / impôts always Logement (charges fixes)
-  if (/מס הכנסה|income.?tax|מע.?מ|vat|^tax$|מס שבח|מס רכישה/i.test(label) && !/משכורת|salary/i.test(label)) {
-    return 'Logement';
-  }
+  if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) return 'Logement';
+  if (/קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|disability|הבטחת.?הכנסה/i.test(label)) return 'Allocations';
+  if (/ביטוח.?לאומי|bituach.?leumi/i.test(label)) return amount > 0 ? 'Allocations' : 'Logement';
+  if (/מס הכנסה|income.?tax|מע.?מ|vat|^tax$|מס שבח|מס רכישה/i.test(label) && !/משכורת|salary/i.test(label)) return 'Logement';
   for (const [re, cat] of RULES) { if (re.test(label)) return cat; }
   return amount > 0 ? 'Salaire' : 'Divers';
 }
@@ -438,80 +415,53 @@ function autoDetectCat(val) {
   } else { detected.textContent = ''; }
 }
 
-// ── EDGE FUNCTION VISION (no more CORS) ──────────────────────
-const VISION_URL = 'https://nyywcxcahalxazienuav.supabase.co/functions/v1/vision-extract';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM';
-
 async function callEdgeVision(payload) {
   try {
-    // 60 second timeout to avoid hanging forever
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
-
     const r = await fetch(VISION_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
-        'apikey': SUPABASE_ANON
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
     clearTimeout(timeoutId);
-
     if (!r.ok) {
       const errText = await r.text();
-      console.error('Edge function error:', r.status, errText);
       return { transactions: [], error: `server_${r.status}: ${errText.substring(0,200)}` };
     }
     const result = await r.json();
-    // Pending balance - will be saved only if at least 1 transaction is actually inserted
     if (result.balance !== undefined && result.balance !== null && currentUser) {
       const balanceVal = parseFloat(result.balance);
-      if (!isNaN(balanceVal)) {
-        window._pendingBalance = balanceVal;
-      }
+      if (!isNaN(balanceVal)) window._pendingBalance = balanceVal;
     }
-    // Normalize field names + categories
     if (result.transactions && Array.isArray(result.transactions)) {
       result.transactions = result.transactions.map(t => {
         const label = t.label || t.description || t.merchant || t.name || 'עסקה';
         const amount = typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0;
         const rawCat = t.category || '';
-        // Normalize category to French (our internal format)
         let category = normalizeCategory(rawCat);
-        // If still bad/missing, try local categorization based on label
         if (!category || category === 'Divers') {
           const localCat = localCategorize(label, amount);
           if (localCat !== 'Divers') category = localCat;
         }
-        return {
-          date: t.date || new Date().toISOString().split('T')[0],
-          label,
-          amount,
-          category: category || 'Divers'
-        };
+        return { date: t.date || new Date().toISOString().split('T')[0], label, amount, category: category || 'Divers' };
       }).filter(t => t.amount !== 0 && t.label);
     }
     return result;
   } catch (err) {
-    console.error('Network error:', err);
     if (err.name === 'AbortError') return { transactions: [], error: 'timeout' };
     return { transactions: [], error: 'network_error: ' + err.message };
   }
 }
 
-// Map any category name (Hebrew, English, French variants) to our internal French key
 function normalizeCategory(raw) {
   if (!raw) return null;
   const r = raw.toString().toLowerCase().trim();
-  // French (already correct) - check first
   const validCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Sante','Épargne','Epargne','Divers','Salaire','Cadeau','Investissement','Abonnements','Éducation','Education','Allocations'];
   for (const v of validCats) {
     if (r === v.toLowerCase()) return v.replace('Sante','Santé').replace('Epargne','Épargne').replace('Education','Éducation');
   }
-  // Hebrew mapping
   const heMap = {
     'מזון':'Alimentation','אוכל':'Alimentation','קניות':'Alimentation','סופרמרקט':'Alimentation','מכולת':'Alimentation',
     'דיור':'Logement','שכירות':'Logement','משכנתא':'Logement','חשבונות':'Logement','ארנונה':'Logement','חשמל':'Logement','מים':'Logement','גז':'Logement',
@@ -525,10 +475,7 @@ function normalizeCategory(raw) {
     'קצבה':'Allocations','קצבאות':'Allocations','קצבת ילדים':'Allocations','דמי לידה':'Allocations','אבטלה':'Allocations',
     'שונות':'Divers','אחר':'Divers','אחרים':'Divers'
   };
-  for (const [he, fr] of Object.entries(heMap)) {
-    if (r.includes(he.toLowerCase())) return fr;
-  }
-  // English mapping
+  for (const [he, fr] of Object.entries(heMap)) { if (r.includes(he.toLowerCase())) return fr; }
   const enMap = {
     'food':'Alimentation','grocery':'Alimentation','groceries':'Alimentation','restaurant':'Loisirs','dining':'Loisirs',
     'rent':'Logement','housing':'Logement','utilities':'Logement','mortgage':'Logement',
@@ -539,44 +486,29 @@ function normalizeCategory(raw) {
     'subscription':'Abonnements','phone':'Abonnements','internet':'Abonnements',
     'education':'Éducation','school':'Éducation',
     'salary':'Salaire','income':'Salaire',
-    'allocation':'Allocations','benefit':'Allocations','child benefit':'Allocations','unemployment':'Allocations','maternity':'Allocations',
+    'allocation':'Allocations','benefit':'Allocations','unemployment':'Allocations','maternity':'Allocations',
     'other':'Divers','misc':'Divers','miscellaneous':'Divers'
   };
-  for (const [en, fr] of Object.entries(enMap)) {
-    if (r.includes(en)) return fr;
-  }
+  for (const [en, fr] of Object.entries(enMap)) { if (r.includes(en)) return fr; }
   return 'Divers';
 }
 
 async function extractTransactionsFromImage(base64Image, mediaType) {
   return await callEdgeVision({ type: 'image', data: base64Image, mediaType });
 }
-
 async function extractTransactionsFromText(text) {
   return await callEdgeVision({ type: 'text', data: text.substring(0, 30000) });
 }
 
-// ── PDF IMPORT ────────────────────────────────────────────────
 async function handlePDFImport(input) {
   const file = input.files[0];
   if (!file) return;
   showImportProgress('📄 קורא PDF...');
   let arrayBuffer;
-  try {
-    arrayBuffer = await file.arrayBuffer();
-  } catch (err) {
-    showImportError('לא ניתן לקרוא את הקובץ: ' + err.message);
-    input.value = '';
-    return;
-  }
-
-  // Make 2 independent copies - pdf.js detaches the buffer after use
+  try { arrayBuffer = await file.arrayBuffer(); } catch (err) { showImportError('לא ניתן לקרוא את הקובץ: ' + err.message); input.value = ''; return; }
   const bufferForText = arrayBuffer.slice(0);
   const bufferForImage = arrayBuffer.slice(0);
-
-  // STEP 1: Try text extraction
-  let extractedText = '';
-  let textOk = false;
+  let extractedText = '', textOk = false;
   try {
     const pdf = await pdfjsLib.getDocument({ data: bufferForText }).promise;
     showImportProgress(`📄 חילוץ טקסט (${pdf.numPages} עמודים)...`);
@@ -586,35 +518,16 @@ async function handlePDFImport(input) {
       extractedText += content.items.map(item => item.str).join(' ') + '\n\n';
     }
     if (extractedText.trim().length >= 50) textOk = true;
-  } catch (err) {
-    console.error('PDF text extraction failed:', err);
-    extractedText = '';
-  }
-
-  // STEP 2: If text OK, try Claude with text
+  } catch (err) { extractedText = ''; }
   if (textOk) {
     try {
       showImportProgress('👔 בינה מלאכותית מנתחת...');
       const result = await extractTransactionsFromText(extractedText);
-      if (result.transactions?.length) {
-        extractedTxs = result.transactions;
-        showReviewModal(file.name, 'PDF');
-        input.value = '';
-        return;
-      }
-      console.log('Text mode returned no transactions, trying image mode...');
-    } catch (err) {
-      console.error('Text mode error:', err);
-    }
+      if (result.transactions?.length) { extractedTxs = result.transactions; showReviewModal(file.name, 'PDF'); input.value = ''; return; }
+    } catch (err) {}
   }
-
-  // STEP 3: Fallback to image mode (Claude Vision on each page) - uses fresh buffer copy
   showImportProgress('🖼️ מצב תמונה (אוטומטי)...');
-  try {
-    await handlePDFAsImages(bufferForImage, file.name);
-  } catch (err) {
-    showImportError('לא ניתן לקרוא את ה-PDF. נסה לצלם מסך במקום. (' + (err.message||'') + ')');
-  }
+  try { await handlePDFAsImages(bufferForImage, file.name); } catch (err) { showImportError('לא ניתן לקרוא את ה-PDF. נסה לצלם מסך במקום. (' + (err.message||'') + ')'); }
   input.value = '';
 }
 
@@ -635,14 +548,9 @@ async function handlePDFAsImages(arrayBuffer, fileName) {
       const base64 = dataUrl.split(',')[1];
       const result = await extractTransactionsFromImage(base64, 'image/jpeg');
       if (result.transactions?.length) allTxs.push(...result.transactions);
-    } catch (pageErr) {
-      console.error(`Page ${i} error:`, pageErr);
-    }
+    } catch (pageErr) {}
   }
-  if (!allTxs.length) {
-    showImportError('לא זוהו עסקאות בקובץ.');
-    return;
-  }
+  if (!allTxs.length) { showImportError('לא זוהו עסקאות בקובץ.'); return; }
   extractedTxs = allTxs;
   showReviewModal(fileName, 'PDF');
 }
@@ -710,19 +618,11 @@ async function handleCSVImport(input) {
 }
 
 function showReviewModal(fileName, source) {
-  // ALWAYS re-categorize locally to catch Israeli-specific cases (bituach leumi, etc.)
-  // This overrides Claude's category if local rules detect a more specific match
   extractedTxs.forEach(t => {
     const local = localCategorize(t.label, t.amount);
-    // Override Claude's category for these specific Israeli cases
     const overridePatterns = /קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|הבטחת.?הכנסה|ביטוח.?לאומי|bituach.?leumi|מס הכנסה|income.?tax|מע.?מ|vat|משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא/i;
-    if (overridePatterns.test(t.label)) {
-      t.category = local;
-    } else if (!t.category || t.category === 'Divers') {
-      // For other transactions, only override if still Divers
-      if (local !== 'Divers') t.category = local;
-    }
-    // Special: if income (positive amount) and label suggests salary
+    if (overridePatterns.test(t.label)) { t.category = local; }
+    else if (!t.category || t.category === 'Divers') { if (local !== 'Divers') t.category = local; }
     if (t.amount > 0 && (t.category === 'Divers' || !t.category)) {
       if (/משכורת|שכר|salary|paycheck|payroll/i.test(t.label)) t.category = 'Salaire';
     }
@@ -762,7 +662,6 @@ function showReviewModal(fileName, source) {
   document.getElementById('review-modal').style.display = 'flex';
 }
 
-// Generate a fingerprint for duplicate detection
 function txFingerprint(t) {
   const date = new Date(t.created_at || t.date).toISOString().split('T')[0];
   const amount = Math.round(parseFloat(t.amount) * 100) / 100;
@@ -774,7 +673,6 @@ async function confirmImport(source, fileName) {
   const importId = 'imp_' + Date.now();
   const btnEl = document.querySelector('#review-modal-content .submit-btn');
   if (btnEl) { btnEl.textContent = '⏳ בודק כפילויות...'; btnEl.style.opacity = '0.6'; btnEl.disabled = true; }
-
   try {
     const toInsert = extractedTxs.map(t => ({
       user_id: currentUser.id,
@@ -783,91 +681,41 @@ async function confirmImport(source, fileName) {
       category: t.category || 'Divers',
       created_at: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
     })).filter(t => t.amount !== 0);
-
-    if (!toInsert.length) {
-      alert('אין עסקאות תקינות לייבוא.');
-      if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
-      return;
-    }
-
-    // STEP 1: Check for duplicates against existing DB transactions
+    if (!toInsert.length) { alert('אין עסקאות תקינות לייבוא.'); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } return; }
     const dates = toInsert.map(t => t.created_at.split('T')[0]);
     const minDate = dates.sort()[0];
     const maxDate = dates.sort().reverse()[0];
     const startISO = new Date(minDate).toISOString();
     const endISO = new Date(new Date(maxDate).getTime() + 86400000).toISOString();
-
-    const { data: existing } = await sb.from('transactions')
-      .select('label, amount, created_at')
-      .eq('user_id', currentUser.id)
-      .gte('created_at', startISO)
-      .lte('created_at', endISO);
-
+    const { data: existing } = await sb.from('transactions').select('label, amount, created_at').eq('user_id', currentUser.id).gte('created_at', startISO).lte('created_at', endISO);
     const existingFps = new Set((existing||[]).map(t => txFingerprint(t)));
     const duplicates = toInsert.filter(t => existingFps.has(txFingerprint(t)));
     const uniques = toInsert.filter(t => !existingFps.has(txFingerprint(t)));
-
     let finalToInsert = toInsert;
     if (duplicates.length > 0) {
-      const msg = `⚠️ זוהו ${duplicates.length} עסקאות שכבר קיימות במערכת.\n\n` +
-                  `${uniques.length} עסקאות חדשות יתווספו.\n\n` +
-                  `לחץ "אישור" לייבא רק את החדשות (${uniques.length})\n` +
-                  `לחץ "ביטול" כדי לייבא הכל כולל הכפילויות`;
+      const msg = `⚠️ זוהו ${duplicates.length} עסקאות שכבר קיימות במערכת.\n\n${uniques.length} עסקאות חדשות יתווספו.\n\nלחץ "אישור" לייבא רק את החדשות (${uniques.length})\nלחץ "ביטול" כדי לייבא הכל כולל הכפילויות`;
       const skipDuplicates = confirm(msg);
       finalToInsert = skipDuplicates ? uniques : toInsert;
-      if (finalToInsert.length === 0) {
-        alert('אין עסקאות חדשות לייבוא.');
-        document.getElementById('review-modal').style.display = 'none';
-        if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
-        return;
-      }
+      if (finalToInsert.length === 0) { alert('אין עסקאות חדשות לייבוא.'); document.getElementById('review-modal').style.display = 'none'; if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } return; }
     }
-
-    // STEP 2: Insert
     if (btnEl) btnEl.textContent = '⏳ שומר...';
     const { data: inserted, error } = await sb.from('transactions').insert(finalToInsert).select('id');
-    if (error) {
-      console.error('Insert error:', error);
-      alert('שגיאת בסיס נתונים: ' + error.message);
-      if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
-      return;
-    }
-
+    if (error) { console.error('Insert error:', error); alert('שגיאת בסיס נתונים: ' + error.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } return; }
     const txIds = (inserted || []).map(r => r.id);
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
-
-    // Save balance ONLY if at least 1 transaction was actually inserted (avoid double-save bug)
     if (finalToInsert.length > 0 && window._pendingBalance !== undefined && currentUser) {
-      // Multi-account: detect bank from filename and add/update account
       const bankInfo = detectBankFromFile(fileName);
       const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
-      // Try to find existing account by bank name (simple match)
       const existingIdx = accounts.findIndex(a => a.bank === bankInfo.bank);
-      if (existingIdx >= 0) {
-        accounts[existingIdx].balance = window._pendingBalance;
-        accounts[existingIdx].date = new Date().toISOString();
-      } else {
-        accounts.push({
-          id: 'acc_' + Date.now(),
-          name: bankInfo.name,
-          bank: bankInfo.bank,
-          emoji: bankInfo.emoji,
-          balance: window._pendingBalance,
-          date: new Date().toISOString()
-        });
-      }
+      if (existingIdx >= 0) { accounts[existingIdx].balance = window._pendingBalance; accounts[existingIdx].date = new Date().toISOString(); }
+      else { accounts.push({ id: 'acc_' + Date.now(), name: bankInfo.name, bank: bankInfo.bank, emoji: bankInfo.emoji, balance: window._pendingBalance, date: new Date().toISOString() }); }
       localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
-      // Keep legacy single-balance for backward compat (sum of all accounts)
       const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
-      localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
-        amount: totalBalance,
-        date: new Date().toISOString()
-      }));
+      localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: totalBalance, date: new Date().toISOString() }));
       window._pendingBalance = undefined;
     }
-
     document.getElementById('review-modal').style.display = 'none';
     extractedTxs = [];
     const dupeMsg = duplicates.length > 0 ? `<div style="font-size:11px;color:var(--yellow);margin-top:4px">${duplicates.length} כפילויות דולגו</div>` : '';
@@ -879,13 +727,8 @@ async function confirmImport(source, fileName) {
         ${dupeMsg}
       </div>`;
     await loadDashboard(); await loadTransactions(); loadImportHistory();
-    // Anomaly detection (non-blocking)
     setTimeout(() => detectAnomalies(finalToInsert), 800);
-  } catch (err) {
-    console.error('Confirm import error:', err);
-    alert('שגיאה לא צפויה: ' + err.message);
-    if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
-  }
+  } catch (err) { console.error('Confirm import error:', err); alert('שגיאה לא צפויה: ' + err.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } }
 }
 
 function detectBankFromFile(fileName) {
@@ -899,7 +742,6 @@ function detectBankFromFile(fileName) {
   if (/cal|כאל/i.test(f)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
   if (/isracard|ישראכרט/i.test(f)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
   if (/max/i.test(f)) return { bank: 'max', name: 'Max', emoji: '💳' };
-  // Default: timestamp-based name
   const acc = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
   return { bank: 'other_' + Date.now(), name: 'חשבון ' + (acc.length + 1), emoji: '🏦' };
 }
@@ -925,10 +767,7 @@ function loadImportHistory() {
   const el = document.getElementById('import-history');
   if (!el||!currentUser) return;
   const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-  if (!history.length) {
-    el.innerHTML='<div style="font-size:12px;color:var(--muted)">אין ייבואים עדיין.</div>';
-    return;
-  }
+  if (!history.length) { el.innerHTML='<div style="font-size:12px;color:var(--muted)">אין ייבואים עדיין.</div>'; return; }
   el.innerHTML = history.map(h=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);font-size:12px;cursor:pointer" onclick="viewImport('${h.id}')">
       <div style="flex:1;min-width:0">
@@ -947,31 +786,15 @@ async function viewImport(importId) {
   const imp = history.find(h => h.id === importId);
   if (!imp) { alert('הייבוא לא נמצא'); return; }
   if (!imp.txIds || imp.txIds.length === 0) { alert('אין עסקאות בייבוא הזה'); return; }
-  
   document.getElementById('import-detail-title').textContent = imp.file || 'קובץ';
-  document.getElementById('import-detail-meta').innerHTML = `
-    ${imp.source==='Photo'?'📸':imp.source==='PDF'?'📄':'📊'} 
-    ${new Date(imp.date).toLocaleDateString('he-IL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
-    · ${imp.count} עסקאות
-  `;
+  document.getElementById('import-detail-meta').innerHTML = `${imp.source==='Photo'?'📸':imp.source==='PDF'?'📄':'📊'} ${new Date(imp.date).toLocaleDateString('he-IL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} · ${imp.count} עסקאות`;
   document.getElementById('import-detail-content').innerHTML = '<div class="spinner"></div>';
   document.getElementById('import-detail-modal').style.display = 'flex';
-  
-  const { data: txs } = await sb.from('transactions')
-    .select('*')
-    .in('id', imp.txIds)
-    .eq('user_id', currentUser.id)
-    .order('created_at', {ascending: false});
-  
+  const { data: txs } = await sb.from('transactions').select('*').in('id', imp.txIds).eq('user_id', currentUser.id).order('created_at', {ascending: false});
   const list = txs || [];
-  if (list.length === 0) {
-    document.getElementById('import-detail-content').innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">העסקאות נמחקו או הוסרו</div>`;
-    return;
-  }
-  
+  if (list.length === 0) { document.getElementById('import-detail-content').innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">העסקאות נמחקו או הוסרו</div>`; return; }
   const totalIn = list.filter(t => t.amount > 0).reduce((s,t) => s+t.amount, 0);
   const totalOut = list.filter(t => t.amount < 0).reduce((s,t) => s+Math.abs(t.amount), 0);
-  
   document.getElementById('import-detail-content').innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <div style="flex:1;padding:10px;background:rgba(16,185,129,0.1);border-radius:10px;text-align:center">
@@ -991,22 +814,17 @@ async function viewImport(importId) {
         </div>
         <div style="font-weight:700;font-size:12px;direction:ltr;color:${t.amount<0?'var(--red)':'var(--green)'};flex-shrink:0">${t.amount>0?'+':''}${t.amount.toLocaleString('he-IL')} ₪</div>
       </div>
-    `).join('')}
-  `;
+    `).join('')}`;
 }
 
-function closeImportDetail() {
-  document.getElementById('import-detail-modal').style.display = 'none';
-}
+function closeImportDetail() { document.getElementById('import-detail-modal').style.display = 'none'; }
 
 async function deleteImport(importId) {
   if (!confirm('למחוק את הייבוא וכל העסקאות שלו?')) return;
   const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
   const imp = history.find(h => h.id === importId);
   if (!imp) return;
-  if (imp.txIds && imp.txIds.length) {
-    await sb.from('transactions').delete().in('id', imp.txIds).eq('user_id', currentUser.id);
-  }
+  if (imp.txIds && imp.txIds.length) { await sb.from('transactions').delete().in('id', imp.txIds).eq('user_id', currentUser.id); }
   const newHistory = history.filter(h => h.id !== importId);
   localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(newHistory));
   await loadDashboard(); await loadTransactions(); loadImportHistory();
@@ -1015,10 +833,8 @@ async function deleteImport(importId) {
 async function clearAllImports() {
   if (!confirm('⚠️ זה ימחק את כל העסקאות שלך (כולל ישנות ויבואים) — בטוח?')) return;
   if (!confirm('שים לב: זה לא ניתן לביטול. להמשיך?')) return;
-  // Nuclear delete: wipe ALL transactions for this user from DB (not just imports)
   const { error } = await sb.from('transactions').delete().eq('user_id', currentUser.id);
   if (error) { alert('שגיאה: ' + error.message); return; }
-  // Clear all local storage related to imports
   localStorage.removeItem('budgetfam_imports_'+currentUser.id);
   alert('✅ הכל נמחק! העסקאות והיבואים נוקו.');
   await loadDashboard(); await loadTransactions(); loadImportHistory();
@@ -1066,7 +882,6 @@ async function enterApp() {
   await loadDashboard();
   await loadTransactions();
   loadImportHistory();
-  // Show insight button
   const ib = document.getElementById('insight-btn');
   if (ib) ib.style.display = 'flex';
   updateInsightBadge();
@@ -1080,45 +895,23 @@ function updateInsightBadge() {
   const used = parseInt(localStorage.getItem(usageKey)||'0');
   const remaining = Math.max(0, 2 - used);
   if (remaining === 0) {
-    badge.textContent = '✓';
-    badge.style.background = 'rgba(100,116,139,0.8)';
-    badge.style.borderColor = 'rgba(100,116,139,0.6)';
-    badge.style.display = 'flex';
+    badge.textContent = '✓'; badge.style.background = 'rgba(100,116,139,0.8)'; badge.style.borderColor = 'rgba(100,116,139,0.6)'; badge.style.display = 'flex';
   } else if (remaining === 1) {
-    badge.textContent = '1';
-    badge.style.background = 'rgba(245,158,11,0.95)';
-    badge.style.borderColor = '#f59e0b';
-    badge.style.display = 'flex';
-  } else {
-    badge.style.display = 'none';
-  }
+    badge.textContent = '1'; badge.style.background = 'rgba(245,158,11,0.95)'; badge.style.borderColor = '#f59e0b'; badge.style.display = 'flex';
+  } else { badge.style.display = 'none'; }
 }
 
-// ====== ANOMALY DETECTION (Hybrid: JS + Claude) ======
 async function detectAnomalies(newTxs) {
   if (!newTxs || newTxs.length === 0) return;
   try {
-    // Get last 60 days history for context
     const sixtyDaysAgo = new Date(Date.now() - 60*86400000).toISOString();
-    const { data: history } = await sb.from('transactions')
-      .select('label,amount,created_at')
-      .eq('user_id', currentUser.id)
-      .gte('created_at', sixtyDaysAgo)
-      .order('created_at', {ascending:false})
-      .limit(200);
-    
+    const { data: history } = await sb.from('transactions').select('label,amount,created_at').eq('user_id', currentUser.id).gte('created_at', sixtyDaysAgo).order('created_at', {ascending:false}).limit(200);
     const historyArr = history || [];
     const localAnomalies = [];
-    
-    // Calculate average expense for "unusual amount" detection
     const expenses = historyArr.filter(t => t.amount < 0).map(t => Math.abs(t.amount));
     const avgExpense = expenses.length > 0 ? expenses.reduce((a,b)=>a+b,0)/expenses.length : 0;
     const maxNormal = avgExpense * 3;
-    
-    // Group history by label for "first time merchant" detection
     const knownMerchants = new Set(historyArr.map(t => (t.label||'').trim().toLowerCase()));
-    
-    // Group by amount for "forgotten subscription" detection
     const recurringAmounts = {};
     historyArr.forEach(t => {
       if (t.amount < 0 && Math.abs(t.amount) < 100) {
@@ -1126,85 +919,28 @@ async function detectAnomalies(newTxs) {
         recurringAmounts[key] = (recurringAmounts[key] || 0) + 1;
       }
     });
-    
-    // Pattern 1 & 2 & 3 & 4: Local JS detection
-    newTxs.forEach((tx, idx) => {
-      const label = (tx.label||'').toLowerCase();
-      const amt = Math.abs(tx.amount);
-      
-      // Pattern 1: Foreign currency
+    newTxs.forEach((tx) => {
       const labelLower = (tx.label||'').toLowerCase();
+      const amt = Math.abs(tx.amount);
       const hasForeignCurrency = labelLower.includes('usd') || labelLower.includes('eur') || labelLower.includes('gbp') || labelLower.includes('dollar') || labelLower.includes('euro') || tx.label.includes('$');
-      if (hasForeignCurrency) {
-        localAnomalies.push({
-          tx, type: 'foreign',
-          icon: '🌍',
-          reason: 'תשלום במטבע זר - בדוק שזה מוכר'
-        });
-        return;
-      }
-      
-      // Pattern 2: Unusual amount (>3x average)
-      if (avgExpense > 0 && amt > maxNormal && amt > 500) {
-        localAnomalies.push({
-          tx, type: 'unusual_amount',
-          icon: '💸',
-          reason: `סכום גבוה משמעותית מהממוצע (${Math.round(avgExpense)}₪)`
-        });
-        return;
-      }
-      
-      // Pattern 3: Forgotten subscription pattern
+      if (hasForeignCurrency) { localAnomalies.push({ tx, type: 'foreign', icon: '🌍', reason: 'תשלום במטבע זר - בדוק שזה מוכר' }); return; }
+      if (avgExpense > 0 && amt > maxNormal && amt > 500) { localAnomalies.push({ tx, type: 'unusual_amount', icon: '💸', reason: `סכום גבוה משמעותית מהממוצע (${Math.round(avgExpense)}₪)` }); return; }
       const amtKey = amt.toFixed(2);
-      if (recurringAmounts[amtKey] >= 2 && amt < 100 && tx.amount < 0) {
-        localAnomalies.push({
-          tx, type: 'subscription',
-          icon: '🔁',
-          reason: `סכום חוזר ${amtKey}₪ - ייתכן מנוי שנשכח`
-        });
-        return;
-      }
-      
-      // Pattern 4: First-time merchant with high amount
+      if (recurringAmounts[amtKey] >= 2 && amt < 100 && tx.amount < 0) { localAnomalies.push({ tx, type: 'subscription', icon: '🔁', reason: `סכום חוזר ${amtKey}₪ - ייתכן מנוי שנשכח` }); return; }
       const labelKey = (tx.label||'').trim().toLowerCase();
-      if (!knownMerchants.has(labelKey) && amt > 800 && tx.amount < 0) {
-        localAnomalies.push({
-          tx, type: 'unknown_merchant',
-          icon: '❓',
-          reason: 'ספק חדש עם סכום גבוה - מוכר לך?'
-        });
-      }
+      if (!knownMerchants.has(labelKey) && amt > 800 && tx.amount < 0) { localAnomalies.push({ tx, type: 'unknown_merchant', icon: '❓', reason: 'ספק חדש עם סכום גבוה - מוכר לך?' }); }
     });
-    
-    // If nothing flagged locally and no ambiguous cases, skip Claude entirely
-    if (localAnomalies.length === 0 && newTxs.length < 5) {
-      return; // No alert needed, save the API call
-    }
-    
-    // Show local results first (instant)
-    if (localAnomalies.length > 0) {
-      showAnomaliesModal(localAnomalies, false);
-    }
-    
-    // Optionally call Claude for deeper analysis if many transactions
-    // (skipped for now to keep cost minimal - can be enabled later)
-    
-  } catch(e) {
-    console.error('Anomaly detection error:', e);
-  }
+    if (localAnomalies.length === 0 && newTxs.length < 5) return;
+    if (localAnomalies.length > 0) showAnomaliesModal(localAnomalies, false);
+  } catch(e) { console.error('Anomaly detection error:', e); }
 }
 
 function showAnomaliesModal(anomalies, fromAI) {
   if (!anomalies || anomalies.length === 0) return;
-  // Filter out anomalies user already marked as known
   const knownKey = 'known_anomalies_'+currentUser.id;
   const knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
-  const filtered = anomalies.filter(a => {
-    const sig = (a.tx.label||'') + '|' + a.tx.amount + '|' + a.type;
-    return !knownList.includes(sig);
-  });
+  const filtered = anomalies.filter(a => { const sig = (a.tx.label||'') + '|' + a.tx.amount + '|' + a.type; return !knownList.includes(sig); });
   if (filtered.length === 0) return;
-  
   window._currentAnomalies = filtered;
   renderAnomaliesList(filtered);
   document.getElementById('anomaly-modal').style.display = 'flex';
@@ -1212,15 +948,9 @@ function showAnomaliesModal(anomalies, fromAI) {
 
 function renderAnomaliesList(anomalies) {
   if (anomalies.length === 0) {
-    document.getElementById('anomaly-content').innerHTML = `
-      <div style="padding:24px;text-align:center;background:rgba(16,185,129,0.1);border-radius:14px;border:1px solid rgba(16,185,129,0.3)">
-        <div style="font-size:36px;margin-bottom:8px">🎉</div>
-        <div style="font-weight:700;color:var(--green,#10b981);font-size:14px">הכל בדוק!</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px">סימנת את כל העסקאות כתקינות</div>
-      </div>`;
+    document.getElementById('anomaly-content').innerHTML = `<div style="padding:24px;text-align:center;background:rgba(16,185,129,0.1);border-radius:14px;border:1px solid rgba(16,185,129,0.3)"><div style="font-size:36px;margin-bottom:8px">🎉</div><div style="font-weight:700;color:var(--green,#10b981);font-size:14px">הכל בדוק!</div></div>`;
     return;
   }
-  
   const itemsHtml = anomalies.map((a, i) => `
     <div id="anomaly-item-${i}" style="padding:12px;background:rgba(245,158,11,0.08);border-radius:12px;border:1px solid rgba(245,158,11,0.25);margin-bottom:8px">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
@@ -1235,16 +965,11 @@ function renderAnomaliesList(anomalies) {
         <button onclick="markAnomalyKnown(${i})" style="flex:1;padding:8px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:8px;color:var(--green,#10b981);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">✅ מוכר לי</button>
         <button onclick="reportAnomaly(${i})" style="flex:1;padding:8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:var(--red,#ef4444);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">⚠️ חשוד</button>
       </div>
-    </div>
-  `).join('');
-  
+    </div>`).join('');
   document.getElementById('anomaly-content').innerHTML = `
-    <div style="margin-bottom:14px;padding:12px;background:rgba(0,229,255,0.08);border-radius:10px;font-size:12px;color:var(--ink,#fff);text-align:center">
-      🔍 זיהיתי <b>${anomalies.length}</b> עסקאות לבדיקה:
-    </div>
+    <div style="margin-bottom:14px;padding:12px;background:rgba(0,229,255,0.08);border-radius:10px;font-size:12px;color:var(--ink,#fff);text-align:center">🔍 זיהיתי <b>${anomalies.length}</b> עסקאות לבדיקה:</div>
     ${itemsHtml}
-    <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:10px">סמן כל אחת - לא אתריע שוב על "מוכר לי"</div>
-  `;
+    <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:10px">סמן כל אחת - לא אתריע שוב על "מוכר לי"</div>`;
 }
 
 function markAnomalyKnown(idx) {
@@ -1253,50 +978,19 @@ function markAnomalyKnown(idx) {
   const knownKey = 'known_anomalies_'+currentUser.id;
   const knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
   const sig = (a.tx.label||'') + '|' + a.tx.amount + '|' + a.type;
-  if (!knownList.includes(sig)) {
-    knownList.push(sig);
-    localStorage.setItem(knownKey, JSON.stringify(knownList.slice(-200)));
-  }
-  // Visual feedback
+  if (!knownList.includes(sig)) { knownList.push(sig); localStorage.setItem(knownKey, JSON.stringify(knownList.slice(-200))); }
   const item = document.getElementById('anomaly-item-'+idx);
-  if (item) {
-    item.style.opacity = '0.4';
-    item.style.pointerEvents = 'none';
-    item.innerHTML = `<div style="text-align:center;padding:14px;color:var(--green,#10b981);font-size:13px;font-weight:700">✅ סומן כמוכר</div>`;
-  }
-  // Check if all are handled
-  setTimeout(() => {
-    const items = document.querySelectorAll('[id^="anomaly-item-"]');
-    const remaining = Array.from(items).filter(el => el.style.pointerEvents !== 'none').length;
-    if (remaining === 0) {
-      setTimeout(closeAnomalyModal, 800);
-    }
-  }, 100);
+  if (item) { item.style.opacity = '0.4'; item.style.pointerEvents = 'none'; item.innerHTML = `<div style="text-align:center;padding:14px;color:var(--green,#10b981);font-size:13px;font-weight:700">✅ סומן כמוכר</div>`; }
+  setTimeout(() => { const items = document.querySelectorAll('[id^="anomaly-item-"]'); const remaining = Array.from(items).filter(el => el.style.pointerEvents !== 'none').length; if (remaining === 0) setTimeout(closeAnomalyModal, 800); }, 100);
 }
 
 function reportAnomaly(idx) {
-  const a = window._currentAnomalies?.[idx];
-  if (!a) return;
   const item = document.getElementById('anomaly-item-'+idx);
-  if (item) {
-    item.style.opacity = '0.5';
-    item.style.pointerEvents = 'none';
-    item.style.borderColor = 'rgba(239,68,68,0.6)';
-    item.innerHTML = `<div style="text-align:center;padding:14px;color:var(--red,#ef4444);font-size:13px;font-weight:700">⚠️ סומן כחשוד - בדוק את הבנק שלך!</div>`;
-  }
-  setTimeout(() => {
-    const items = document.querySelectorAll('[id^="anomaly-item-"]');
-    const remaining = Array.from(items).filter(el => el.style.pointerEvents !== 'none').length;
-    if (remaining === 0) {
-      setTimeout(closeAnomalyModal, 1500);
-    }
-  }, 100);
+  if (item) { item.style.opacity = '0.5'; item.style.pointerEvents = 'none'; item.style.borderColor = 'rgba(239,68,68,0.6)'; item.innerHTML = `<div style="text-align:center;padding:14px;color:var(--red,#ef4444);font-size:13px;font-weight:700">⚠️ סומן כחשוד - בדוק את הבנק שלך!</div>`; }
+  setTimeout(() => { const items = document.querySelectorAll('[id^="anomaly-item-"]'); const remaining = Array.from(items).filter(el => el.style.pointerEvents !== 'none').length; if (remaining === 0) setTimeout(closeAnomalyModal, 1500); }, 100);
 }
 
-function closeAnomalyModal() { 
-  document.getElementById('anomaly-modal').style.display='none'; 
-  window._currentAnomalies = null;
-}
+function closeAnomalyModal() { document.getElementById('anomaly-modal').style.display='none'; window._currentAnomalies = null; }
 
 async function showDailyInsight() {
   const btn = document.getElementById('insight-btn');
@@ -1335,6 +1029,7 @@ async function showDailyInsight() {
 }
 function closeInsight() { document.getElementById('insight-modal').style.display='none'; }
 
+// ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDashboard() {
   const el = document.getElementById('dashboard-content');
   const { data:txs } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
@@ -1350,28 +1045,17 @@ async function loadDashboard() {
     </div>`; return;
   }
 
-  // Multi-account system
   const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
-  
-  // Migration: if no accounts but legacy balance exists, create account 1
   const legacyBalance = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
   if (accounts.length === 0 && legacyBalance?.amount !== undefined) {
-    accounts.push({
-      id: 'acc_legacy',
-      name: 'חשבון 1',
-      bank: 'other',
-      emoji: '🏦',
-      balance: legacyBalance.amount,
-      date: legacyBalance.date || new Date().toISOString()
-    });
+    accounts.push({ id: 'acc_legacy', name: 'חשבון 1', bank: 'other', emoji: '🏦', balance: legacyBalance.amount, date: legacyBalance.date || new Date().toISOString() });
     localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
   }
-  
+
   const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
   const hasAccounts = accounts.length > 0;
   const lastUpdate = accounts.length > 0 ? new Date(Math.max(...accounts.map(a => new Date(a.date).getTime()))) : null;
 
-  // Smart period for monthly flow
   let displayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   let displayTxs = all.filter(t => { const d=new Date(t.created_at); return d.getMonth()===displayMonth.getMonth()&&d.getFullYear()===displayMonth.getFullYear(); });
   let isCurrentMonth = true;
@@ -1388,12 +1072,10 @@ async function loadDashboard() {
   const monthFlow = income-expenses;
   const monthLabel = displayMonth.toLocaleDateString('he-IL',{month:'long',year:'numeric'});
 
-  // Show big number: total of all accounts if any, else monthly flow
   const bigNumber = hasAccounts ? totalBalance : monthFlow;
   const bigLabel = hasAccounts ? `יתרה ב-${accounts.length} חשבונות 💎` : 'יתרה חודשית';
   const bigDate = hasAccounts && lastUpdate ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">עודכן ${lastUpdate.toLocaleDateString('he-IL',{day:'2-digit',month:'short'})}</div>` : '';
 
-  // Account list HTML
   const accountListHtml = hasAccounts ? `
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)" onclick="event.stopPropagation()">
       ${accounts.map(a => `
@@ -1430,62 +1112,105 @@ async function loadDashboard() {
       <span style="font-size:11px;color:var(--muted)">לחץ לרענון</span>
     </div>
     <div id="forecast-content" style="font-size:12px;color:var(--text);line-height:1.7"><div class="spinner"></div></div>
+  </div>
+  <div class="card fu fu3" style="margin-top:8px;background:linear-gradient(135deg,#1A2A1A,#0D1A0D);border-color:rgba(46,204,138,0.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="rubik" style="font-size:13px;font-weight:700;color:var(--green)">📋 דוח שבועי</div>
+      <button onclick="refreshWeeklyReport()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Heebo',sans-serif">רענן ↺</button>
+    </div>
+    <div id="weekly-report-content"><div class="spinner"></div></div>
   </div>`;
-  // Compute and show forecast (non-blocking)
+
   setTimeout(() => loadForecast(all, displayTxs, displayMonth), 100);
+  setTimeout(() => loadWeeklyReport(all), 200);
 }
 
+// ── WEEKLY REPORT ─────────────────────────────────────────────
+async function loadWeeklyReport(allTxs) {
+  const el = document.getElementById('weekly-report-content');
+  if (!el) return;
+
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+  const weekTxs = (allTxs || []).filter(t => new Date(t.created_at) >= sevenDaysAgo);
+  const weekStart = sevenDaysAgo.toISOString().split('T')[0];
+
+  const cacheKey = 'weekly_report_' + currentUser.id + '_' + weekStart;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) { el.innerHTML = cached; return; }
+
+  if (weekTxs.length < 2) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">אין מספיק עסקאות השבוע לדוח</div>';
+    return;
+  }
+
+  el.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const resp = await fetch(WEEKLY_ADVISOR_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
+      body: JSON.stringify({ transactions: weekTxs, week_start: weekStart, user_id: currentUser.id })
+    });
+    const data = await resp.json();
+    if (data.error === 'no_transactions') { el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">אין עסקאות השבוע</div>'; return; }
+    if (data.error) throw new Error(data.error);
+
+    const html = `<div style="font-size:13px;line-height:1.8;color:var(--text)">${data.report.replace(/\n/g, '<br>')}</div>
+      <div style="font-size:10px;color:var(--muted);text-align:left;margin-top:8px;direction:ltr">${new Date().toLocaleDateString('he-IL', {day:'2-digit',month:'short'})}</div>`;
+    el.innerHTML = html;
+    localStorage.setItem(cacheKey, html);
+
+    // Sauvegarde DB non-bloquante
+    sb.from('weekly_reports').insert({ user_id: currentUser.id, week_start: weekStart, content: data.report }).then(()=>{}).catch(()=>{});
+
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--red)">שגיאה: ${e.message}</div>`;
+  }
+}
+
+async function refreshWeeklyReport() {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+  const weekStart = sevenDaysAgo.toISOString().split('T')[0];
+  const cacheKey = 'weekly_report_' + currentUser.id + '_' + weekStart;
+  localStorage.removeItem(cacheKey);
+  const el = document.getElementById('weekly-report-content');
+  if (el) el.innerHTML = '<div class="spinner"></div>';
+  const { data } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', {ascending: false});
+  loadWeeklyReport(data || []);
+}
+
+// ── FORECAST ──────────────────────────────────────────────────
 async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
   const el = document.getElementById('forecast-content');
   if (!el) return;
-  
   const now = new Date();
-  const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
   const monthEnd = new Date(displayMonth.getFullYear(), displayMonth.getMonth()+1, 0);
   const totalDays = monthEnd.getDate();
   const isCurrentMonth = (displayMonth.getMonth()===now.getMonth() && displayMonth.getFullYear()===now.getFullYear());
   const dayOfMonth = isCurrentMonth ? now.getDate() : totalDays;
   const daysLeft = totalDays - dayOfMonth;
-  
-  // Current month spending
   const currentExpenses = currentMonthTxs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
   const currentIncome = currentMonthTxs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
-  
-  // Projected spending: linear extrapolation
   const dailyRate = dayOfMonth > 0 ? currentExpenses / dayOfMonth : 0;
   const projectedExpenses = Math.round(dailyRate * totalDays);
   const projectedFlow = currentIncome - projectedExpenses;
-  
-  // Compute average of past months expenses for comparison (look back 6 months)
+  const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
   const sixMonthsAgo = new Date(displayMonth);
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  const pastTxs = allTxs.filter(t => {
-    const d = new Date(t.created_at);
-    return d >= sixMonthsAgo && d < monthStart && t.amount < 0;
-  });
-  // Group by month
+  const pastTxs = allTxs.filter(t => { const d = new Date(t.created_at); return d >= sixMonthsAgo && d < monthStart && t.amount < 0; });
   const monthlyTotals = {};
-  pastTxs.forEach(t => {
-    const d = new Date(t.created_at);
-    const k = d.getFullYear()+'-'+d.getMonth();
-    monthlyTotals[k] = (monthlyTotals[k]||0) + Math.abs(t.amount);
-  });
+  pastTxs.forEach(t => { const d = new Date(t.created_at); const k = d.getFullYear()+'-'+d.getMonth(); monthlyTotals[k] = (monthlyTotals[k]||0) + Math.abs(t.amount); });
   const months = Object.values(monthlyTotals);
   const avgPast = months.length > 0 ? months.reduce((a,b)=>a+b,0) / months.length : 0;
-  
-  // Local message (instant)
-  let pctVsAvg = 0;
-  let arrow = '=';
-  let pctColor = 'var(--muted)';
+  let pctVsAvg = 0, arrow = '=', pctColor = 'var(--muted)';
   if (avgPast > 0) {
     pctVsAvg = Math.round(((projectedExpenses - avgPast) / avgPast) * 100);
     if (pctVsAvg > 5) { arrow = '▲'; pctColor = 'var(--red)'; }
     else if (pctVsAvg < -5) { arrow = '▼'; pctColor = 'var(--green)'; }
   }
-  const comparisonText = avgPast > 0 ? 
+  const comparisonText = avgPast > 0 ?
     `<span style="color:${pctColor};font-weight:700">${arrow} ${Math.abs(pctVsAvg)}%</span> מול ממוצע ${months.length} חודשים אחרונים` :
     '<span style="color:var(--muted);font-size:11px">אין מספיק היסטוריה להשוואה</span>';
-  
   el.innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <div style="flex:1;padding:8px;background:rgba(167,139,250,0.08);border-radius:8px;text-align:center">
@@ -1502,49 +1227,26 @@ async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
       </div>
     </div>
     <div style="text-align:center;font-size:11px;margin-bottom:6px">${comparisonText}</div>
-    <div id="forecast-ai-comment" style="font-size:11px;color:var(--muted);font-style:italic;text-align:center;padding-top:6px;border-top:1px solid var(--divider);margin-top:6px"><span class="ai-dots"><span></span><span></span><span></span></span></div>
-  `;
-  
-  // Optional Claude commentary (cached daily to save tokens)
-  if (currentMonthTxs.length < 3) {
-    document.getElementById('forecast-ai-comment').innerHTML = '<span style="color:var(--muted)">📊 הוסף עוד עסקאות לתחזית מדויקת</span>';
-    return;
-  }
+    <div id="forecast-ai-comment" style="font-size:11px;color:var(--muted);font-style:italic;text-align:center;padding-top:6px;border-top:1px solid var(--divider);margin-top:6px"><span class="ai-dots"><span></span><span></span><span></span></span></div>`;
+
+  if (currentMonthTxs.length < 3) { document.getElementById('forecast-ai-comment').innerHTML = '<span style="color:var(--muted)">📊 הוסף עוד עסקאות לתחזית מדויקת</span>'; return; }
   const cacheKey = 'forecast_comment_' + currentUser.id + '_' + new Date().toISOString().split('T')[0];
   const cached = localStorage.getItem(cacheKey);
-  if (cached) {
-    document.getElementById('forecast-ai-comment').innerHTML = cached;
-    return;
-  }
+  if (cached) { document.getElementById('forecast-ai-comment').innerHTML = cached; return; }
   try {
     const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/clever-worker', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
-      body: JSON.stringify({
-        transactions: currentMonthTxs.slice(0, 50),
-        balance: 0,
-        forecast_mode: true,
-        projected_expenses: projectedExpenses,
-        avg_past: Math.round(avgPast),
-        days_left: daysLeft
-      })
+      body: JSON.stringify({ transactions: currentMonthTxs.slice(0, 50), balance: 0, forecast_mode: true, projected_expenses: projectedExpenses, avg_past: Math.round(avgPast), days_left: daysLeft })
     });
     const data = await resp.json();
     const comment = data.insight || '';
-    if (comment) {
-      const finalComment = '💭 ' + comment;
-      document.getElementById('forecast-ai-comment').innerHTML = finalComment;
-      localStorage.setItem(cacheKey, finalComment);
-    } else {
-      document.getElementById('forecast-ai-comment').innerHTML = '<span style="color:var(--muted)">לא ניתן לקבל תחזית כעת</span>';
-    }
-  } catch(e) {
-    document.getElementById('forecast-ai-comment').innerHTML = '<span style="color:var(--muted)">תחזית מקומית בלבד</span>';
-  }
+    if (comment) { const finalComment = '💭 ' + comment; document.getElementById('forecast-ai-comment').innerHTML = finalComment; localStorage.setItem(cacheKey, finalComment); }
+    else { document.getElementById('forecast-ai-comment').innerHTML = '<span style="color:var(--muted)">לא ניתן לקבל תחזית כעת</span>'; }
+  } catch(e) { document.getElementById('forecast-ai-comment').innerHTML = '<span style="color:var(--muted)">תחזית מקומית בלבד</span>'; }
 }
 
 function refreshForecast() {
-  // Clear today's cache and reload forecast section
   const cacheKey = 'forecast_comment_' + currentUser.id + '_' + new Date().toISOString().split('T')[0];
   localStorage.removeItem(cacheKey);
   const el = document.getElementById('forecast-content');
@@ -1560,16 +1262,8 @@ function addAccount() {
   const balance = parseFloat(balanceStr.replace(/,/g,''));
   if (isNaN(balance)) { alert('סכום לא תקין'); return; }
   const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
-  accounts.push({
-    id: 'acc_' + Date.now(),
-    name: name.trim(),
-    bank: 'manual',
-    emoji: '🏦',
-    balance: balance,
-    date: new Date().toISOString()
-  });
+  accounts.push({ id: 'acc_' + Date.now(), name: name.trim(), bank: 'manual', emoji: '🏦', balance: balance, date: new Date().toISOString() });
   localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
-  // Update legacy total
   const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
   localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
   loadDashboard();
@@ -1580,7 +1274,6 @@ function editAccount(accId) {
   const acc = accounts.find(a => a.id === accId);
   if (!acc) return;
   window._editingAccountId = accId;
-  
   const c = document.getElementById('account-edit-content');
   c.innerHTML = `
     <div style="text-align:center;margin-bottom:16px">
@@ -1589,24 +1282,14 @@ function editAccount(accId) {
       <div style="font-size:22px;font-weight:700;margin-top:6px;direction:ltr;color:${acc.balance>=0?'var(--text)':'var(--red)'}">${(parseFloat(acc.balance)||0).toLocaleString('he-IL')} ₪</div>
       <div style="font-size:10px;color:var(--muted);margin-top:2px">עודכן ${new Date(acc.date).toLocaleDateString('he-IL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
     </div>
-    <button onclick="updateAccountBalance()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px">
-      <span style="font-size:18px">✏️</span> עדכן יתרה
-    </button>
-    <button onclick="renameAccount()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px">
-      <span style="font-size:18px">📝</span> שנה שם
-    </button>
-    <button onclick="deleteAccount()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red);background:var(--red-soft);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">
-      <span style="font-size:18px">🗑</span> מחק חשבון
-    </button>
-    <button onclick="closeAccountEdit()" style="width:100%;padding:11px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>
-  `;
+    <button onclick="updateAccountBalance()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-size:18px">✏️</span> עדכן יתרה</button>
+    <button onclick="renameAccount()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-size:18px">📝</span> שנה שם</button>
+    <button onclick="deleteAccount()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red);background:var(--red-soft);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-size:18px">🗑</span> מחק חשבון</button>
+    <button onclick="closeAccountEdit()" style="width:100%;padding:11px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>`;
   document.getElementById('account-edit-modal').style.display = 'flex';
 }
 
-function closeAccountEdit() {
-  document.getElementById('account-edit-modal').style.display = 'none';
-  window._editingAccountId = null;
-}
+function closeAccountEdit() { document.getElementById('account-edit-modal').style.display = 'none'; window._editingAccountId = null; }
 
 function updateAccountBalance() {
   const accId = window._editingAccountId;
@@ -1619,13 +1302,11 @@ function updateAccountBalance() {
   if (newBal === null) return;
   const num = parseFloat(newBal.replace(/,/g,''));
   if (isNaN(num)) { alert('סכום לא תקין'); return; }
-  accounts[idx].balance = num;
-  accounts[idx].date = new Date().toISOString();
+  accounts[idx].balance = num; accounts[idx].date = new Date().toISOString();
   localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
   const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
   localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
-  closeAccountEdit();
-  loadDashboard();
+  closeAccountEdit(); loadDashboard();
 }
 
 function renameAccount() {
@@ -1638,8 +1319,7 @@ function renameAccount() {
   if (!newName || !newName.trim()) return;
   accounts[idx].name = newName.trim();
   localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
-  closeAccountEdit();
-  loadDashboard();
+  closeAccountEdit(); loadDashboard();
 }
 
 function deleteAccount() {
@@ -1651,35 +1331,9 @@ function deleteAccount() {
   if (!confirm(`למחוק את חשבון "${accounts[idx].name}"?`)) return;
   accounts.splice(idx, 1);
   localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
-  if (accounts.length > 0) {
-    const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
-    localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
-  } else {
-    localStorage.removeItem('budgetfam_balance_'+currentUser.id);
-  }
-  closeAccountEdit();
-  loadDashboard();
-}
-
-function editBalance() {
-  const current = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
-  const promptValue = current?.amount?.toString() || '';
-  const newVal = prompt('💎 עדכן את היתרה בחשבון (ש״ח):\n\nהזן את היתרה הנוכחית מאפליקציית הבנק שלך', promptValue);
-  if (newVal === null) return; // cancel
-  if (newVal === '') {
-    if (confirm('להסיר את היתרה?')) {
-      localStorage.removeItem('budgetfam_balance_'+currentUser.id);
-      loadDashboard();
-    }
-    return;
-  }
-  const num = parseFloat(newVal.replace(/,/g,''));
-  if (isNaN(num)) { alert('סכום לא תקין'); return; }
-  localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
-    amount: num,
-    date: new Date().toISOString()
-  }));
-  loadDashboard();
+  if (accounts.length > 0) { const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0); localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() })); }
+  else { localStorage.removeItem('budgetfam_balance_'+currentUser.id); }
+  closeAccountEdit(); loadDashboard();
 }
 
 async function loadTransactions() {
@@ -1708,7 +1362,6 @@ async function loadTransactions() {
     </div>`).join('')}</div>`;
 }
 
-// ── EDIT TRANSACTION ─────────────────────────────────────────
 async function openEditTx(id) {
   const { data: t } = await sb.from('transactions').select('*').eq('id', id).single();
   if (!t) return;
@@ -1795,7 +1448,6 @@ async function loadAiTip() {
   el.innerHTML='<span class="ai-dots"><span></span><span></span><span></span></span>';
   const { data:txs } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(20);
   const all = txs||[];
-  const income = all.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const expenses = all.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
   const catMap = {};
   all.filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catMap[c]=(catMap[c]||0)+Math.abs(t.amount);});
@@ -1848,11 +1500,9 @@ async function loadProjects() {
     </div>`;
   }).join('');
 }
-function openProjectWizard() {
-  wizardType='mariage'; wizardMeta={};
-  document.getElementById('proj-modal').style.display='flex';
-  renderWizardStep1();
-}
+
+function openProjectWizard() { wizardType='mariage'; wizardMeta={}; document.getElementById('proj-modal').style.display='flex'; renderWizardStep1(); }
+
 function renderWizardStep1() {
   const c=document.getElementById('proj-modal-content');
   c.innerHTML=`<div class="steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
@@ -1862,6 +1512,7 @@ function renderWizardStep1() {
     </div>
     <button onclick="renderWizardStep2()" class="submit-btn">המשך ←</button>`;
 }
+
 function renderWizardStep2() {
   const c=document.getElementById('proj-modal-content');
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
@@ -1896,6 +1547,7 @@ function renderWizardStep2() {
       <button onclick="runAiWizard()" class="submit-btn" style="flex:3">👔 תכנית AI</button>
     </div>`;
 }
+
 async function runAiWizard() {
   const who=document.getElementById('w-who')?.value||'';
   const dateVal=document.getElementById('w-date')?.value||'';
@@ -1909,79 +1561,58 @@ async function runAiWizard() {
   wizardMeta={who,dateVal,guests,guestsMine,sharedCost,budget,style,region,pct};
   const c=document.getElementById('proj-modal-content');
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div><div style="text-align:center;padding:24px 0"><div style="font-size:40px;margin-bottom:12px">${getProjEmoji(wizardType)}</div><div class="rubik" style="font-size:16px;font-weight:700;margin-bottom:12px">מחשב את התכנית...</div><div class="ai-dots" style="justify-content:center;display:flex"><span></span><span></span><span></span></div></div>`;
-
   await new Promise(r => setTimeout(r, 600));
 
   let target=parseInt(budget)||0;
-  let aiText = '';
-  let extraInfo = '';
-
-  // Calcul du nombre de mois (utilisé partout)
+  let aiText = '', extraInfo = '';
   const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
   const monthsRaw = targetDate ? (new Date(targetDate)-new Date())/(30.44*86400000) : 24;
-  const months = Math.max(1, Math.ceil(monthsRaw)); // Math.ceil pour arrondir vers le haut
+  const months = Math.max(1, Math.ceil(monthsRaw));
 
   if (wizardType==='mariage') {
     const totalGuests = parseInt(guests||200);
     const myGuests = parseInt(guestsMine) || Math.round(totalGuests/2);
-    // PRIX RÉELS Israël 2025-2026 : salle + repas inclus ~340₪/invité (90€)
-    // Source: salles israéliennes incluent traiteur dans le prix
     const styleMul = style==='luxe' ? 550 : style==='simple' ? 250 : 340;
     const totalCost = totalGuests * styleMul;
     let myShare;
-    if (sharedCost === 'all') {
-      myShare = totalCost;
-    } else if (sharedCost === 'half') {
-      myShare = Math.round(totalCost / 2);
-    } else {
-      myShare = Math.round(totalCost * (myGuests / totalGuests));
-    }
+    if (sharedCost === 'all') myShare = totalCost;
+    else if (sharedCost === 'half') myShare = Math.round(totalCost / 2);
+    else myShare = Math.round(totalCost * (myGuests / totalGuests));
     target = target || myShare;
-    // Répartition Israël (salle+repas inclus = environ moitié)
-    // Photo+vidéo et robe en Israël sont chers : on alloue plus
     const venueAndFood = Math.round(target * 0.42);
-    const photo = Math.round(target * 0.13); // photo+vidéo Israël souvent 5000-10000₪
+    const photo = Math.round(target * 0.13);
     const dj = Math.round(target * 0.06);
-    const dress = Math.round(target * 0.16); // robe location 8000-15000₪ moyenne
-    const flowers = Math.round(target * 0.10); // déco+fleurs en Israël ~10-15k
+    const dress = Math.round(target * 0.16);
+    const flowers = Math.round(target * 0.10);
     const other = target - venueAndFood - photo - dj - dress - flowers;
     const shareLabel = sharedCost === 'all' ? 'אתה משלם הכל' : sharedCost === 'half' ? 'מתחלקים 50/50' : `לפי אורחים (${myGuests}/${totalGuests})`;
-    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(שוק ישראלי: 5,000-10,000₪ סטנדרטי, 10,000-20,000₪ פרימיום)</small><br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(2,500-4,500₪)</small><br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(שמלה ממוצעת 8,000-15,000₪, יוקרתי 15,000-30,000₪)</small><br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(8,000-15,000₪ סטנדרטי)</small><br>✨ שאר (כיפה, הזמנות, איפור...): ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• בישראל משכירים שמלות, לא קונים<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• חודשי שיא יקרים ב-15-20%<br>• הזמן את האולם 12 חודשים מראש`;
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪<br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪<br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪`;
   } else if (wizardType==='voiture') {
     target = target || 80000;
     const downPayment = Math.round(target * 0.25);
-    const insurance = Math.round(target * 0.05);
-    const youngDriverExtra = Math.round(insurance * 0.5); // +50% pour jeune conducteur
-    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br>📅 ${months} חודשים לחיסכון<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך לפני קנייה<br>• השווה ביטוחים ב-3 חברות לפחות`;
-    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות שוטפות (מעבר לתקציב הפרויקט):</strong><br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>🆕 נהג חדש/צעיר: +${youngDriverExtra.toLocaleString('he-IL')} ₪/שנה (פרמיה +50%)<br>⛽ דלק חודשי: ~1,500 ₪<br>🔧 טיפולים+אגרה: ~3,000 ₪/שנה<br>🚗 רישוי+מבחן רישוי: ~600 ₪/שנה</div>`;
+    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br>📅 ${months} חודשים לחיסכון`;
   } else if (wizardType==='immobilier') {
     target = target || 1500000;
     const downPct = parseInt(pct)||25;
     const apport = Math.round(target * downPct / 100);
     const loan = target - apport;
-    // Calcul mensuel mashkanta plus précis (taux 5% sur 25 ans)
-    const annualRate = 0.05;
-    const yearTerms = 25;
-    const monthlyRate = annualRate / 12;
-    const numPayments = yearTerms * 12;
+    const monthlyRate = 0.05 / 12;
+    const numPayments = 25 * 12;
     const monthlyPay = Math.round(loan * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1));
-    const projectTarget = apport;
-    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>📅 ${months} חודשים לחיסכון<br><br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש<br><small style="color:var(--muted)">(חישוב: ${yearTerms} שנים, ריבית 5%)</small><br><br>💡 <strong>טיפים בנק ישראל 2026:</strong><br>• <strong>מינימום 25% הון עצמי</strong> לדירה ראשונה (75% מימון מקסימום)<br>• דירה שנייה: 50% הון עצמי<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהנחה? אפשר פחות מ-25%`;
-    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות (מעבר להון עצמי):</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪ <small>(5%, דירה ראשונה לרוב פטור עד 1.97M)</small><br>👨‍⚖️ עו"ד: ${Math.round(target*0.005).toLocaleString('he-IL')}-${Math.round(target*0.01).toLocaleString('he-IL')} ₪ <small>(0.5-1% + מע"מ)</small><br>🏘 תיווך: ${Math.round(target*0.01).toLocaleString('he-IL')}-${Math.round(target*0.02).toLocaleString('he-IL')} ₪ <small>(1-2% + מע"מ, ניתן למו"מ)</small><br>🛠 שיפוץ ראשוני: לפי מצב הדירה</div>`;
-    target = projectTarget;
+    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש`;
+    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות:</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪<br>👨‍⚖️ עו"ד: ${Math.round(target*0.005).toLocaleString('he-IL')}-${Math.round(target*0.01).toLocaleString('he-IL')} ₪<br>🏘 תיווך: ${Math.round(target*0.01).toLocaleString('he-IL')}-${Math.round(target*0.02).toLocaleString('he-IL')} ₪</div>`;
+    target = apport;
   } else if (wizardType==='epargne') {
     target = target || 50000;
     const monthlyAmount = Math.ceil(target / months);
-    aiText = `🪙 <strong>${who||'חיסכון'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💵 <strong>סכום חודשי לחיסכון:</strong> ${monthlyAmount.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הפקדה אוטומטית בתחילת החודש<br>• שקול קרן השתלמות לפטור ממס<br>• חשבון נפרד לחיסכון - לא לגעת!<br>• בדוק תשואות בנק vs בית השקעות`;
+    aiText = `🪙 <strong>${who||'חיסכון'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים<br><br>💵 <strong>סכום חודשי:</strong> ${monthlyAmount.toLocaleString('he-IL')} ₪`;
   } else {
     target = target || 15000;
-    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
+    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון`;
   }
 
-  // Math.ceil pour éviter le bug 5000/10 = 500 (mauvais arrondi)
   const monthly = target > 0 ? Math.ceil(target / months) : 0;
   const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏡 דירה ${region||''}`:wizardType==='epargne'?`🪙 ${who||'חיסכון'}`:who||'🎯 פרויקט';
-
   window._pendingProject = { name: projName, type: wizardType, date: targetDate, monthly: monthly, target: target };
 
   c.innerHTML=`<div class="steps"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div></div>
@@ -1999,60 +1630,24 @@ async function runAiWizard() {
 
 async function saveProjectFromPending() {
   const btn = document.getElementById('save-proj-btn');
-  if (!btn || btn.disabled || btn.dataset.saving === '1') return; // anti double-clic robuste
-  // DÉSACTIVATION IMMÉDIATE et SYNCHRONE (avant tout async)
-  btn.dataset.saving = '1';
-  btn.disabled = true;
-  btn.style.opacity = '0.6';
-  btn.style.pointerEvents = 'none';
-  btn.textContent = '⏳ שומר...';
-  // Force le repaint avant de continuer
+  if (!btn || btn.disabled || btn.dataset.saving === '1') return;
+  btn.dataset.saving = '1'; btn.disabled = true; btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none'; btn.textContent = '⏳ שומר...';
   await new Promise(r => requestAnimationFrame(r));
-
   const p = window._pendingProject;
-  if (!p) {
-    alert('שגיאה - אין נתוני פרויקט');
-    btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
-    return;
-  }
+  if (!p) { alert('שגיאה - אין נתוני פרויקט'); btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0'; return; }
   const finalAmount = parseFloat(document.getElementById('w-final')?.value) || p.target || 0;
-  if (finalAmount <= 0) {
-    alert('יעד לא תקין');
-    btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
-    return;
-  }
+  if (finalAmount <= 0) { alert('יעד לא תקין'); btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0'; return; }
   const months = p.date ? Math.max(1, Math.ceil((new Date(p.date)-new Date())/(30.44*86400000))) : 24;
   const monthly = Math.ceil(finalAmount / months);
   try {
-    const { error } = await sb.from('projects').insert({
-      user_id: currentUser.id,
-      name: p.name,
-      type: p.type,
-      target_amount: finalAmount,
-      target_date: p.date || null,
-      monthly_saving: monthly,
-      saved_amount: 0,
-      ...(currentFamily ? { family_id: currentFamily.id } : {})
-    });
-    if (error) {
-      alert('שגיאה: ' + error.message);
-      btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
-      return;
-    }
+    const { error } = await sb.from('projects').insert({ user_id: currentUser.id, name: p.name, type: p.type, target_amount: finalAmount, target_date: p.date || null, monthly_saving: monthly, saved_amount: 0, ...(currentFamily ? { family_id: currentFamily.id } : {}) });
+    if (error) { alert('שגיאה: ' + error.message); btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0'; return; }
     document.getElementById('proj-modal').style.display = 'none';
     window._pendingProject = null;
     showView('projects', document.querySelectorAll('.nav-item')[3]);
-  } catch (err) {
-    alert('שגיאה: ' + err.message);
-    btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0';
-  }
+  } catch (err) { alert('שגיאה: ' + err.message); btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; btn.textContent = '💾 שמור'; btn.dataset.saving = '0'; }
 }
-async function saveProject(name,type,date,monthly) {
-  const amount=parseFloat(document.getElementById('w-final')?.value)||0;
-  await sb.from('projects').insert({ user_id:currentUser.id, name, type, target_amount:amount, target_date:date||null, monthly_saving:monthly, saved_amount:0, ...(currentFamily?{family_id:currentFamily.id}:{}) });
-  document.getElementById('proj-modal').style.display='none';
-  showView('projects',document.querySelectorAll('.nav-item')[3]);
-}
+
 async function addToProject(id,name) {
   const amount=prompt(`חיסכון עבור "${name}" (₪)`);
   if (!amount||isNaN(amount)) return;
@@ -2063,7 +1658,6 @@ async function addToProject(id,name) {
 async function deleteProject(id) { if (!confirm('למחוק?')) return; await sb.from('projects').delete().eq('id',id); loadProjects(); }
 function getProjEmoji(t) { return {mariage:'💒',voiture:'🚗',immobilier:'🏡',vacances:'✈️',etudes:'📚',epargne:'🪙',autre:'🎯'}[t]||'🎯'; }
 
-// ── STATS WITH PERIOD FILTER ─────────────────────────────────
 function changePeriod(period, btn) {
   statsPeriod = period;
   document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -2089,33 +1683,16 @@ async function loadStats() {
   const allRaw=txs||[];
   const { start, end } = getPeriodRange(statsPeriod);
   const all = allRaw.filter(t => { const d = new Date(t.created_at); return d >= start && d <= end; });
-
   if (!all.length) { el.innerHTML=`<div class="empty"><span>📊</span>אין נתונים בתקופה זו.<br>ייבא דפי בנק קודם!</div>`; return; }
 
   const catMap={};
   all.filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catMap[c]=(catMap[c]||0)+Math.abs(t.amount);});
   const catLabels=Object.keys(catMap),catValues=Object.values(catMap);
-
-  const groupKey = (d) => {
-    if (statsPeriod === 'week') return d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});
-    if (statsPeriod === 'month') return d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});
-    if (statsPeriod === 'quarter') return `שבוע ${Math.ceil(d.getDate()/7)}/${d.getMonth()+1}`;
-    if (statsPeriod === 'year') return d.toLocaleDateString('he-IL',{month:'short'});
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-  };
-
-  const mIn={},mEx={};
-  all.forEach(t=>{const d=new Date(t.created_at),k=groupKey(d);if(t.amount>0)mIn[k]=(mIn[k]||0)+t.amount;else mEx[k]=(mEx[k]||0)+Math.abs(t.amount);});
-  const periods=[...new Set([...Object.keys(mIn),...Object.keys(mEx)])];
-  const iData=periods.map(m=>mIn[m]||0),eData=periods.map(m=>mEx[m]||0);
-  let run=0;const bData=all.map(t=>{run+=t.amount;return Math.round(run);});
-  const bLabels=all.map(t=>formatDate(t.created_at));
   const income=all.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const expenses=all.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
   const savings=income-expenses;
   const periodLabel = {week:'שבוע',month:'חודש',quarter:'רבעון',year:'שנה',all:'הכל'}[statsPeriod];
 
-  // Compare with previous period
   const periodMs = end - start;
   const prevStart = new Date(start.getTime() - periodMs);
   const prevEnd = new Date(start.getTime() - 1);
@@ -2124,10 +1701,7 @@ async function loadStats() {
   const prevExpenses = prev.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
   const prevSavings = prevIncome - prevExpenses;
 
-  const pctChange = (curr, prev) => {
-    if (prev === 0) return null;
-    return Math.round(((curr - prev) / Math.abs(prev)) * 100);
-  };
+  const pctChange = (curr, prev) => { if (prev === 0) return null; return Math.round(((curr - prev) / Math.abs(prev)) * 100); };
   const fmtPct = (pct, isExpense) => {
     if (pct === null) return '<span style="font-size:10px;color:var(--muted)">חדש</span>';
     const goodDirection = isExpense ? pct < 0 : pct > 0;
@@ -2136,11 +1710,6 @@ async function loadStats() {
     return `<span style="font-size:10px;color:${color};font-weight:700">${arrow} ${Math.abs(pct)}%</span>`;
   };
 
-  const incomeChange = pctChange(income, prevIncome);
-  const expensesChange = pctChange(expenses, prevExpenses);
-  const savingsChange = pctChange(savings, prevSavings);
-
-  // Show comparison only if there is previous data
   const hasComparison = prev.length > 0;
   const comparisonBlock = hasComparison ? `
     <div class="card fu fu1" style="margin-top:8px">
@@ -2149,17 +1718,17 @@ async function loadStats() {
         <div style="flex:1;text-align:center;padding:8px;background:var(--green-soft);border-radius:10px">
           <div style="font-size:10px;color:var(--muted);margin-bottom:2px">הכנסות</div>
           <div style="font-size:11px;font-weight:700;color:var(--green);direction:ltr;margin-bottom:2px">${prevIncome.toLocaleString('he-IL')} ₪</div>
-          ${fmtPct(incomeChange, false)}
+          ${fmtPct(pctChange(income, prevIncome), false)}
         </div>
         <div style="flex:1;text-align:center;padding:8px;background:var(--red-soft);border-radius:10px">
           <div style="font-size:10px;color:var(--muted);margin-bottom:2px">הוצאות</div>
           <div style="font-size:11px;font-weight:700;color:var(--red);direction:ltr;margin-bottom:2px">${prevExpenses.toLocaleString('he-IL')} ₪</div>
-          ${fmtPct(expensesChange, true)}
+          ${fmtPct(pctChange(expenses, prevExpenses), true)}
         </div>
         <div style="flex:1;text-align:center;padding:8px;background:var(--accent-soft);border-radius:10px">
           <div style="font-size:10px;color:var(--muted);margin-bottom:2px">חיסכון</div>
           <div style="font-size:11px;font-weight:700;color:${prevSavings>=0?'var(--accent)':'var(--red)'};direction:ltr;margin-bottom:2px">${prevSavings.toLocaleString('he-IL')} ₪</div>
-          ${fmtPct(savingsChange, false)}
+          ${fmtPct(pctChange(savings, prevSavings), false)}
         </div>
       </div>
     </div>` : '';
@@ -2174,6 +1743,7 @@ async function loadStats() {
     <div class="card fu fu3"><div class="rubik sec-title">עסקאות</div><div style="font-size:36px;font-weight:800;color:var(--accent);font-family:'Rubik',sans-serif;text-align:center;padding:6px 0">${all.length}</div><div style="text-align:center;font-size:12px;color:var(--muted)">נותחו על ידי בינה מלאכותית</div></div>`;
   requestAnimationFrame(()=>{ buildDonut(catLabels,catValues); });
 }
+
 function baseOpts(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};}
 function buildDonut(labels,values){
   if(chartDonut){chartDonut.destroy();chartDonut=null;}if(!labels.length)return;
@@ -2183,18 +1753,6 @@ function buildDonut(labels,values){
   const total=values.reduce((a,b)=>a+b,0);
   document.getElementById('donut-legend').innerHTML=labels.map((l,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${PALETTE[i%PALETTE.length]}"></div><div style="flex:1;font-size:12px">${getCatIcon(l)} ${catHe(l)}</div><div style="font-size:12px;color:var(--muted);direction:ltr">${values[i].toLocaleString('he-IL')} ₪</div><div style="font-size:11px;color:var(--accent);width:32px;text-align:left">${Math.round(values[i]/total*100)}%</div></div>`).join('');
 }
-function buildBar(labels,iData,eData){
-  if(chartBar){chartBar.destroy();chartBar=null;}if(!labels.length)return;
-  const ctx=document.getElementById('chart-bar').getContext('2d');
-  chartBar=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'הכנסות',data:iData,backgroundColor:'#2ECC8A55',borderColor:'#2ECC8A',borderWidth:2,borderRadius:6},{label:'הוצאות',data:eData,backgroundColor:'#F7506A55',borderColor:'#F7506A',borderWidth:2,borderRadius:6}]},options:{...baseOpts(),plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12,padding:16}}},scales:{x:{ticks:{color:'#6B7280',font:{size:10}},grid:{color:'#1E2230'}},y:{ticks:{color:'#6B7280',font:{size:10}},grid:{color:'#1E2230'}}}}});
-}
-function buildLine(labels,data){
-  if(chartLine){chartLine.destroy();chartLine=null;}if(!labels.length)return;
-  const ctx=document.getElementById('chart-line').getContext('2d');
-  const g=ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'#4F8EF744');g.addColorStop(1,'#4F8EF700');
-  chartLine=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'יתרה',data,borderColor:'#4F8EF7',borderWidth:2,backgroundColor:g,fill:true,tension:0.4,pointRadius:data.length<=20?3:0}]},options:{...baseOpts(),plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6B7280',font:{size:10},maxTicksLimit:6},grid:{color:'#1E2230'}},y:{ticks:{color:'#6B7280',font:{size:10}},grid:{color:'#1E2230'}}}}});
-}
-function switchChart(name,btn){document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.chart-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('panel-'+name).classList.add('active');}
 
 async function loadFamilyData(){
   const{data}=await sb.from('family_members').select('*,families(*)').eq('user_id',currentUser.id).maybeSingle();
