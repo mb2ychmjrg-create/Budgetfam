@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -116,26 +117,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 .bank-card{padding:10px 6px;border-radius:12px;background:var(--divider);border:1px solid var(--border);text-align:center;font-size:10px;font-weight:600;color:var(--muted);}
 .bank-card .b-emoji{font-size:18px;display:block;margin-bottom:3px;}
 .action-btn{background:var(--divider);border:none;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
-
-/* === FORECAST CARD (v29) === */
-.forecast-card{background:linear-gradient(135deg,#1E2D50,#2A1F4A);border:1px solid var(--purple);border-radius:18px;padding:16px 18px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;transition:transform .15s;}
-.forecast-card:active{transform:scale(.98);}
-.forecast-card.warning{background:linear-gradient(135deg,#3A1020,#3A2E0A);border-color:var(--red);}
-.forecast-card.safe{background:linear-gradient(135deg,#0E3028,#1E2D50);border-color:var(--green);}
-.forecast-card::after{content:'';position:absolute;top:-20px;left:-20px;width:80px;height:80px;background:var(--purple);border-radius:50%;opacity:.06;}
-.forecast-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:relative;z-index:1;}
-.forecast-title{font-size:13px;font-weight:700;color:var(--text);}
-.forecast-days{font-size:10px;background:rgba(255,255,255,.1);padding:3px 9px;border-radius:99px;color:var(--text);}
-.forecast-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:relative;z-index:1;}
-.forecast-cell{background:rgba(255,255,255,.06);border-radius:12px;padding:10px;}
-.forecast-cell-label{font-size:10px;color:var(--muted);margin-bottom:3px;}
-.forecast-cell-value{font-size:18px;font-weight:800;font-family:'Rubik',sans-serif;direction:ltr;text-align:right;letter-spacing:-.3px;}
-.forecast-cell-trend{font-size:10px;margin-top:2px;direction:ltr;text-align:right;}
-.forecast-alert{background:rgba(0,0,0,.25);border-radius:10px;padding:9px 12px;margin-top:10px;font-size:12px;display:flex;align-items:center;gap:8px;position:relative;z-index:1;}
-.forecast-alert-amt{font-weight:700;direction:ltr;flex-shrink:0;}
-.forecast-empty{padding:8px 0;font-size:12px;color:var(--muted);text-align:center;position:relative;z-index:1;}
-.period-btn{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .2s;}
-.period-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -196,19 +177,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <button onclick="closeImportDetail()" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#00E5FF,#0066FF);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
     </div>
   </div>
-
-  <!-- FORECAST DETAIL MODAL (v29) -->
-  <div id="forecast-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeForecastModal()">
-    <div style="background:var(--card);border-radius:18px;padding:22px;max-width:440px;width:100%;border:1px solid var(--purple);max-height:85vh;overflow-y:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div style="font-size:16px;font-weight:700;font-family:'Rubik',sans-serif">📈 תחזית מפורטת</div>
-        <button onclick="closeForecastModal()" style="background:none;border:none;font-size:26px;color:var(--muted);cursor:pointer;padding:0;line-height:1">×</button>
-      </div>
-      <div id="forecast-modal-content"></div>
-      <button onclick="closeForecastModal()" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#A78BFA,#4F8EF7);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
-    </div>
-  </div>
-
   <div class="header">
     <div>
       <div class="rubik header-title">BudgetFam 🇮🇱</div>
@@ -219,6 +187,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 
   <div class="content">
 
+```
 <div id="view-dashboard" class="view active">
   <div id="dashboard-content"><div class="spinner"></div></div>
   <div class="quick-grid">
@@ -234,6 +203,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   <div class="rubik fu fu1" style="font-size:20px;font-weight:800;margin-bottom:4px">📥 ייבוא דפי בנק</div>
   <div style="font-size:12px;color:var(--muted);margin-bottom:16px">בינה מלאכותית קוראת את הדף · קטגוריזציה אוטומטית</div>
 
+  <!-- Banks supported -->
   <div class="card fu fu1" style="margin-bottom:14px">
     <div class="rubik sec-title">🏦 כל הבנקים בישראל</div>
     <div class="bank-grid">
@@ -343,6 +313,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 <div id="view-stats" class="view">
   <div class="rubik fu fu1" style="font-size:20px;font-weight:800;margin-bottom:14px">סטטיסטיקות 📊</div>
 
+  <!-- Period Selector -->
   <div class="card fu fu1" style="padding:8px 10px">
     <div style="display:flex;gap:6px">
       <button class="period-btn active" data-period="week" onclick="changePeriod('week',this)">שבוע</button>
@@ -355,6 +326,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 
   <div id="stats-content"><div class="spinner"></div></div>
 </div>
+```
 
   </div>
 
@@ -367,6 +339,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   </nav>
 </div>
 
+<style>
+.period-btn{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .2s;}
+.period-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+</style>
+
 <div id="quick-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-sheet"><div class="modal-handle"></div><div id="quick-modal-content"></div></div>
 </div>
@@ -378,6 +355,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 <div id="review-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-sheet"><div class="modal-handle"></div><button class="modal-close" onclick="document.getElementById('review-modal').style.display='none'">✕</button><div id="review-modal-content"></div></div>
 </div>
+
+<!-- EDIT TRANSACTION MODAL -->
 
 <div id="edit-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-sheet"><div class="modal-handle"></div><button class="modal-close" onclick="document.getElementById('edit-modal').style.display='none'">✕</button><div id="edit-modal-content"></div></div>
@@ -401,6 +380,7 @@ let extractedTxs = [];
 let statsPeriod = 'month';
 const PALETTE = ['#4F8EF7','#2ECC8A','#F7506A','#F7C948','#A78BFA','#FB923C','#34D399','#F472B6'];
 
+// Categories in Hebrew
 const CAT_HE = {
   'Alimentation':'מזון','Logement':'דיור','Transport':'תחבורה','Loisirs':'בילויים',
   'Santé':'בריאות','Épargne':'חיסכון','Divers':'שונות','Salaire':'משכורת',
@@ -423,15 +403,19 @@ const RULES = [
 
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
+  // Priority: Mortgage / housing loan (משכנתא) is ALWAYS Logement, even if combined with הלוואה
   if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) {
     return 'Logement';
   }
+  // Allocations / aides sociales (toujours, peu importe le signe)
   if (/קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|disability|הבטחת.?הכנסה/i.test(label)) {
     return 'Allocations';
   }
+  // ביטוח לאומי seul (sans précision) : si crédit = allocation, si débit = cotisation
   if (/ביטוח.?לאומי|bituach.?leumi/i.test(label)) {
     return amount > 0 ? 'Allocations' : 'Logement';
   }
+  // Taxes / impôts always Logement (charges fixes)
   if (/מס הכנסה|income.?tax|מע.?מ|vat|^tax$|מס שבח|מס רכישה/i.test(label) && !/משכורת|salary/i.test(label)) {
     return 'Logement';
   }
@@ -449,13 +433,16 @@ function autoDetectCat(val) {
   } else { detected.textContent = ''; }
 }
 
+// ── EDGE FUNCTION VISION (no more CORS) ──────────────────────
 const VISION_URL = 'https://nyywcxcahalxazienuav.supabase.co/functions/v1/vision-extract';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55eXdjeGNhaGFseGF6aWVudWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjMwNzcsImV4cCI6MjA5MTYzOTA3N30._98bpQLnWA6fBiEgbWYPH8RGaWFRj8zIfMGgZe_KopM';
 
 async function callEdgeVision(payload) {
   try {
+    // 60 second timeout to avoid hanging forever
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     const r = await fetch(VISION_URL, {
       method: 'POST',
       headers: {
@@ -467,25 +454,32 @@ async function callEdgeVision(payload) {
       signal: controller.signal
     });
     clearTimeout(timeoutId);
+
     if (!r.ok) {
       const errText = await r.text();
       console.error('Edge function error:', r.status, errText);
       return { transactions: [], error: `server_${r.status}: ${errText.substring(0,200)}` };
     }
     const result = await r.json();
-  if (result.balance !== undefined && result.balance !== null && currentUser) {
-  const balanceVal = parseFloat(result.balance);
-  if (!isNaN(balanceVal)) {
-    window._pendingBalance = balanceVal;
-  }
-}
-
+    // Save balance if returned by Edge Function (יתרה)
+    if (result.balance !== undefined && result.balance !== null && currentUser) {
+      const balanceVal = parseFloat(result.balance);
+      if (!isNaN(balanceVal)) {
+        localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
+          amount: balanceVal,
+          date: new Date().toISOString()
+        }));
+      }
+    }
+    // Normalize field names + categories
     if (result.transactions && Array.isArray(result.transactions)) {
       result.transactions = result.transactions.map(t => {
         const label = t.label || t.description || t.merchant || t.name || 'עסקה';
         const amount = typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0;
         const rawCat = t.category || '';
+        // Normalize category to French (our internal format)
         let category = normalizeCategory(rawCat);
+        // If still bad/missing, try local categorization based on label
         if (!category || category === 'Divers') {
           const localCat = localCategorize(label, amount);
           if (localCat !== 'Divers') category = localCat;
@@ -506,13 +500,16 @@ async function callEdgeVision(payload) {
   }
 }
 
+// Map any category name (Hebrew, English, French variants) to our internal French key
 function normalizeCategory(raw) {
   if (!raw) return null;
   const r = raw.toString().toLowerCase().trim();
+  // French (already correct) - check first
   const validCats = ['Alimentation','Logement','Transport','Loisirs','Santé','Sante','Épargne','Epargne','Divers','Salaire','Cadeau','Investissement','Abonnements','Éducation','Education','Allocations'];
   for (const v of validCats) {
     if (r === v.toLowerCase()) return v.replace('Sante','Santé').replace('Epargne','Épargne').replace('Education','Éducation');
   }
+  // Hebrew mapping
   const heMap = {
     'מזון':'Alimentation','אוכל':'Alimentation','קניות':'Alimentation','סופרמרקט':'Alimentation','מכולת':'Alimentation',
     'דיור':'Logement','שכירות':'Logement','משכנתא':'Logement','חשבונות':'Logement','ארנונה':'Logement','חשמל':'Logement','מים':'Logement','גז':'Logement',
@@ -529,6 +526,7 @@ function normalizeCategory(raw) {
   for (const [he, fr] of Object.entries(heMap)) {
     if (r.includes(he.toLowerCase())) return fr;
   }
+  // English mapping
   const enMap = {
     'food':'Alimentation','grocery':'Alimentation','groceries':'Alimentation','restaurant':'Loisirs','dining':'Loisirs',
     'rent':'Logement','housing':'Logement','utilities':'Logement','mortgage':'Logement',
@@ -556,6 +554,7 @@ async function extractTransactionsFromText(text) {
   return await callEdgeVision({ type: 'text', data: text.substring(0, 30000) });
 }
 
+// ── PDF IMPORT ────────────────────────────────────────────────
 async function handlePDFImport(input) {
   const file = input.files[0];
   if (!file) return;
@@ -568,8 +567,12 @@ async function handlePDFImport(input) {
     input.value = '';
     return;
   }
+
+  // Make 2 independent copies - pdf.js detaches the buffer after use
   const bufferForText = arrayBuffer.slice(0);
   const bufferForImage = arrayBuffer.slice(0);
+
+  // STEP 1: Try text extraction
   let extractedText = '';
   let textOk = false;
   try {
@@ -585,6 +588,8 @@ async function handlePDFImport(input) {
     console.error('PDF text extraction failed:', err);
     extractedText = '';
   }
+
+  // STEP 2: If text OK, try Claude with text
   if (textOk) {
     try {
       showImportProgress('👔 בינה מלאכותית מנתחת...');
@@ -595,10 +600,13 @@ async function handlePDFImport(input) {
         input.value = '';
         return;
       }
+      console.log('Text mode returned no transactions, trying image mode...');
     } catch (err) {
       console.error('Text mode error:', err);
     }
   }
+
+  // STEP 3: Fallback to image mode (Claude Vision on each page) - uses fresh buffer copy
   showImportProgress('🖼️ מצב תמונה (אוטומטי)...');
   try {
     await handlePDFAsImages(bufferForImage, file.name);
@@ -700,14 +708,19 @@ async function handleCSVImport(input) {
 }
 
 function showReviewModal(fileName, source) {
+  // ALWAYS re-categorize locally to catch Israeli-specific cases (bituach leumi, etc.)
+  // This overrides Claude's category if local rules detect a more specific match
   extractedTxs.forEach(t => {
     const local = localCategorize(t.label, t.amount);
+    // Override Claude's category for these specific Israeli cases
     const overridePatterns = /קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|הבטחת.?הכנסה|ביטוח.?לאומי|bituach.?leumi|מס הכנסה|income.?tax|מע.?מ|vat|משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא/i;
     if (overridePatterns.test(t.label)) {
       t.category = local;
     } else if (!t.category || t.category === 'Divers') {
+      // For other transactions, only override if still Divers
       if (local !== 'Divers') t.category = local;
     }
+    // Special: if income (positive amount) and label suggests salary
     if (t.amount > 0 && (t.category === 'Divers' || !t.category)) {
       if (/משכורת|שכר|salary|paycheck|payroll/i.test(t.label)) t.category = 'Salaire';
     }
@@ -747,6 +760,7 @@ function showReviewModal(fileName, source) {
   document.getElementById('review-modal').style.display = 'flex';
 }
 
+// Generate a fingerprint for duplicate detection
 function txFingerprint(t) {
   const date = new Date(t.created_at || t.date).toISOString().split('T')[0];
   const amount = Math.round(parseFloat(t.amount) * 100) / 100;
@@ -758,6 +772,7 @@ async function confirmImport(source, fileName) {
   const importId = 'imp_' + Date.now();
   const btnEl = document.querySelector('#review-modal-content .submit-btn');
   if (btnEl) { btnEl.textContent = '⏳ בודק כפילויות...'; btnEl.style.opacity = '0.6'; btnEl.disabled = true; }
+
   try {
     const toInsert = extractedTxs.map(t => ({
       user_id: currentUser.id,
@@ -766,24 +781,30 @@ async function confirmImport(source, fileName) {
       category: t.category || 'Divers',
       created_at: t.date ? new Date(t.date).toISOString() : new Date().toISOString(),
     })).filter(t => t.amount !== 0);
+
     if (!toInsert.length) {
       alert('אין עסקאות תקינות לייבוא.');
       if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
       return;
     }
+
+    // STEP 1: Check for duplicates against existing DB transactions
     const dates = toInsert.map(t => t.created_at.split('T')[0]);
     const minDate = dates.sort()[0];
     const maxDate = dates.sort().reverse()[0];
     const startISO = new Date(minDate).toISOString();
     const endISO = new Date(new Date(maxDate).getTime() + 86400000).toISOString();
+
     const { data: existing } = await sb.from('transactions')
       .select('label, amount, created_at')
       .eq('user_id', currentUser.id)
       .gte('created_at', startISO)
       .lte('created_at', endISO);
+
     const existingFps = new Set((existing||[]).map(t => txFingerprint(t)));
     const duplicates = toInsert.filter(t => existingFps.has(txFingerprint(t)));
     const uniques = toInsert.filter(t => !existingFps.has(txFingerprint(t)));
+
     let finalToInsert = toInsert;
     if (duplicates.length > 0) {
       const msg = `⚠️ זוהו ${duplicates.length} עסקאות שכבר קיימות במערכת.\n\n` +
@@ -799,6 +820,8 @@ async function confirmImport(source, fileName) {
         return;
       }
     }
+
+    // STEP 2: Insert
     if (btnEl) btnEl.textContent = '⏳ שומר...';
     const { data: inserted, error } = await sb.from('transactions').insert(finalToInsert).select('id');
     if (error) {
@@ -807,10 +830,12 @@ async function confirmImport(source, fileName) {
       if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
       return;
     }
+
     const txIds = (inserted || []).map(r => r.id);
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
+
     document.getElementById('review-modal').style.display = 'none';
     extractedTxs = [];
     const dupeMsg = duplicates.length > 0 ? `<div style="font-size:11px;color:var(--yellow);margin-top:4px">${duplicates.length} כפילויות דולגו</div>` : '';
@@ -822,6 +847,7 @@ async function confirmImport(source, fileName) {
         ${dupeMsg}
       </div>`;
     await loadDashboard(); await loadTransactions(); loadImportHistory();
+    // Anomaly detection (non-blocking)
     setTimeout(() => detectAnomalies(finalToInsert), 800);
   } catch (err) {
     console.error('Confirm import error:', err);
@@ -873,6 +899,7 @@ async function viewImport(importId) {
   const imp = history.find(h => h.id === importId);
   if (!imp) { alert('הייבוא לא נמצא'); return; }
   if (!imp.txIds || imp.txIds.length === 0) { alert('אין עסקאות בייבוא הזה'); return; }
+  
   document.getElementById('import-detail-title').textContent = imp.file || 'קובץ';
   document.getElementById('import-detail-meta').innerHTML = `
     ${imp.source==='Photo'?'📸':imp.source==='PDF'?'📄':'📊'} 
@@ -881,18 +908,22 @@ async function viewImport(importId) {
   `;
   document.getElementById('import-detail-content').innerHTML = '<div class="spinner"></div>';
   document.getElementById('import-detail-modal').style.display = 'flex';
+  
   const { data: txs } = await sb.from('transactions')
     .select('*')
     .in('id', imp.txIds)
     .eq('user_id', currentUser.id)
     .order('created_at', {ascending: false});
+  
   const list = txs || [];
   if (list.length === 0) {
     document.getElementById('import-detail-content').innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">העסקאות נמחקו או הוסרו</div>`;
     return;
   }
+  
   const totalIn = list.filter(t => t.amount > 0).reduce((s,t) => s+t.amount, 0);
   const totalOut = list.filter(t => t.amount < 0).reduce((s,t) => s+Math.abs(t.amount), 0);
+  
   document.getElementById('import-detail-content').innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <div style="flex:1;padding:10px;background:rgba(16,185,129,0.1);border-radius:10px;text-align:center">
@@ -936,8 +967,10 @@ async function deleteImport(importId) {
 async function clearAllImports() {
   if (!confirm('⚠️ זה ימחק את כל העסקאות שלך (כולל ישנות ויבואים) — בטוח?')) return;
   if (!confirm('שים לב: זה לא ניתן לביטול. להמשיך?')) return;
+  // Nuclear delete: wipe ALL transactions for this user from DB (not just imports)
   const { error } = await sb.from('transactions').delete().eq('user_id', currentUser.id);
   if (error) { alert('שגיאה: ' + error.message); return; }
+  // Clear all local storage related to imports
   localStorage.removeItem('budgetfam_imports_'+currentUser.id);
   alert('✅ הכל נמחק! העסקאות והיבואים נוקו.');
   await loadDashboard(); await loadTransactions(); loadImportHistory();
@@ -985,6 +1018,7 @@ async function enterApp() {
   await loadDashboard();
   await loadTransactions();
   loadImportHistory();
+  // Show insight button
   const ib = document.getElementById('insight-btn');
   if (ib) ib.style.display = 'flex';
   updateInsightBadge();
@@ -1012,9 +1046,11 @@ function updateInsightBadge() {
   }
 }
 
+// ====== ANOMALY DETECTION (Hybrid: JS + Claude) ======
 async function detectAnomalies(newTxs) {
   if (!newTxs || newTxs.length === 0) return;
   try {
+    // Get last 60 days history for context
     const sixtyDaysAgo = new Date(Date.now() - 60*86400000).toISOString();
     const { data: history } = await sb.from('transactions')
       .select('label,amount,created_at')
@@ -1022,12 +1058,19 @@ async function detectAnomalies(newTxs) {
       .gte('created_at', sixtyDaysAgo)
       .order('created_at', {ascending:false})
       .limit(200);
+    
     const historyArr = history || [];
     const localAnomalies = [];
+    
+    // Calculate average expense for "unusual amount" detection
     const expenses = historyArr.filter(t => t.amount < 0).map(t => Math.abs(t.amount));
     const avgExpense = expenses.length > 0 ? expenses.reduce((a,b)=>a+b,0)/expenses.length : 0;
     const maxNormal = avgExpense * 3;
+    
+    // Group history by label for "first time merchant" detection
     const knownMerchants = new Set(historyArr.map(t => (t.label||'').trim().toLowerCase()));
+    
+    // Group by amount for "forgotten subscription" detection
     const recurringAmounts = {};
     historyArr.forEach(t => {
       if (t.amount < 0 && Math.abs(t.amount) < 100) {
@@ -1035,33 +1078,69 @@ async function detectAnomalies(newTxs) {
         recurringAmounts[key] = (recurringAmounts[key] || 0) + 1;
       }
     });
+    
+    // Pattern 1 & 2 & 3 & 4: Local JS detection
     newTxs.forEach((tx, idx) => {
       const label = (tx.label||'').toLowerCase();
       const amt = Math.abs(tx.amount);
+      
+      // Pattern 1: Foreign currency
       const labelLower = (tx.label||'').toLowerCase();
       const hasForeignCurrency = labelLower.includes('usd') || labelLower.includes('eur') || labelLower.includes('gbp') || labelLower.includes('dollar') || labelLower.includes('euro') || tx.label.includes('$');
       if (hasForeignCurrency) {
-        localAnomalies.push({ tx, type: 'foreign', icon: '🌍', reason: 'תשלום במטבע זר - בדוק שזה מוכר' });
+        localAnomalies.push({
+          tx, type: 'foreign',
+          icon: '🌍',
+          reason: 'תשלום במטבע זר - בדוק שזה מוכר'
+        });
         return;
       }
+      
+      // Pattern 2: Unusual amount (>3x average)
       if (avgExpense > 0 && amt > maxNormal && amt > 500) {
-        localAnomalies.push({ tx, type: 'unusual_amount', icon: '💸', reason: `סכום גבוה משמעותית מהממוצע (${Math.round(avgExpense)}₪)` });
+        localAnomalies.push({
+          tx, type: 'unusual_amount',
+          icon: '💸',
+          reason: `סכום גבוה משמעותית מהממוצע (${Math.round(avgExpense)}₪)`
+        });
         return;
       }
+      
+      // Pattern 3: Forgotten subscription pattern
       const amtKey = amt.toFixed(2);
       if (recurringAmounts[amtKey] >= 2 && amt < 100 && tx.amount < 0) {
-        localAnomalies.push({ tx, type: 'subscription', icon: '🔁', reason: `סכום חוזר ${amtKey}₪ - ייתכן מנוי שנשכח` });
+        localAnomalies.push({
+          tx, type: 'subscription',
+          icon: '🔁',
+          reason: `סכום חוזר ${amtKey}₪ - ייתכן מנוי שנשכח`
+        });
         return;
       }
+      
+      // Pattern 4: First-time merchant with high amount
       const labelKey = (tx.label||'').trim().toLowerCase();
       if (!knownMerchants.has(labelKey) && amt > 800 && tx.amount < 0) {
-        localAnomalies.push({ tx, type: 'unknown_merchant', icon: '❓', reason: 'ספק חדש עם סכום גבוה - מוכר לך?' });
+        localAnomalies.push({
+          tx, type: 'unknown_merchant',
+          icon: '❓',
+          reason: 'ספק חדש עם סכום גבוה - מוכר לך?'
+        });
       }
     });
-    if (localAnomalies.length === 0 && newTxs.length < 5) return;
+    
+    // If nothing flagged locally and no ambiguous cases, skip Claude entirely
+    if (localAnomalies.length === 0 && newTxs.length < 5) {
+      return; // No alert needed, save the API call
+    }
+    
+    // Show local results first (instant)
     if (localAnomalies.length > 0) {
       showAnomaliesModal(localAnomalies, false);
     }
+    
+    // Optionally call Claude for deeper analysis if many transactions
+    // (skipped for now to keep cost minimal - can be enabled later)
+    
   } catch(e) {
     console.error('Anomaly detection error:', e);
   }
@@ -1069,6 +1148,7 @@ async function detectAnomalies(newTxs) {
 
 function showAnomaliesModal(anomalies, fromAI) {
   if (!anomalies || anomalies.length === 0) return;
+  // Filter out anomalies user already marked as known
   const knownKey = 'known_anomalies_'+currentUser.id;
   const knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
   const filtered = anomalies.filter(a => {
@@ -1076,6 +1156,7 @@ function showAnomaliesModal(anomalies, fromAI) {
     return !knownList.includes(sig);
   });
   if (filtered.length === 0) return;
+  
   window._currentAnomalies = filtered;
   renderAnomaliesList(filtered);
   document.getElementById('anomaly-modal').style.display = 'flex';
@@ -1091,6 +1172,7 @@ function renderAnomaliesList(anomalies) {
       </div>`;
     return;
   }
+  
   const itemsHtml = anomalies.map((a, i) => `
     <div id="anomaly-item-${i}" style="padding:12px;background:rgba(245,158,11,0.08);border-radius:12px;border:1px solid rgba(245,158,11,0.25);margin-bottom:8px">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
@@ -1107,6 +1189,7 @@ function renderAnomaliesList(anomalies) {
       </div>
     </div>
   `).join('');
+  
   document.getElementById('anomaly-content').innerHTML = `
     <div style="margin-bottom:14px;padding:12px;background:rgba(0,229,255,0.08);border-radius:10px;font-size:12px;color:var(--ink,#fff);text-align:center">
       🔍 זיהיתי <b>${anomalies.length}</b> עסקאות לבדיקה:
@@ -1126,12 +1209,14 @@ function markAnomalyKnown(idx) {
     knownList.push(sig);
     localStorage.setItem(knownKey, JSON.stringify(knownList.slice(-200)));
   }
+  // Visual feedback
   const item = document.getElementById('anomaly-item-'+idx);
   if (item) {
     item.style.opacity = '0.4';
     item.style.pointerEvents = 'none';
     item.innerHTML = `<div style="text-align:center;padding:14px;color:var(--green,#10b981);font-size:13px;font-weight:700">✅ סומן כמוכר</div>`;
   }
+  // Check if all are handled
   setTimeout(() => {
     const items = document.querySelectorAll('[id^="anomaly-item-"]');
     const remaining = Array.from(items).filter(el => el.style.pointerEvents !== 'none').length;
@@ -1202,294 +1287,6 @@ async function showDailyInsight() {
 }
 function closeInsight() { document.getElementById('insight-modal').style.display='none'; }
 
-/* ============================================================
-   FORECAST FIN DE MOIS (v29) — 100% local
-   ============================================================ */
-
-function detectRecurringTx(allTransactions) {
-  const now = new Date();
-  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const past = allTransactions.filter(t => {
-    const d = new Date(t.created_at);
-    return d >= threeMonthsAgo && d < startOfThisMonth && t.amount < 0;
-  });
-  const groups = {};
-  past.forEach(t => {
-    const desc = (t.label || '').trim().toLowerCase().substring(0, 25);
-    const amountKey = Math.round(Math.abs(t.amount) / 10) * 10;
-    const key = desc + '|' + amountKey;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push({
-      amount: Math.abs(t.amount),
-      day: new Date(t.created_at).getDate(),
-      month: new Date(t.created_at).getMonth(),
-      label: t.label,
-      category: t.category
-    });
-  });
-  const recurring = [];
-  Object.values(groups).forEach(occurrences => {
-    if (occurrences.length < 2) return;
-    const months = new Set(occurrences.map(o => o.month));
-    if (months.size < 2) return;
-    const avgDay = Math.round(occurrences.reduce((s, o) => s + o.day, 0) / occurrences.length);
-    const avgAmount = occurrences.reduce((s, o) => s + o.amount, 0) / occurrences.length;
-    recurring.push({
-      label: occurrences[0].label,
-      category: occurrences[0].category,
-      expectedDay: avgDay,
-      expectedAmount: avgAmount
-    });
-  });
-  return recurring;
-}
-
-function calculateForecast(allTransactions, currentBalance) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const today = now.getDate();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysLeft = daysInMonth - today;
-
-  const thisMonthTx = allTransactions.filter(t => {
-    const d = new Date(t.created_at);
-    return d.getFullYear() === year && d.getMonth() === month;
-  });
-  const expensesSoFar = thisMonthTx.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const incomeSoFar = thisMonthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-
-  const recurring = detectRecurringTx(allTransactions);
-  const alreadyPaidKeys = new Set(thisMonthTx.filter(t => t.amount < 0).map(t => {
-    const desc = (t.label || '').trim().toLowerCase().substring(0, 25);
-    const amountKey = Math.round(Math.abs(t.amount) / 10) * 10;
-    return desc + '|' + amountKey;
-  }));
-
-  let pendingRecurring = 0;
-  const pendingByCategory = {};
-  recurring.forEach(r => {
-    const desc = (r.label || '').trim().toLowerCase().substring(0, 25);
-    const amountKey = Math.round(r.expectedAmount / 10) * 10;
-    const key = desc + '|' + amountKey;
-    if (!alreadyPaidKeys.has(key) && r.expectedDay >= today) {
-      pendingRecurring += r.expectedAmount;
-      pendingByCategory[r.category] = (pendingByCategory[r.category] || 0) + r.expectedAmount;
-    }
-  });
-
-  const recurringPaidThisMonth = recurring.reduce((sum, r) => {
-    const desc = (r.label || '').trim().toLowerCase().substring(0, 25);
-    const amountKey = Math.round(r.expectedAmount / 10) * 10;
-    const key = desc + '|' + amountKey;
-    return alreadyPaidKeys.has(key) ? sum + r.expectedAmount : sum;
-  }, 0);
-  const variableSoFar = Math.max(0, expensesSoFar - recurringPaidThisMonth);
-  const dailyVariableRate = today > 0 ? variableSoFar / today : 0;
-  const projectedVariableRest = dailyVariableRate * daysLeft;
-
-  const projectedExpenses = expensesSoFar + projectedVariableRest + pendingRecurring;
-  const projectedBalance = currentBalance !== null && currentBalance !== undefined
-    ? currentBalance - (projectedVariableRest + pendingRecurring)
-    : null;
-
-  // Top dérive par catégorie (vs moyenne 2 mois précédents)
-  const lastMonth = new Date(year, month - 1, 1);
-  const twoMonthsAgo = new Date(year, month - 2, 1);
-  const histTx = allTransactions.filter(t => {
-    const d = new Date(t.created_at);
-    return d >= twoMonthsAgo && d < new Date(year, month, 1) && t.amount < 0;
-  });
-  const histByCat = {};
-  histTx.forEach(t => {
-    const cat = t.category || 'Divers';
-    histByCat[cat] = (histByCat[cat] || 0) + Math.abs(t.amount);
-  });
-  const monthsOfHistory = histTx.length > 0 ? 2 : 1;
-  const avgByCat = {};
-  Object.keys(histByCat).forEach(cat => { avgByCat[cat] = histByCat[cat] / monthsOfHistory; });
-
-  const projectedByCat = {};
-  thisMonthTx.filter(t => t.amount < 0).forEach(t => {
-    const cat = t.category || 'Divers';
-    projectedByCat[cat] = (projectedByCat[cat] || 0) + Math.abs(t.amount);
-  });
-  Object.entries(pendingByCategory).forEach(([cat, amt]) => {
-    projectedByCat[cat] = (projectedByCat[cat] || 0) + amt;
-  });
-  // Ajouter projection variable au prorata par catégorie
-  Object.keys(projectedByCat).forEach(cat => {
-    const dailyForCat = today > 0 ? (projectedByCat[cat] - (pendingByCategory[cat] || 0)) / today : 0;
-    projectedByCat[cat] += dailyForCat * daysLeft * 0.5; // amorti
-  });
-
-  const overruns = [];
-  Object.entries(projectedByCat).forEach(([cat, projected]) => {
-    const avg = avgByCat[cat];
-    if (avg && avg > 100 && projected > avg * 1.2) {
-      overruns.push({
-        category: cat,
-        avg,
-        projected,
-        overrun: projected - avg,
-        pct: Math.round((projected - avg) / avg * 100)
-      });
-    }
-  });
-  overruns.sort((a, b) => b.overrun - a.overrun);
-
-  return {
-    daysLeft, daysInMonth, today,
-    expensesSoFar, incomeSoFar,
-    projectedExpenses, projectedBalance,
-    pendingRecurring, overruns,
-    recurringDetected: recurring.length,
-    confidence: today >= 7 ? 'high' : today >= 3 ? 'medium' : 'low',
-    hasHistory: histTx.length > 0
-  };
-}
-
-function renderForecastCard(allTransactions, currentBalance) {
-  const target = document.getElementById('forecast-card-slot');
-  if (!target) return;
-
-  if (!allTransactions || allTransactions.length < 3) {
-    target.innerHTML = `
-      <div class="forecast-card" onclick="showForecastModal()">
-        <div class="forecast-head">
-          <div class="forecast-title">📈 תחזית סוף החודש</div>
-        </div>
-        <div class="forecast-empty">צריך עוד כמה תנועות לחישוב מדויק</div>
-      </div>`;
-    return;
-  }
-
-  const f = calculateForecast(allTransactions, currentBalance);
-  window._lastForecast = f;
-
-  let cls = 'forecast-card';
-  if (currentBalance !== null && f.projectedBalance !== null) {
-    if (f.projectedBalance < 0) cls += ' warning';
-    else if (currentBalance > 0 && f.projectedBalance > currentBalance * 0.4) cls += ' safe';
-  }
-
-  const fmt = n => Math.round(n).toLocaleString('he-IL') + ' ₪';
-
-  let alertHtml = '';
-  if (f.overruns.length > 0) {
-    const worst = f.overruns[0];
-    const more = f.overruns.length > 1 ? ` (+${f.overruns.length - 1})` : '';
-    alertHtml = `
-      <div class="forecast-alert">
-        <span style="font-size:14px;flex-shrink:0">⚠️</span>
-        <span style="flex:1;font-size:11px">חריגה ב<strong>${catHe(worst.category)}</strong> ${more}<br><span style="color:var(--muted);font-size:10px">+${worst.pct}% מהממוצע</span></span>
-        <span class="forecast-alert-amt" style="color:var(--red);font-size:12px">+${fmt(worst.overrun)}</span>
-      </div>`;
-  }
-
-  // Si pas de solde, on montre les dépenses uniquement
-  const balanceCell = f.projectedBalance !== null ? `
-    <div class="forecast-cell">
-      <div class="forecast-cell-label">יתרה צפויה</div>
-      <div class="forecast-cell-value" style="color:${f.projectedBalance < 0 ? 'var(--red)' : 'var(--green)'}">${f.projectedBalance.toLocaleString('he-IL')} ₪</div>
-      <div class="forecast-cell-trend" style="color:var(--muted)">סוף חודש</div>
-    </div>` : `
-    <div class="forecast-cell">
-      <div class="forecast-cell-label">קבועות שיחויבו</div>
-      <div class="forecast-cell-value" style="color:var(--purple)">${fmt(f.pendingRecurring)}</div>
-      <div class="forecast-cell-trend" style="color:var(--muted)">${f.recurringDetected} זוהו</div>
-    </div>`;
-
-  target.innerHTML = `
-    <div class="${cls}" onclick="showForecastModal()">
-      <div class="forecast-head">
-        <div class="forecast-title">📈 תחזית סוף החודש</div>
-        <div class="forecast-days">${f.daysLeft} ימים</div>
-      </div>
-      <div class="forecast-grid">
-        <div class="forecast-cell">
-          <div class="forecast-cell-label">הוצאות צפויות</div>
-          <div class="forecast-cell-value" style="color:var(--text)">${fmt(f.projectedExpenses)}</div>
-          <div class="forecast-cell-trend" style="color:var(--muted)">עד עכשיו: ${fmt(f.expensesSoFar)}</div>
-        </div>
-        ${balanceCell}
-      </div>
-      ${alertHtml}
-    </div>`;
-}
-
-function showForecastModal() {
-  const f = window._lastForecast;
-  if (!f) return;
-  const fmt = n => Math.round(n).toLocaleString('he-IL') + ' ₪';
-  const confidenceLabel = { high: 'גבוהה ✓', medium: 'בינונית', low: 'נמוכה (תחילת חודש)' }[f.confidence];
-
-  let overrunsHtml = '';
-  if (f.overruns.length > 0) {
-    overrunsHtml = f.overruns.slice(0, 5).map(o => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--red-soft);border-radius:10px;margin-bottom:6px">
-        <div>
-          <div style="font-weight:700;font-size:13px">${getCatIcon(o.category)} ${catHe(o.category)}</div>
-          <div style="font-size:10px;color:var(--muted)">ממוצע: ${fmt(o.avg)} · צפוי: ${fmt(o.projected)}</div>
-        </div>
-        <div style="text-align:left">
-          <div style="color:var(--red);font-weight:700;font-size:13px">+${o.pct}%</div>
-          <div style="font-size:10px;color:var(--muted);direction:ltr">+${fmt(o.overrun)}</div>
-        </div>
-      </div>`).join('');
-  } else {
-    overrunsHtml = `<div style="text-align:center;color:var(--green);padding:14px;background:var(--green-soft);border-radius:10px;font-size:13px">✓ כל הקטגוריות בטווח הרגיל</div>`;
-  }
-
-  const balanceBlock = f.projectedBalance !== null ? `
-    <div style="display:flex;justify-content:space-between;padding:6px 0">
-      <span><strong>יתרה צפויה</strong></span>
-      <strong style="color:${f.projectedBalance < 0 ? 'var(--red)' : 'var(--green)'};direction:ltr">${f.projectedBalance.toLocaleString('he-IL')} ₪</strong>
-    </div>` : `
-    <div style="font-size:11px;color:var(--muted);text-align:center;padding:8px;margin-top:4px;background:var(--accent-soft);border-radius:8px">
-      💡 הזן יתרה בדשבורד כדי לראות תחזית יתרה
-    </div>`;
-
-  document.getElementById('forecast-modal-content').innerHTML = `
-    <div style="text-align:center;margin-bottom:14px;font-size:11px;color:var(--muted)">
-      רמת ביטחון: <strong>${confidenceLabel}</strong> · יום ${f.today}/${f.daysInMonth}
-    </div>
-    <div style="background:var(--divider);border-radius:12px;padding:14px;margin-bottom:14px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">📊 סיכום</div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px">
-        <span>הוצאות עד היום</span><strong style="direction:ltr">${fmt(f.expensesSoFar)}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px">
-        <span>הכנסות עד היום</span><strong style="color:var(--green);direction:ltr">${fmt(f.incomeSoFar)}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px dashed var(--border);margin-top:6px;font-size:13px">
-        <span>קבועות שעוד לא חויבו</span><strong style="color:var(--purple);direction:ltr">${fmt(f.pendingRecurring)}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);margin-top:6px;font-size:13px">
-        <span><strong>סה"כ הוצאות צפויות</strong></span><strong style="color:var(--red);direction:ltr">${fmt(f.projectedExpenses)}</strong>
-      </div>
-      ${balanceBlock}
-    </div>
-    <div style="margin-bottom:6px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">⚠️ קטגוריות בסיכון (vs ממוצע)</div>
-      ${overrunsHtml}
-    </div>
-    <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.6">
-      התחזית מתבססת על קצב ההוצאות הנוכחי + ${f.recurringDetected} תשלומים קבועים שזוהו אוטומטית
-    </div>
-  `;
-  document.getElementById('forecast-modal').style.display = 'flex';
-}
-
-function closeForecastModal() {
-  document.getElementById('forecast-modal').style.display = 'none';
-}
-
-/* ============================================================
-   END FORECAST
-   ============================================================ */
-
 async function loadDashboard() {
   const el = document.getElementById('dashboard-content');
   const { data:txs } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
@@ -1505,10 +1302,12 @@ async function loadDashboard() {
     </div>`; return;
   }
 
+  // Get balance from last import (stored when extracting PDF/photo)
   const balanceData = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
   const realBalance = balanceData?.amount;
   const balanceDate = balanceData?.date ? new Date(balanceData.date) : null;
 
+  // Smart period for monthly flow
   let displayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   let displayTxs = all.filter(t => { const d=new Date(t.created_at); return d.getMonth()===displayMonth.getMonth()&&d.getFullYear()===displayMonth.getFullYear(); });
   let isCurrentMonth = true;
@@ -1525,6 +1324,7 @@ async function loadDashboard() {
   const monthFlow = income-expenses;
   const monthLabel = displayMonth.toLocaleDateString('he-IL',{month:'long',year:'numeric'});
 
+  // Balance display: if we have it from import, show it big. Otherwise show monthly flow as fallback.
   const showRealBalance = realBalance !== undefined && realBalance !== null;
   const bigNumber = showRealBalance ? realBalance : monthFlow;
   const bigLabel = showRealBalance ? 'יתרה בחשבון 💎' : 'יתרה חודשית';
@@ -1540,22 +1340,14 @@ async function loadDashboard() {
       <div class="stat-mini"><label>📉 הוצאות</label><b style="color:var(--red);direction:ltr">${expenses.toLocaleString('he-IL')} ₪</b></div>
       <div class="stat-mini"><label>🪙 חודש</label><b style="color:${monthFlow>=0?'var(--accent)':'var(--red)'};direction:ltr">${monthFlow>=0?'+':''}${monthFlow.toLocaleString('he-IL')}</b></div>
     </div>
-  </div>
-  <div id="forecast-card-slot"></div>`;
-
-  // Render forecast (only for current month with data)
-  if (isCurrentMonth) {
-    renderForecastCard(all, showRealBalance ? realBalance : null);
-  } else {
-    document.getElementById('forecast-card-slot').innerHTML = '';
-  }
+  </div>`;
 }
 
 function editBalance() {
   const current = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
   const promptValue = current?.amount?.toString() || '';
   const newVal = prompt('💎 עדכן את היתרה בחשבון (ש״ח):\n\nהזן את היתרה הנוכחית מאפליקציית הבנק שלך', promptValue);
-  if (newVal === null) return;
+  if (newVal === null) return; // cancel
   if (newVal === '') {
     if (confirm('להסיר את היתרה?')) {
       localStorage.removeItem('budgetfam_balance_'+currentUser.id);
@@ -1598,6 +1390,7 @@ async function loadTransactions() {
     </div>`).join('')}</div>`;
 }
 
+// ── EDIT TRANSACTION ─────────────────────────────────────────
 async function openEditTx(id) {
   const { data: t } = await sb.from('transactions').select('*').eq('id', id).single();
   if (!t) return;
@@ -1805,13 +1598,16 @@ async function runAiWizard() {
   let aiText = '';
   let extraInfo = '';
 
+  // Calcul du nombre de mois (utilisé partout)
   const targetDate=dateVal?new Date(dateVal+'-01').toISOString().split('T')[0]:null;
   const monthsRaw = targetDate ? (new Date(targetDate)-new Date())/(30.44*86400000) : 24;
-  const months = Math.max(1, Math.ceil(monthsRaw));
+  const months = Math.max(1, Math.ceil(monthsRaw)); // Math.ceil pour arrondir vers le haut
 
   if (wizardType==='mariage') {
     const totalGuests = parseInt(guests||200);
     const myGuests = parseInt(guestsMine) || Math.round(totalGuests/2);
+    // PRIX RÉELS Israël 2025-2026 : salle + repas inclus ~340₪/invité (90€)
+    // Source: salles israéliennes incluent traiteur dans le prix
     const styleMul = style==='luxe' ? 550 : style==='simple' ? 250 : 340;
     const totalCost = totalGuests * styleMul;
     let myShare;
@@ -1823,44 +1619,48 @@ async function runAiWizard() {
       myShare = Math.round(totalCost * (myGuests / totalGuests));
     }
     target = target || myShare;
+    // Répartition Israël (salle+repas inclus = environ moitié)
+    // Photo+vidéo et robe en Israël sont chers : on alloue plus
     const venueAndFood = Math.round(target * 0.42);
-    const photo = Math.round(target * 0.13);
+    const photo = Math.round(target * 0.13); // photo+vidéo Israël souvent 5000-10000₪
     const dj = Math.round(target * 0.06);
-    const dress = Math.round(target * 0.16);
-    const flowers = Math.round(target * 0.10);
+    const dress = Math.round(target * 0.16); // robe location 8000-15000₪ moyenne
+    const flowers = Math.round(target * 0.10); // déco+fleurs en Israël ~10-15k
     const other = target - venueAndFood - photo - dj - dress - flowers;
     const shareLabel = sharedCost === 'all' ? 'אתה משלם הכל' : sharedCost === 'half' ? 'מתחלקים 50/50' : `לפי אורחים (${myGuests}/${totalGuests})`;
-    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪<br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪<br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪<br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• בישראל משכירים שמלות, לא קונים<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• הזמן את האולם 12 חודשים מראש`;
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ חתונה: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם + קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום+וידאו: ${photo.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(שוק ישראלי: 5,000-10,000₪ סטנדרטי, 10,000-20,000₪ פרימיום)</small><br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(2,500-4,500₪)</small><br>👰 שמלה+חליפה: ${dress.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(שמלה ממוצעת 8,000-15,000₪, יוקרתי 15,000-30,000₪)</small><br>🌸 פרחים+עיצוב: ${flowers.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(8,000-15,000₪ סטנדרטי)</small><br>✨ שאר (כיפה, הזמנות, איפור...): ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רוב האולמות בישראל כוללים את האוכל במחיר<br>• בישראל משכירים שמלות, לא קונים<br>• הזהר ממע"מ נסתר (15.5% מתווסף)<br>• חודשי שיא יקרים ב-15-20%<br>• הזמן את האולם 12 חודשים מראש`;
   } else if (wizardType==='voiture') {
     target = target || 80000;
     const downPayment = Math.round(target * 0.25);
     const insurance = Math.round(target * 0.05);
-    const youngDriverExtra = Math.round(insurance * 0.5);
-    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br>📅 ${months} חודשים לחיסכון<br><br>💡 <strong>טיפים:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך<br>• השווה ביטוחים ב-3 חברות`;
-    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות שוטפות:</strong><br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>🆕 נהג חדש: +${youngDriverExtra.toLocaleString('he-IL')} ₪/שנה<br>⛽ דלק חודשי: ~1,500 ₪<br>🔧 טיפולים: ~3,000 ₪/שנה</div>`;
+    const youngDriverExtra = Math.round(insurance * 0.5); // +50% pour jeune conducteur
+    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ: ${downPayment.toLocaleString('he-IL')} ₪ (25%)<br>📅 ${months} חודשים לחיסכון<br><br>💡 <strong>טיפים שוק ישראלי:</strong><br>• רכב יד 2 משתלם יותר מ-3 שנים<br>• בדוק טסט וחוות דעת מוסך לפני קנייה<br>• השווה ביטוחים ב-3 חברות לפחות`;
+    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות שוטפות (מעבר לתקציב הפרויקט):</strong><br>🛡 ביטוח שנתי: ~${insurance.toLocaleString('he-IL')} ₪<br>🆕 נהג חדש/צעיר: +${youngDriverExtra.toLocaleString('he-IL')} ₪/שנה (פרמיה +50%)<br>⛽ דלק חודשי: ~1,500 ₪<br>🔧 טיפולים+אגרה: ~3,000 ₪/שנה<br>🚗 רישוי+מבחן רישוי: ~600 ₪/שנה</div>`;
   } else if (wizardType==='immobilier') {
     target = target || 1500000;
     const downPct = parseInt(pct)||25;
     const apport = Math.round(target * downPct / 100);
     const loan = target - apport;
+    // Calcul mensuel mashkanta plus précis (taux 5% sur 25 ans)
     const annualRate = 0.05;
     const yearTerms = 25;
     const monthlyRate = annualRate / 12;
     const numPayments = yearTerms * 12;
     const monthlyPay = Math.round(loan * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1));
     const projectTarget = apport;
-    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>📅 ${months} חודשים לחיסכון<br><br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש<br><br>💡 <strong>טיפים:</strong><br>• מינימום 25% הון עצמי לדירה ראשונה<br>• דירה שנייה: 50% הון עצמי<br>• השווה ב-3 בנקים`;
-    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות:</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪<br>👨‍⚖️ עו"ד: ${Math.round(target*0.005).toLocaleString('he-IL')}-${Math.round(target*0.01).toLocaleString('he-IL')} ₪<br>🏘 תיווך: ${Math.round(target*0.01).toLocaleString('he-IL')}-${Math.round(target*0.02).toLocaleString('he-IL')} ₪<br>🛠 שיפוץ: לפי מצב</div>`;
+    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>מחיר: ${target.toLocaleString('he-IL')} ₪<br><br>💰 <strong>היעד שלך - הון עצמי:</strong> ${apport.toLocaleString('he-IL')} ₪ (${downPct}%)<br>📅 ${months} חודשים לחיסכון<br><br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 החזר חודשי: ${monthlyPay.toLocaleString('he-IL')} ₪/חודש<br><small style="color:var(--muted)">(חישוב: ${yearTerms} שנים, ריבית 5%)</small><br><br>💡 <strong>טיפים בנק ישראל 2026:</strong><br>• <strong>מינימום 25% הון עצמי</strong> לדירה ראשונה (75% מימון מקסימום)<br>• דירה שנייה: 50% הון עצמי<br>• השווה משכנתאות ב-3 בנקים<br>• זכאות לדירה בהנחה? אפשר פחות מ-25%`;
+    extraInfo = `<div style="margin-top:10px;padding:10px;background:var(--yellow-soft);border-radius:10px;border:1px solid var(--yellow);font-size:11px"><strong style="color:var(--yellow)">⚠️ הוצאות נוספות (מעבר להון עצמי):</strong><br>📋 מס רכישה: ~${Math.round(target*0.05).toLocaleString('he-IL')} ₪ <small>(5%, דירה ראשונה לרוב פטור עד 1.97M)</small><br>👨‍⚖️ עו"ד: ${Math.round(target*0.005).toLocaleString('he-IL')}-${Math.round(target*0.01).toLocaleString('he-IL')} ₪ <small>(0.5-1% + מע"מ)</small><br>🏘 תיווך: ${Math.round(target*0.01).toLocaleString('he-IL')}-${Math.round(target*0.02).toLocaleString('he-IL')} ₪ <small>(1-2% + מע"מ, ניתן למו"מ)</small><br>🛠 שיפוץ ראשוני: לפי מצב הדירה</div>`;
     target = projectTarget;
   } else if (wizardType==='epargne') {
     target = target || 50000;
     const monthlyAmount = Math.ceil(target / months);
-    aiText = `🪙 <strong>${who||'חיסכון'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים<br><br>💵 <strong>חודשי:</strong> ${monthlyAmount.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הפקדה אוטומטית<br>• קרן השתלמות לפטור ממס<br>• חשבון נפרד לחיסכון`;
+    aiText = `🪙 <strong>${who||'חיסכון'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💵 <strong>סכום חודשי לחיסכון:</strong> ${monthlyAmount.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הפקדה אוטומטית בתחילת החודש<br>• שקול קרן השתלמות לפטור ממס<br>• חשבון נפרד לחיסכון - לא לגעת!<br>• בדוק תשואות בנק vs בית השקעות`;
   } else {
     target = target || 15000;
-    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים<br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות`;
+    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
   }
 
+  // Math.ceil pour éviter le bug 5000/10 = 500 (mauvais arrondi)
   const monthly = target > 0 ? Math.ceil(target / months) : 0;
   const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏡 דירה ${region||''}`:wizardType==='epargne'?`🪙 ${who||'חיסכון'}`:who||'🎯 פרויקט';
 
@@ -1881,13 +1681,16 @@ async function runAiWizard() {
 
 async function saveProjectFromPending() {
   const btn = document.getElementById('save-proj-btn');
-  if (!btn || btn.disabled || btn.dataset.saving === '1') return;
+  if (!btn || btn.disabled || btn.dataset.saving === '1') return; // anti double-clic robuste
+  // DÉSACTIVATION IMMÉDIATE et SYNCHRONE (avant tout async)
   btn.dataset.saving = '1';
   btn.disabled = true;
   btn.style.opacity = '0.6';
   btn.style.pointerEvents = 'none';
   btn.textContent = '⏳ שומר...';
+  // Force le repaint avant de continuer
   await new Promise(r => requestAnimationFrame(r));
+
   const p = window._pendingProject;
   if (!p) {
     alert('שגיאה - אין נתוני פרויקט');
@@ -1942,6 +1745,7 @@ async function addToProject(id,name) {
 async function deleteProject(id) { if (!confirm('למחוק?')) return; await sb.from('projects').delete().eq('id',id); loadProjects(); }
 function getProjEmoji(t) { return {mariage:'💒',voiture:'🚗',immobilier:'🏡',vacances:'✈️',etudes:'📚',epargne:'🪙',autre:'🎯'}[t]||'🎯'; }
 
+// ── STATS WITH PERIOD FILTER ─────────────────────────────────
 function changePeriod(period, btn) {
   statsPeriod = period;
   document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -1993,6 +1797,7 @@ async function loadStats() {
   const savings=income-expenses;
   const periodLabel = {week:'שבוע',month:'חודש',quarter:'רבעון',year:'שנה',all:'הכל'}[statsPeriod];
 
+  // Compare with previous period
   const periodMs = end - start;
   const prevStart = new Date(start.getTime() - periodMs);
   const prevEnd = new Date(start.getTime() - 1);
@@ -2017,6 +1822,7 @@ async function loadStats() {
   const expensesChange = pctChange(expenses, prevExpenses);
   const savingsChange = pctChange(savings, prevSavings);
 
+  // Show comparison only if there is previous data
   const hasComparison = prev.length > 0;
   const comparisonBlock = hasComparison ? `
     <div class="card fu fu1" style="margin-top:8px">
