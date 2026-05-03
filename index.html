@@ -835,8 +835,29 @@ async function confirmImport(source, fileName) {
 
     // Save balance ONLY if at least 1 transaction was actually inserted (avoid double-save bug)
     if (finalToInsert.length > 0 && window._pendingBalance !== undefined && currentUser) {
+      // Multi-account: detect bank from filename and add/update account
+      const bankInfo = detectBankFromFile(fileName);
+      const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+      // Try to find existing account by bank name (simple match)
+      const existingIdx = accounts.findIndex(a => a.bank === bankInfo.bank);
+      if (existingIdx >= 0) {
+        accounts[existingIdx].balance = window._pendingBalance;
+        accounts[existingIdx].date = new Date().toISOString();
+      } else {
+        accounts.push({
+          id: 'acc_' + Date.now(),
+          name: bankInfo.name,
+          bank: bankInfo.bank,
+          emoji: bankInfo.emoji,
+          balance: window._pendingBalance,
+          date: new Date().toISOString()
+        });
+      }
+      localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
+      // Keep legacy single-balance for backward compat (sum of all accounts)
+      const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
       localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
-        amount: window._pendingBalance,
+        amount: totalBalance,
         date: new Date().toISOString()
       }));
       window._pendingBalance = undefined;
@@ -860,6 +881,22 @@ async function confirmImport(source, fileName) {
     alert('שגיאה לא צפויה: ' + err.message);
     if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; }
   }
+}
+
+function detectBankFromFile(fileName) {
+  const f = (fileName||'').toLowerCase();
+  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
+  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
+  if (/discount|דיסקונט/i.test(f)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
+  if (/mizrahi|מזרחי|tefahot|טפחות/i.test(f)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
+  if (/onezero|one.?zero/i.test(f)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
+  if (/beinleumi|בינלאומי/i.test(f)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟪' };
+  if (/cal|כאל/i.test(f)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
+  if (/isracard|ישראכרט/i.test(f)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
+  if (/max/i.test(f)) return { bank: 'max', name: 'Max', emoji: '💳' };
+  // Default: timestamp-based name
+  const acc = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  return { bank: 'other_' + Date.now(), name: 'חשבון ' + (acc.length + 1), emoji: '🏦' };
 }
 
 function showImportProgress(msg) {
@@ -1308,10 +1345,26 @@ async function loadDashboard() {
     </div>`; return;
   }
 
-  // Get balance from last import (stored when extracting PDF/photo)
-  const balanceData = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
-  const realBalance = balanceData?.amount;
-  const balanceDate = balanceData?.date ? new Date(balanceData.date) : null;
+  // Multi-account system
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  
+  // Migration: if no accounts but legacy balance exists, create account 1
+  const legacyBalance = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'null');
+  if (accounts.length === 0 && legacyBalance?.amount !== undefined) {
+    accounts.push({
+      id: 'acc_legacy',
+      name: 'חשבון 1',
+      bank: 'other',
+      emoji: '🏦',
+      balance: legacyBalance.amount,
+      date: legacyBalance.date || new Date().toISOString()
+    });
+    localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
+  }
+  
+  const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
+  const hasAccounts = accounts.length > 0;
+  const lastUpdate = accounts.length > 0 ? new Date(Math.max(...accounts.map(a => new Date(a.date).getTime()))) : null;
 
   // Smart period for monthly flow
   let displayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1330,23 +1383,100 @@ async function loadDashboard() {
   const monthFlow = income-expenses;
   const monthLabel = displayMonth.toLocaleDateString('he-IL',{month:'long',year:'numeric'});
 
-  // Balance display: if we have it from import, show it big. Otherwise show monthly flow as fallback.
-  const showRealBalance = realBalance !== undefined && realBalance !== null;
-  const bigNumber = showRealBalance ? realBalance : monthFlow;
-  const bigLabel = showRealBalance ? 'יתרה בחשבון 💎' : 'יתרה חודשית';
-  const bigDate = showRealBalance && balanceDate ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">עודכן ${balanceDate.toLocaleDateString('he-IL',{day:'2-digit',month:'short'})}</div>` : '';
+  // Show big number: total of all accounts if any, else monthly flow
+  const bigNumber = hasAccounts ? totalBalance : monthFlow;
+  const bigLabel = hasAccounts ? `יתרה ב-${accounts.length} חשבונות 💎` : 'יתרה חודשית';
+  const bigDate = hasAccounts && lastUpdate ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">עודכן ${lastUpdate.toLocaleDateString('he-IL',{day:'2-digit',month:'short'})}</div>` : '';
 
-  el.innerHTML=`<div class="hero fu fu1" style="cursor:pointer" onclick="editBalance()">
+  // Account list HTML
+  const accountListHtml = hasAccounts ? `
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)" onclick="event.stopPropagation()">
+      ${accounts.map(a => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;cursor:pointer;border-radius:8px" onclick="editAccount('${a.id}')">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+            <span style="font-size:18px">${a.emoji||'🏦'}</span>
+            <span style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</span>
+          </div>
+          <div style="font-size:13px;font-weight:700;direction:ltr;color:${a.balance>=0?'var(--text)':'var(--red)'}">${(parseFloat(a.balance)||0).toLocaleString('he-IL')} ₪</div>
+          <span style="font-size:10px;opacity:0.4;margin-right:6px">✏️</span>
+        </div>
+      `).join('')}
+      <button onclick="addAccount()" style="width:100%;margin-top:8px;padding:9px;background:var(--accent-soft);border:1px dashed var(--accent);border-radius:10px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">+ הוסף חשבון</button>
+    </div>` : `
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)">
+      <button onclick="addAccount();event.stopPropagation()" style="width:100%;padding:11px;background:var(--accent-soft);border:1px dashed var(--accent);border-radius:10px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">+ הוסף חשבון ראשון</button>
+    </div>`;
+
+  el.innerHTML=`<div class="hero fu fu1">
     <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${monthLabel}${isCurrentMonth?'':' (אחרון)'}</div>
     <div class="rubik" style="font-size:30px;font-weight:800;margin:4px 0;direction:ltr;text-align:right;color:${bigNumber>=0?'var(--text)':'var(--red)'}">${bigNumber.toLocaleString('he-IL')} ₪</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${bigLabel} <span style="font-size:10px;opacity:0.5">✏️</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${bigLabel}</div>
     ${bigDate}
-    <div style="display:flex;gap:8px;margin-top:14px;margin-bottom:10px" onclick="event.stopPropagation()">
+    <div style="display:flex;gap:8px;margin-top:14px;margin-bottom:10px">
       <div class="stat-mini"><label>📈 הכנסות</label><b style="color:var(--green);direction:ltr">${income.toLocaleString('he-IL')} ₪</b></div>
       <div class="stat-mini"><label>📉 הוצאות</label><b style="color:var(--red);direction:ltr">${expenses.toLocaleString('he-IL')} ₪</b></div>
       <div class="stat-mini"><label>🪙 חודש</label><b style="color:${monthFlow>=0?'var(--accent)':'var(--red)'};direction:ltr">${monthFlow>=0?'+':''}${monthFlow.toLocaleString('he-IL')}</b></div>
     </div>
+    ${accountListHtml}
   </div>`;
+}
+
+function addAccount() {
+  const name = prompt('שם החשבון (לדוגמה: הפועלים, לאומי, כאל):');
+  if (!name || !name.trim()) return;
+  const balanceStr = prompt('מה היתרה הנוכחית? (₪)');
+  if (balanceStr === null) return;
+  const balance = parseFloat(balanceStr.replace(/,/g,''));
+  if (isNaN(balance)) { alert('סכום לא תקין'); return; }
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  accounts.push({
+    id: 'acc_' + Date.now(),
+    name: name.trim(),
+    bank: 'manual',
+    emoji: '🏦',
+    balance: balance,
+    date: new Date().toISOString()
+  });
+  localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
+  // Update legacy total
+  const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
+  localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
+  loadDashboard();
+}
+
+function editAccount(accId) {
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  const idx = accounts.findIndex(a => a.id === accId);
+  if (idx < 0) return;
+  const acc = accounts[idx];
+  const action = prompt(`חשבון: ${acc.name}\nיתרה: ${acc.balance.toLocaleString('he-IL')} ₪\n\nמה לעשות?\n1 = עדכן יתרה\n2 = שנה שם\n3 = מחק חשבון\n(הקלד 1, 2 או 3)`);
+  if (!action) return;
+  if (action === '1') {
+    const newBal = prompt('יתרה חדשה (₪):', acc.balance);
+    if (newBal === null) return;
+    const num = parseFloat(newBal.replace(/,/g,''));
+    if (isNaN(num)) { alert('סכום לא תקין'); return; }
+    accounts[idx].balance = num;
+    accounts[idx].date = new Date().toISOString();
+  } else if (action === '2') {
+    const newName = prompt('שם חדש:', acc.name);
+    if (!newName || !newName.trim()) return;
+    accounts[idx].name = newName.trim();
+  } else if (action === '3') {
+    if (!confirm(`למחוק את חשבון "${acc.name}"?`)) return;
+    accounts.splice(idx, 1);
+  } else {
+    return;
+  }
+  localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
+  // Update legacy total
+  const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
+  if (accounts.length > 0) {
+    localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
+  } else {
+    localStorage.removeItem('budgetfam_balance_'+currentUser.id);
+  }
+  loadDashboard();
 }
 
 function editBalance() {
