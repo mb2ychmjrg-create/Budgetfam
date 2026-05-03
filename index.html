@@ -177,6 +177,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <button onclick="closeImportDetail()" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#00E5FF,#0066FF);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
     </div>
   </div>
+  <div id="account-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeAccountEdit()">
+    <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:420px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:85vh;overflow-y:auto">
+      <div id="account-edit-content"></div>
+    </div>
+  </div>
   <div class="header">
     <div>
       <div class="rubik header-title">BudgetFam 🇮🇱</div>
@@ -1446,36 +1451,87 @@ function addAccount() {
 
 function editAccount(accId) {
   const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  const acc = accounts.find(a => a.id === accId);
+  if (!acc) return;
+  window._editingAccountId = accId;
+  
+  const c = document.getElementById('account-edit-content');
+  c.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:40px;margin-bottom:6px">${acc.emoji||'🏦'}</div>
+      <div class="rubik" style="font-size:18px;font-weight:800">${acc.name}</div>
+      <div style="font-size:22px;font-weight:700;margin-top:6px;direction:ltr;color:${acc.balance>=0?'var(--text)':'var(--red)'}">${(parseFloat(acc.balance)||0).toLocaleString('he-IL')} ₪</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">עודכן ${new Date(acc.date).toLocaleDateString('he-IL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+    <button onclick="updateAccountBalance()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px">
+      <span style="font-size:18px">✏️</span> עדכן יתרה
+    </button>
+    <button onclick="renameAccount()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px">
+      <span style="font-size:18px">📝</span> שנה שם
+    </button>
+    <button onclick="deleteAccount()" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--red);background:var(--red-soft);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+      <span style="font-size:18px">🗑</span> מחק חשבון
+    </button>
+    <button onclick="closeAccountEdit()" style="width:100%;padding:11px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>
+  `;
+  document.getElementById('account-edit-modal').style.display = 'flex';
+}
+
+function closeAccountEdit() {
+  document.getElementById('account-edit-modal').style.display = 'none';
+  window._editingAccountId = null;
+}
+
+function updateAccountBalance() {
+  const accId = window._editingAccountId;
+  if (!accId) return;
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
   const idx = accounts.findIndex(a => a.id === accId);
   if (idx < 0) return;
   const acc = accounts[idx];
-  const action = prompt(`חשבון: ${acc.name}\nיתרה: ${acc.balance.toLocaleString('he-IL')} ₪\n\nמה לעשות?\n1 = עדכן יתרה\n2 = שנה שם\n3 = מחק חשבון\n(הקלד 1, 2 או 3)`);
-  if (!action) return;
-  if (action === '1') {
-    const newBal = prompt('יתרה חדשה (₪):', acc.balance);
-    if (newBal === null) return;
-    const num = parseFloat(newBal.replace(/,/g,''));
-    if (isNaN(num)) { alert('סכום לא תקין'); return; }
-    accounts[idx].balance = num;
-    accounts[idx].date = new Date().toISOString();
-  } else if (action === '2') {
-    const newName = prompt('שם חדש:', acc.name);
-    if (!newName || !newName.trim()) return;
-    accounts[idx].name = newName.trim();
-  } else if (action === '3') {
-    if (!confirm(`למחוק את חשבון "${acc.name}"?`)) return;
-    accounts.splice(idx, 1);
-  } else {
-    return;
-  }
+  const newBal = prompt(`יתרה חדשה ל-${acc.name} (₪):`, acc.balance);
+  if (newBal === null) return;
+  const num = parseFloat(newBal.replace(/,/g,''));
+  if (isNaN(num)) { alert('סכום לא תקין'); return; }
+  accounts[idx].balance = num;
+  accounts[idx].date = new Date().toISOString();
   localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
-  // Update legacy total
   const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
+  localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
+  closeAccountEdit();
+  loadDashboard();
+}
+
+function renameAccount() {
+  const accId = window._editingAccountId;
+  if (!accId) return;
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  const idx = accounts.findIndex(a => a.id === accId);
+  if (idx < 0) return;
+  const newName = prompt('שם חדש:', accounts[idx].name);
+  if (!newName || !newName.trim()) return;
+  accounts[idx].name = newName.trim();
+  localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
+  closeAccountEdit();
+  loadDashboard();
+}
+
+function deleteAccount() {
+  const accId = window._editingAccountId;
+  if (!accId) return;
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  const idx = accounts.findIndex(a => a.id === accId);
+  if (idx < 0) return;
+  if (!confirm(`למחוק את חשבון "${accounts[idx].name}"?`)) return;
+  accounts.splice(idx, 1);
+  localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
   if (accounts.length > 0) {
+    const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
     localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
   } else {
     localStorage.removeItem('budgetfam_balance_'+currentUser.id);
   }
+  closeAccountEdit();
   loadDashboard();
 }
 
