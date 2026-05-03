@@ -473,15 +473,13 @@ async function callEdgeVision(payload) {
       return { transactions: [], error: `server_${r.status}: ${errText.substring(0,200)}` };
     }
     const result = await r.json();
-    if (result.balance !== undefined && result.balance !== null && currentUser) {
-      const balanceVal = parseFloat(result.balance);
-      if (!isNaN(balanceVal)) {
-        localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({
-          amount: balanceVal,
-          date: new Date().toISOString()
-        }));
-      }
-    }
+  if (result.balance !== undefined && result.balance !== null && currentUser) {
+  const balanceVal = parseFloat(result.balance);
+  if (!isNaN(balanceVal)) {
+    window._pendingBalance = balanceVal;
+  }
+}
+
     if (result.transactions && Array.isArray(result.transactions)) {
       result.transactions = result.transactions.map(t => {
         const label = t.label || t.description || t.merchant || t.name || 'עסקה';
