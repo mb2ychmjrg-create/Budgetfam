@@ -592,22 +592,29 @@ async function handleCSVImport(input) {
     // Essayer UTF-8 d'abord, puis Windows-1255 (hébreu Windows - Hapoalim, Leumi)
     let text = '';
     let encodingUsed = 'UTF-8';
-    try {
-      const decoded = new TextDecoder('utf-8', { fatal: true }).decode(arrayBuffer);
-      // Vérifier que c'est vraiment lisible (pas de garbage)
-      if (decoded.includes('?') && !decoded.includes('₪') && !decoded.includes('ש')) {
-        throw new Error('probably not utf8');
-      }
-      text = decoded;
-    } catch {
-      // Fallback Windows-1255 (encodage hébreu Windows)
+    // Safari iOS ne supporte pas fatal:true → on détecte via heuristique
+    const bytes = new Uint8Array(arrayBuffer.slice(0, 3));
+    const hasUTF8BOM = (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF);
+    const utf8text = new TextDecoder('utf-8').decode(arrayBuffer);
+    // Si contient du hébreu lisible OU un BOM UTF-8 → UTF-8
+    const hasHebrewUTF8 = /[\u0590-\u05FF\u20AA]/.test(utf8text);
+    const hasReplacementChar = utf8text.includes('\uFFFD');
+    if ((hasHebrewUTF8 || hasUTF8BOM) && !hasReplacementChar) {
+      text = utf8text;
+      encodingUsed = 'UTF-8';
+    } else {
+      // Hébreu Windows (Hapoalim/Leumi exportent souvent en windows-1255)
       try {
-        text = new TextDecoder('windows-1255').decode(arrayBuffer);
+        const w1255 = new TextDecoder('windows-1255').decode(arrayBuffer);
+        text = w1255;
         encodingUsed = 'windows-1255';
       } catch {
-        // Dernier recours: ISO-8859-8 (hébreu ISO)
-        text = new TextDecoder('iso-8859-8').decode(arrayBuffer);
-        encodingUsed = 'iso-8859-8';
+        try {
+          text = new TextDecoder('iso-8859-8').decode(arrayBuffer);
+          encodingUsed = 'iso-8859-8';
+        } catch {
+          text = utf8text;
+        }
       }
     }
     // Nettoyer les Unicode escape sequences et caractères parasites
@@ -1197,6 +1204,7 @@ async function loadDashboard() {
         </div>
       `).join('')}
       <button onclick="addAccount()" style="width:100%;margin-top:8px;padding:9px;background:var(--accent-soft);border:1px dashed var(--accent);border-radius:10px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">+ הוסף חשבון</button>
+      <button onclick="resetAllAccounts()" style="width:100%;margin-top:6px;padding:7px;background:transparent;border:1px solid var(--red-soft);border-radius:10px;color:var(--red);font-size:10px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;opacity:0.7">🗑 אפס חשבונות</button>
     </div>` : `
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)">
       <button onclick="addAccount();event.stopPropagation()" style="width:100%;padding:11px;background:var(--accent-soft);border:1px dashed var(--accent);border-radius:10px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">+ הוסף חשבון ראשון</button>
@@ -1285,6 +1293,13 @@ async function refreshWeeklyReport() {
   if (el) el.innerHTML = '<div class="spinner"></div>';
   const { data } = await sb.from('transactions').select('*').eq('user_id', currentUser.id).order('created_at', {ascending: false});
   loadWeeklyReport(data || []);
+}
+
+function resetAllAccounts() {
+  if (!confirm('🗑 למחוק את כל החשבונות (יתרות בלבד, לא עסקאות)?')) return;
+  localStorage.removeItem('budgetfam_accounts_'+currentUser.id);
+  localStorage.removeItem('budgetfam_balance_'+currentUser.id);
+  loadDashboard();
 }
 
 // ── FORECAST ──────────────────────────────────────────────────
