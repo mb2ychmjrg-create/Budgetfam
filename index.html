@@ -586,35 +586,121 @@ async function handleCSVImport(input) {
   const file = input.files[0];
   if (!file) return;
   showImportProgress('📊 קורא CSV...');
-  const reader = new FileReader();
-  reader.onload = async e => {
-    const text = e.target.result;
-    const lines = text.split('\n').filter(l=>l.trim());
-    if (lines.length < 2) { showImportError('קובץ ריק.'); return; }
-    const sep = text.includes(';') ? ';' : ',';
+  try {
+    // Lire en ArrayBuffer pour détecter l'encoding
+    const arrayBuffer = await file.arrayBuffer();
+    // Essayer UTF-8 d'abord, puis Windows-1255 (hébreu Windows - Hapoalim, Leumi)
+    let text = '';
+    let encodingUsed = 'UTF-8';
+    try {
+      const decoded = new TextDecoder('utf-8', { fatal: true }).decode(arrayBuffer);
+      // Vérifier que c'est vraiment lisible (pas de garbage)
+      if (decoded.includes('?') && !decoded.includes('₪') && !decoded.includes('ש')) {
+        throw new Error('probably not utf8');
+      }
+      text = decoded;
+    } catch {
+      // Fallback Windows-1255 (encodage hébreu Windows)
+      try {
+        text = new TextDecoder('windows-1255').decode(arrayBuffer);
+        encodingUsed = 'windows-1255';
+      } catch {
+        // Dernier recours: ISO-8859-8 (hébreu ISO)
+        text = new TextDecoder('iso-8859-8').decode(arrayBuffer);
+        encodingUsed = 'iso-8859-8';
+      }
+    }
+    // Nettoyer les Unicode escape sequences et caractères parasites
+    text = text
+      .replace(/\\u[0-9a-fA-F]{4}/g, '') // Unicode escapes
+      .replace(/\r/g, '')                  // CRLF → LF
+      .replace(/\uFEFF/g, '');             // BOM
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { showImportError('קובץ ריק.'); input.value = ''; return; }
+    // Détecter séparateur (virgule, point-virgule, tabulation)
+    const firstLine = lines[0];
+    const sep = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
+    // Trouver la ligne d'en-tête réelle (ignorer les lignes de métadonnées bancaires)
+    let headerIdx = 0;
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      const cols = lines[i].split(sep);
+      // Chercher ligne avec date ou montant dans les premières colonnes
+      if (cols.length >= 3 && (
+        /\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4}/.test(cols[0]) ||
+        /תאריך|date|עסקה|פעולה|תנועה/i.test(lines[i])
+      )) { headerIdx = i; break; }
+    }
     const txs = [];
-    for (let i=1; i<lines.length; i++) {
-      const cols = lines[i].split(sep).map(c=>c.trim().replace(/^"|"$/g,''));
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      // Splitter en respectant les guillemets
+      const cols = splitCSVLine(line, sep);
       if (cols.length < 2) continue;
-      const dateStr = cols[0] || '';
-      const desc = cols[1] || cols[2] || '';
+      // Nettoyer chaque colonne
+      const cleanCols = cols.map(c => c.trim().replace(/^["'\u201C\u201D]/g,'').replace(/["'\u201C\u201D]$/g,'').trim());
+      // Chercher date (col 0 ou 1)
+      let dateStr = cleanCols[0] || '';
+      let descIdx = 1;
+      // Si col 0 ressemble à un numéro de ligne, décaler
+      if (/^\d{1,4}$/.test(dateStr)) { dateStr = cleanCols[1] || ''; descIdx = 2; }
+      // Chercher description (première colonne avec du texte hébreu/latin significatif)
+      let desc = '';
+      for (let d = descIdx; d < cleanCols.length; d++) {
+        const v = cleanCols[d];
+        if (v.length >= 2 && !/^[\d\-\.,\s]+$/.test(v) && !/^\d{2}[\/\-]\d{2}/.test(v)) {
+          desc = v; break;
+        }
+      }
+      if (!desc) desc = cleanCols[descIdx] || '';
+      // Chercher montant (dernière colonne numérique non-nulle)
       let amount = 0;
-      for (let c=cols.length-1; c>=1; c--) {
-        const val = parseFloat(cols[c].replace(/,/,'.').replace(/[^\d\-\.]/g,''));
+      for (let c = cleanCols.length - 1; c >= 1; c--) {
+        const raw = cleanCols[c].replace(/,(?=\d{3})/g,'').replace(/,/,'.').replace(/[^\d\-\.]/g,'');
+        const val = parseFloat(raw);
         if (!isNaN(val) && val !== 0) { amount = val; break; }
       }
       if (!amount || !desc || desc.length < 2) continue;
-      const category = localCategorize(desc, amount);
+      // Parser date
       let txDate = new Date();
-      try { const parts = dateStr.includes('/') ? dateStr.split('/').reverse().join('-') : dateStr; const p = new Date(parts); if (!isNaN(p)) txDate = p; } catch {}
+      try {
+        let ds = dateStr.trim();
+        if (/\d{2}\/\d{2}\/\d{4}/.test(ds)) { // DD/MM/YYYY
+          const [d,m,y] = ds.split('/'); ds = `${y}-${m}-${d}`;
+        } else if (/\d{2}\/\d{2}\/\d{2}/.test(ds)) { // DD/MM/YY
+          const [d,m,y] = ds.split('/'); ds = `20${y}-${m}-${d}`;
+        } else if (/\d{2}\.\d{2}\.\d{4}/.test(ds)) { // DD.MM.YYYY
+          const [d,m,y] = ds.split('.'); ds = `${y}-${m}-${d}`;
+        }
+        const p = new Date(ds);
+        if (!isNaN(p.getTime())) txDate = p;
+      } catch {}
+      const category = localCategorize(desc, amount);
       txs.push({ date: txDate.toISOString().split('T')[0], label: desc.substring(0,120), amount, category });
     }
-    if (!txs.length) { showImportError('לא זוהו עסקאות.'); return; }
+    if (!txs.length) { showImportError('לא זוהו עסקאות. נסה PDF או תמונה במקום.'); input.value = ''; return; }
     extractedTxs = txs;
     showReviewModal(file.name, 'CSV');
-  };
-  reader.readAsText(file, 'UTF-8');
+  } catch(err) {
+    showImportError('שגיאה בקריאת CSV: ' + err.message);
+  }
   input.value = '';
+}
+
+// Splitter CSV robuste qui respecte les guillemets
+function splitCSVLine(line, sep) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if ((ch === '"' || ch === '\u201C' || ch === '\u201D') && !inQuotes) { inQuotes = true; }
+    else if ((ch === '"' || ch === '\u201C' || ch === '\u201D') && inQuotes) { inQuotes = false; }
+    else if (ch === sep && !inQuotes) { result.push(current); current = ''; }
+    else { current += ch; }
+  }
+  result.push(current);
+  return result;
 }
 
 function showReviewModal(fileName, source) {
