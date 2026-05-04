@@ -238,17 +238,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     </div>
     <div class="arrow">›</div>
   </button>
-  <button class="import-btn fu fu3" onclick="document.getElementById('csv-input').click()">
-    <div class="icon" style="background:var(--green-soft);color:var(--green)">📊</div>
-    <div class="info">
-      <div class="name">קובץ CSV / Excel</div>
-      <div class="sub">אם כבר הורדת קובץ מהבנק<br>ייבוא קלאסי</div>
-    </div>
-    <div class="arrow">›</div>
-  </button>
+
   <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
   <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
-  <input type="file" id="csv-input" accept=".csv,.xlsx,.xls,.txt" style="display:none" onchange="handleFileImport(this)">
+
   <div id="import-status" style="margin-top:14px"></div>
   <div class="card fu fu4" style="margin-top:14px;background:var(--accent-soft);border-color:var(--accent)">
     <div class="rubik sec-title" style="color:var(--accent)">💡 טיפ מהיר</div>
@@ -1597,14 +1590,24 @@ function deleteAccount() {
   const accId = window._editingAccountId;
   if (!accId) return;
   const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
-  const idx = accounts.findIndex(a => a.id === accId);
-  if (idx < 0) return;
-  if (!confirm(`למחוק את חשבון "${accounts[idx].name}"?`)) return;
-  accounts.splice(idx, 1);
+  const accIdx = accounts.findIndex(a => a.id === accId);
+  if (accIdx < 0) return;
+  const acc = accounts[accIdx];
+  if (!confirm(`למחוק את חשבון "${acc.name}"?`)) return;
+  accounts.splice(accIdx, 1);
   localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
-  if (accounts.length > 0) { const total = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0); localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() })); }
-  else { localStorage.removeItem('budgetfam_balance_'+currentUser.id); }
-  closeAccountEdit(); loadDashboard();
+  if (acc.bank) {
+    const imports = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
+    const filteredImports = imports.filter(h => h.bank !== acc.bank);
+    localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(filteredImports));
+  }
+  if (accounts.length > 0) {
+    const total = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
+    localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
+  } else {
+    localStorage.removeItem('budgetfam_balance_'+currentUser.id);
+  }
+  closeAccountEdit(); loadDashboard(); loadImportHistory();
 }
 
 async function loadTransactions() {
