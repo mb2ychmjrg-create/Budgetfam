@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -247,7 +248,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   </button>
   <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
   <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
-  <input type="file" id="csv-input" accept=".csv,.xlsx,.xls,.txt" style="display:none" onchange="handleCSVImport(this)">
+  <input type="file" id="csv-input" accept=".csv,.xlsx,.xls,.txt" style="display:none" onchange="handleFileImport(this)">
   <div id="import-status" style="margin-top:14px"></div>
   <div class="card fu fu4" style="margin-top:14px;background:var(--accent-soft);border-color:var(--accent)">
     <div class="rubik sec-title" style="color:var(--accent)">💡 טיפ מהיר</div>
@@ -522,7 +523,7 @@ async function handlePDFImport(input) {
       const content = await page.getTextContent();
       extractedText += content.items.map(item => item.str).join(' ') + '\n\n';
     }
-    if (extractedText.trim().length >= 50) { textOk = true; window._pdfHeader = extractedText.substring(0, 500); }
+    if (extractedText.trim().length >= 50) textOk = true;
   } catch (err) { extractedText = ''; }
   if (textOk) {
     try {
@@ -585,6 +586,89 @@ function fileToBase64(file) {
     r.onerror = rej;
     r.readAsDataURL(file);
   });
+}
+
+async function handleFileImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'xlsx' || ext === 'xls') {
+    await handleXLSXImport(input);
+  } else {
+    await handleCSVImport(input);
+  }
+}
+
+async function handleXLSXImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showImportProgress('📊 קורא Excel...');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (rows.length < 2) { showImportError('קובץ ריק.'); input.value = ''; return; }
+    const txs = [];
+    // Chercher la ligne header (contient תאריך ou date)
+    let startRow = 0;
+    for (let i = 0; i < Math.min(15, rows.length); i++) {
+      const rowStr = rows[i].join(' ').toLowerCase();
+      if (/תאריך|date|סכום|amount|עסקה/.test(rowStr)) {
+        startRow = i + 1; break;
+      }
+    }
+    for (let i = startRow; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length < 2) continue;
+      // Chercher date
+      let txDate = new Date();
+      let dateFound = false;
+      for (let c = 0; c < Math.min(3, row.length); c++) {
+        const v = row[c];
+        if (v instanceof Date && !isNaN(v)) { txDate = v; dateFound = true; break; }
+        if (typeof v === 'string' && /\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4}/.test(v)) {
+          const parts = v.split(/[\/\.\-]/);
+          if (parts.length === 3) {
+            const y = parts[2].length === 2 ? '20'+parts[2] : parts[2];
+            txDate = new Date(`${y}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`);
+            if (!isNaN(txDate)) { dateFound = true; break; }
+          }
+        }
+        if (typeof v === 'number' && v > 40000 && v < 50000) {
+          // Excel date serial
+          txDate = new Date((v - 25569) * 86400 * 1000);
+          dateFound = true; break;
+        }
+      }
+      // Chercher description (première string non-date non-numérique)
+      let desc = '';
+      for (let c = 0; c < row.length; c++) {
+        const v = String(row[c] || '').trim();
+        if (v.length >= 2 && !/^\d{2}[\/\.\-]\d{2}/.test(v) && isNaN(parseFloat(v.replace(/,/g,'')))) {
+          desc = v; break;
+        }
+      }
+      if (!desc) continue;
+      // Chercher montant (dernière colonne numérique)
+      let amount = 0;
+      for (let c = row.length - 1; c >= 1; c--) {
+        const v = row[c];
+        const num = typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g,'').replace(/[^\d\-\.]/g,''));
+        if (!isNaN(num) && num !== 0) { amount = num; break; }
+      }
+      if (!amount) continue;
+      const category = localCategorize(desc, amount);
+      txs.push({ date: txDate.toISOString().split('T')[0], label: desc.substring(0, 120), amount, category });
+    }
+    if (!txs.length) { showImportError('לא זוהו עסקאות בקובץ.'); input.value = ''; return; }
+    extractedTxs = txs;
+    showReviewModal(file.name, 'CSV');
+  } catch(err) {
+    showImportError('שגיאה בקריאת Excel: ' + err.message);
+  }
+  input.value = '';
 }
 
 async function handleCSVImport(input) {
@@ -801,11 +885,11 @@ async function confirmImport(source, fileName) {
     if (error) { console.error('Insert error:', error); alert('שגיאת בסיס נתונים: ' + error.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } return; }
     const txIds = (inserted || []).map(r => r.id);
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-    const _bankInfoForHistory = detectBankFromFile(fileName, window._pdfHeader);
+    const _bankInfoForHistory = detectBankFromFile(fileName);
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds, bank: _bankInfoForHistory.bank });
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
     if (finalToInsert.length > 0 && window._pendingBalance !== undefined && currentUser) {
-      const bankInfo = detectBankFromFile(fileName, window._pdfHeader);
+      const bankInfo = detectBankFromFile(fileName);
       if (bankInfo.bank) {
         // Banque identifiée → update ou création unique
         const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
@@ -823,23 +907,27 @@ async function confirmImport(source, fileName) {
         const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
         localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: totalBalance, date: new Date().toISOString() }));
       }
-      // Banque inconnue depuis nom fichier → demander à l'user
+      // Banque inconnue → modal de sélection
       if (!bankInfo.bank && window._pendingBalance !== undefined) {
-        const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
-        const accName = prompt('הזן שם הבנק (לדוגמא: לאומי, הפועלים, דיסקונט...):', '');
-        if (accName && accName.trim()) {
-          const slug = 'manual_' + accName.trim().toLowerCase().replace(/\s+/g,'_');
-          const existingIdx = accounts.findIndex(a => a.bank === slug);
+        const pendingBal = window._pendingBalance;
+        window._pendingBalance = undefined;
+        askBankName(function(chosen) {
+          if (!chosen) return;
+          const bankSlug = chosen.bank === 'other' ? 'other_'+Date.now() : chosen.bank;
+          const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+          const existingIdx = accounts.findIndex(a => a.bank === bankSlug);
           if (existingIdx >= 0) {
-            accounts[existingIdx].balance = window._pendingBalance;
+            accounts[existingIdx].balance = pendingBal;
             accounts[existingIdx].date = new Date().toISOString();
           } else {
-            accounts.push({ id: 'acc_'+Date.now(), name: accName.trim(), bank: slug, emoji: '🏦', balance: window._pendingBalance, date: new Date().toISOString() });
+            accounts.push({ id:'acc_'+Date.now(), name:chosen.name, bank:bankSlug, emoji:chosen.emoji, balance:pendingBal, date:new Date().toISOString() });
           }
           localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
           const total = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
-          localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
-        }
+          localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount:total, date:new Date().toISOString() }));
+          loadDashboard();
+        });
+        return; // loadDashboard sera appelé dans le callback
       }
       window._pendingBalance = undefined;
     }
@@ -858,24 +946,51 @@ async function confirmImport(source, fileName) {
   } catch (err) { console.error('Confirm import error:', err); alert('שגיאה לא צפויה: ' + err.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } }
 }
 
-function detectBankFromFile(fileName, pdfHeader) {
-  // pdfHeader = les 500 premiers caractères du texte extrait (entête banque uniquement)
+function detectBankFromFile(fileName) {
   const f = (fileName||'').toLowerCase();
-  const h = (pdfHeader||'').substring(0, 500).toLowerCase();
-  const src = f + ' ' + h;
-  // Patterns stricts - présents dans l'entête, pas dans les transactions
-  if (/hapoalim|בנק הפועלים|פועלים בעעם/.test(src))   return { bank:'hapoalim',  name:'הפועלים',      emoji:'🟦' };
-  if (/leumi|בנק לאומי/.test(src))              return { bank:'leumi',     name:'לאומי',         emoji:'🟥' };
-  if (/discount|דיסקונט/.test(src))           return { bank:'discount',  name:'דיסקונט',       emoji:'🟩' };
-  if (/mizrahi|מזרחי|tefahot|טפחות/.test(src)) return { bank:'mizrahi',   name:'מזרחי טפחות',  emoji:'🟧' };
-  if (/onezero|one.?zero/.test(src))          return { bank:'onezero',  name:'One Zero',      emoji:'⬛' };
-  if (/beinleumi|בינלאומי/.test(src))         return { bank:'beinleumi',name:'הבינלאומי',     emoji:'🟪' };
-  if (/otzar|אוצר החייל/.test(src))       return { bank:'otzar',    name:'אוצר החייל',    emoji:'🟨' };
-  if (/mercantile|מרכנטיל/.test(src))         return { bank:'mercantile',name:'מרכנטיל',       emoji:'🔷' };
-  if (/isracard|ישראכרט/.test(src))           return { bank:'isracard',  name:'ישראכרט',        emoji:'💳' };
-  if (/cal|כאל/.test(src))                  return { bank:'cal',       name:'כאל',           emoji:'💳' };
-  if (/max/.test(src))                      return { bank:'max',       name:'Max',           emoji:'💳' };
+  if (/hapoalim|פועלים/.test(f))             return { bank:'hapoalim',   name:'הפועלים',      emoji:'🟦' };
+  if (/leumi|לאומי/.test(f))                 return { bank:'leumi',      name:'לאומי',         emoji:'🟥' };
+  if (/discount|דיסקונט/.test(f))          return { bank:'discount',  name:'דיסקונט',       emoji:'🟩' };
+  if (/mizrahi|מזרחי|tefahot|טפחות/.test(f)) return { bank:'mizrahi',   name:'מזרחי טפחות', emoji:'🟧' };
+  if (/onezero|one.?zero/.test(f))           return { bank:'onezero',  name:'One Zero',      emoji:'⬛' };
+  if (/beinleumi|בינלאומי/.test(f))          return { bank:'beinleumi',name:'הבינלאומי',     emoji:'🟪' };
+  if (/otzar|אוצר/.test(f))               return { bank:'otzar',    name:'אוצר החייל',    emoji:'🟨' };
+  if (/mercantile|מרכנטיל/.test(f))         return { bank:'mercantile',name:'מרכנטיל',      emoji:'🔷' };
+  if (/isracard|ישראכרט/.test(f))          return { bank:'isracard',  name:'ישראכרט',       emoji:'💳' };
+  if (/cal|כאל/.test(f))                   return { bank:'cal',       name:'כאל',           emoji:'💳' };
+  if (/max/.test(f))                       return { bank:'max',       name:'Max',           emoji:'💳' };
   return { bank: null, name: null, emoji: '🏦' };
+}
+
+// Demande la banque à l'user via modal (pas de prompt natif)
+function askBankName(callback) {
+  const banks = [
+    {bank:'hapoalim', name:'הפועלים', emoji:'🟦'},
+    {bank:'leumi',    name:'לאומי',    emoji:'🟥'},
+    {bank:'discount', name:'דיסקונט',  emoji:'🟩'},
+    {bank:'mizrahi',  name:'מזרחי טפחות', emoji:'🟧'},
+    {bank:'cal',      name:'כאל',      emoji:'💳'},
+    {bank:'max',      name:'Max',      emoji:'💳'},
+    {bank:'isracard', name:'ישראכרט', emoji:'💳'},
+    {bank:'other',    name:'אחר',      emoji:'🏦'},
+  ];
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:var(--card);border-radius:18px;padding:22px;width:100%;max-width:400px;border:1px solid var(--border)">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center;font-family:'Rubik',sans-serif">🏦 איזה בנק?</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+        ${banks.map(b => `
+          <button onclick="window._bankChoice=${JSON.stringify(b).replace(/"/g,"'")};this.closest('div[style]').remove();window._bankCb && window._bankCb(${JSON.stringify(b).replace(/"/g,"'")})" 
+            style="padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--divider);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;display:flex;align-items:center;gap:8px">
+            <span>${b.emoji}</span><span>${b.name}</span>
+          </button>`).join('')}
+      </div>
+      <button onclick="this.closest('div[style]').remove();window._bankCb && window._bankCb(null)" 
+        style="width:100%;margin-top:12px;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  window._bankCb = callback;
 }
 function showImportProgress(msg) {
   document.getElementById('import-status').innerHTML = `
