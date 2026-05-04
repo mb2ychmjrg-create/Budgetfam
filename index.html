@@ -432,8 +432,13 @@ async function callEdgeVision(payload) {
     }
     const result = await r.json();
     if (result.balance !== undefined && result.balance !== null && currentUser) {
-      const balanceVal = parseFloat(result.balance);
-      if (!isNaN(balanceVal)) window._pendingBalance = balanceVal;
+      let balanceVal = parseFloat(result.balance);
+      if (!isNaN(balanceVal)) {
+        // Si le label indique un solde débiteur (חובה) et que la valeur est positive → inverser
+        const lbl = (result.balance_label_found || '').toLowerCase();
+        if (/חובה|debit|overdrawn/.test(lbl) && balanceVal > 0) balanceVal = -balanceVal;
+        window._pendingBalance = balanceVal;
+      }
     }
     if (result.transactions && Array.isArray(result.transactions)) {
       result.transactions = result.transactions.map(t => {
@@ -517,7 +522,7 @@ async function handlePDFImport(input) {
       const content = await page.getTextContent();
       extractedText += content.items.map(item => item.str).join(' ') + '\n\n';
     }
-    if (extractedText.trim().length >= 50) textOk = true;
+    if (extractedText.trim().length >= 50) { textOk = true; window._lastPDFText = extractedText; }
   } catch (err) { extractedText = ''; }
   if (textOk) {
     try {
@@ -796,7 +801,8 @@ async function confirmImport(source, fileName) {
     if (error) { console.error('Insert error:', error); alert('שגיאת בסיס נתונים: ' + error.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } return; }
     const txIds = (inserted || []).map(r => r.id);
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-    history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
+    const _bankInfoForHistory = detectBankFromFile(fileName);
+    history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds, bank: _bankInfoForHistory.bank });
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
     if (finalToInsert.length > 0 && window._pendingBalance !== undefined && currentUser) {
       const bankInfo = detectBankFromFile(fileName);
@@ -844,23 +850,24 @@ async function confirmImport(source, fileName) {
   } catch (err) { console.error('Confirm import error:', err); alert('שגיאה לא צפויה: ' + err.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } }
 }
 
-function detectBankFromFile(fileName) {
+function detectBankFromFile(fileName, textContent) {
+  // Chercher dans le nom du fichier ET dans le contenu extrait (PDF text)
   const f = (fileName||'').toLowerCase();
-  if (/hapoalim|פועלים/.test(f))           return { bank:'hapoalim', name:'הפועלים',      emoji:'🟦' };
-  if (/leumi|לאומי/.test(f))               return { bank:'leumi',    name:'לאומי',         emoji:'🟥' };
-  if (/discount|דיסקונט/.test(f))          return { bank:'discount', name:'דיסקונט',       emoji:'🟩' };
-  if (/mizrahi|מזרחי|tefahot|טפחות/.test(f)) return { bank:'mizrahi', name:'מזרחי טפחות', emoji:'🟧' };
-  if (/onezero|one.?zero/.test(f))         return { bank:'onezero',  name:'One Zero',       emoji:'⬛' };
-  if (/beinleumi|בינלאומי/.test(f))        return { bank:'beinleumi',name:'הבינלאומי',      emoji:'🟪' };
-  if (/otzar|אוצר/.test(f))               return { bank:'otzar',    name:'אוצר החייל',     emoji:'🟨' };
-  if (/mercantile|מרכנתיל/.test(f))        return { bank:'mercantile',name:'מרכנתיל',       emoji:'🔷' };
-  if (/cal|כאל/.test(f))                   return { bank:'cal',      name:'כאל',            emoji:'💳' };
-  if (/isracard|ישראכרט/.test(f))          return { bank:'isracard', name:'ישראכרט',        emoji:'💳' };
-  if (/\bmax\b/.test(f))                   return { bank:'max',      name:'Max',            emoji:'💳' };
-  // Banque inconnue → null, ne crée PAS de compte automatiquement
+  const t = (textContent || window._lastPDFText || '').toLowerCase();
+  const src = f + ' ' + t.substring(0, 2000); // premiers 2000 chars suffisent
+  if (/hapoalim|פועלים|בנק הפועלים/.test(src)) return { bank:'hapoalim', name:'הפועלים', emoji:'🟦' };
+  if (/leumi|לאומי|בנק לאומי/.test(src))               return { bank:'leumi',    name:'לאומי',  emoji:'🟥' };
+  if (/discount|דיסקונט/.test(src))          return { bank:'discount', name:'דיסקונט', emoji:'🟩' };
+  if (/mizrahi|מזרחי|tefahot|טפחות/.test(src)) return { bank:'mizrahi', name:'מזרחי טפחות', emoji:'🟧' };
+  if (/onezero|one.?zero/.test(src))         return { bank:'onezero',  name:'One Zero', emoji:'⬛' };
+  if (/beinleumi|בינלאומי/.test(src))        return { bank:'beinleumi', name:'הבינלאומי', emoji:'🟪' };
+  if (/otzar|אוצר החייל/.test(src))   return { bank:'otzar',    name:'אוצר החייל', emoji:'🟨' };
+  if (/mercantile|מרכנטיל/.test(src))        return { bank:'mercantile', name:'מרכנטיל', emoji:'🔷' };
+  if (/max/.test(src))                   return { bank:'max',      name:'Max', emoji:'💳' };
+  if (/isracard|ישראכרט/.test(src))          return { bank:'isracard', name:'ישראכרט', emoji:'💳' };
+  if (/cal|כאל/.test(src))                   return { bank:'cal', name:'כאל', emoji:'💳' };
   return { bank: null, name: null, emoji: '🏦' };
 }
-
 function showImportProgress(msg) {
   document.getElementById('import-status').innerHTML = `
     <div class="scan-box">
@@ -939,7 +946,24 @@ async function deleteImport(importId) {
   const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
   const imp = history.find(h => h.id === importId);
   if (!imp) return;
-  if (imp.txIds && imp.txIds.length) { await sb.from('transactions').delete().in('id', imp.txIds).eq('user_id', currentUser.id); }
+  if (imp.txIds && imp.txIds.length) {
+    await sb.from('transactions').delete().in('id', imp.txIds).eq('user_id', currentUser.id);
+  }
+  // Supprimer le compte associé si banque connue
+  if (imp.bank) {
+    const remaining = history.filter(h => h.id !== importId && h.bank === imp.bank);
+    if (remaining.length === 0) {
+      const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+      const filtered = accounts.filter(a => a.bank !== imp.bank);
+      localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(filtered));
+      if (filtered.length > 0) {
+        const total = filtered.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
+        localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
+      } else {
+        localStorage.removeItem('budgetfam_balance_'+currentUser.id);
+      }
+    }
+  }
   const newHistory = history.filter(h => h.id !== importId);
   localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(newHistory));
   await loadDashboard(); await loadTransactions(); loadImportHistory();
