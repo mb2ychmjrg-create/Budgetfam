@@ -522,7 +522,7 @@ async function handlePDFImport(input) {
       const content = await page.getTextContent();
       extractedText += content.items.map(item => item.str).join(' ') + '\n\n';
     }
-    if (extractedText.trim().length >= 50) { textOk = true; window._lastPDFText = extractedText; }
+    if (extractedText.trim().length >= 50) { textOk = true; window._pdfHeader = extractedText.substring(0, 500); }
   } catch (err) { extractedText = ''; }
   if (textOk) {
     try {
@@ -801,29 +801,20 @@ async function confirmImport(source, fileName) {
     if (error) { console.error('Insert error:', error); alert('שגיאת בסיס נתונים: ' + error.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } return; }
     const txIds = (inserted || []).map(r => r.id);
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+currentUser.id)||'[]');
-    const _bankInfoForHistory = detectBankFromFile(fileName);
+    const _bankInfoForHistory = detectBankFromFile(fileName, window._pdfHeader);
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds, bank: _bankInfoForHistory.bank });
     localStorage.setItem('budgetfam_imports_'+currentUser.id, JSON.stringify(history.slice(0,20)));
     if (finalToInsert.length > 0 && window._pendingBalance !== undefined && currentUser) {
-      const bankInfo = detectBankFromFile(fileName);
+      const bankInfo = detectBankFromFile(fileName, window._pdfHeader);
       if (bankInfo.bank) {
         // Banque identifiée → update ou création unique
         const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
         const existingIdx = accounts.findIndex(a => a.bank === bankInfo.bank);
         const newBalance = window._pendingBalance;
         if (existingIdx >= 0) {
-          // Compte existant → vérifier écart avant d'écraser
-          const oldBalance = parseFloat(accounts[existingIdx].balance) || 0;
-          const ecart = oldBalance !== 0 ? Math.abs((newBalance - oldBalance) / oldBalance) : 0;
-          if (ecart > 0.20 && oldBalance !== 0) {
-            const ok = confirm(
-              `⚠️ יתרה ${bankInfo.name}:\nישנה: ${oldBalance.toLocaleString('he-IL')} ₪\nחדשה: ${newBalance.toLocaleString('he-IL')} ₪\n\nהפרש של ${Math.round(ecart*100)}% — לעדכן?`
-            );
-            if (ok) { accounts[existingIdx].balance = newBalance; accounts[existingIdx].date = new Date().toISOString(); }
-          } else {
-            accounts[existingIdx].balance = newBalance;
-            accounts[existingIdx].date = new Date().toISOString();
-          }
+          // Compte existant → mise à jour directe du solde
+          accounts[existingIdx].balance = newBalance;
+          accounts[existingIdx].date = new Date().toISOString();
         } else {
           // Nouveau compte connu → créer une seule fois
           accounts.push({ id: 'acc_' + Date.now(), name: bankInfo.name, bank: bankInfo.bank, emoji: bankInfo.emoji, balance: newBalance, date: new Date().toISOString() });
@@ -832,7 +823,24 @@ async function confirmImport(source, fileName) {
         const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
         localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: totalBalance, date: new Date().toISOString() }));
       }
-      // Banque inconnue (bank=null) → on ignore silencieusement, pas de compte parasite
+      // Banque inconnue depuis nom fichier → demander à l'user
+      if (!bankInfo.bank && window._pendingBalance !== undefined) {
+        const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+        const accName = prompt('הזן שם הבנק (לדוגמא: לאומי, הפועלים, דיסקונט...):', '');
+        if (accName && accName.trim()) {
+          const slug = 'manual_' + accName.trim().toLowerCase().replace(/\s+/g,'_');
+          const existingIdx = accounts.findIndex(a => a.bank === slug);
+          if (existingIdx >= 0) {
+            accounts[existingIdx].balance = window._pendingBalance;
+            accounts[existingIdx].date = new Date().toISOString();
+          } else {
+            accounts.push({ id: 'acc_'+Date.now(), name: accName.trim(), bank: slug, emoji: '🏦', balance: window._pendingBalance, date: new Date().toISOString() });
+          }
+          localStorage.setItem('budgetfam_accounts_'+currentUser.id, JSON.stringify(accounts));
+          const total = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
+          localStorage.setItem('budgetfam_balance_'+currentUser.id, JSON.stringify({ amount: total, date: new Date().toISOString() }));
+        }
+      }
       window._pendingBalance = undefined;
     }
     document.getElementById('review-modal').style.display = 'none';
@@ -850,22 +858,23 @@ async function confirmImport(source, fileName) {
   } catch (err) { console.error('Confirm import error:', err); alert('שגיאה לא צפויה: ' + err.message); if (btnEl) { btnEl.textContent = '✅ ייבא'; btnEl.style.opacity = '1'; btnEl.disabled = false; } }
 }
 
-function detectBankFromFile(fileName, textContent) {
-  // Chercher dans le nom du fichier ET dans le contenu extrait (PDF text)
+function detectBankFromFile(fileName, pdfHeader) {
+  // pdfHeader = les 500 premiers caractères du texte extrait (entête banque uniquement)
   const f = (fileName||'').toLowerCase();
-  const t = (textContent || window._lastPDFText || '').toLowerCase();
-  const src = f + ' ' + t.substring(0, 2000); // premiers 2000 chars suffisent
-  if (/hapoalim|פועלים|בנק הפועלים/.test(src)) return { bank:'hapoalim', name:'הפועלים', emoji:'🟦' };
-  if (/leumi|לאומי|בנק לאומי/.test(src))               return { bank:'leumi',    name:'לאומי',  emoji:'🟥' };
-  if (/discount|דיסקונט/.test(src))          return { bank:'discount', name:'דיסקונט', emoji:'🟩' };
-  if (/mizrahi|מזרחי|tefahot|טפחות/.test(src)) return { bank:'mizrahi', name:'מזרחי טפחות', emoji:'🟧' };
-  if (/onezero|one.?zero/.test(src))         return { bank:'onezero',  name:'One Zero', emoji:'⬛' };
-  if (/beinleumi|בינלאומי/.test(src))        return { bank:'beinleumi', name:'הבינלאומי', emoji:'🟪' };
-  if (/otzar|אוצר החייל/.test(src))   return { bank:'otzar',    name:'אוצר החייל', emoji:'🟨' };
-  if (/mercantile|מרכנטיל/.test(src))        return { bank:'mercantile', name:'מרכנטיל', emoji:'🔷' };
-  if (/max/.test(src))                   return { bank:'max',      name:'Max', emoji:'💳' };
-  if (/isracard|ישראכרט/.test(src))          return { bank:'isracard', name:'ישראכרט', emoji:'💳' };
-  if (/cal|כאל/.test(src))                   return { bank:'cal', name:'כאל', emoji:'💳' };
+  const h = (pdfHeader||'').substring(0, 500).toLowerCase();
+  const src = f + ' ' + h;
+  // Patterns stricts - présents dans l'entête, pas dans les transactions
+  if (/hapoalim|בנק הפועלים|פועלים בעעם/.test(src))   return { bank:'hapoalim',  name:'הפועלים',      emoji:'🟦' };
+  if (/leumi|בנק לאומי/.test(src))              return { bank:'leumi',     name:'לאומי',         emoji:'🟥' };
+  if (/discount|דיסקונט/.test(src))           return { bank:'discount',  name:'דיסקונט',       emoji:'🟩' };
+  if (/mizrahi|מזרחי|tefahot|טפחות/.test(src)) return { bank:'mizrahi',   name:'מזרחי טפחות',  emoji:'🟧' };
+  if (/onezero|one.?zero/.test(src))          return { bank:'onezero',  name:'One Zero',      emoji:'⬛' };
+  if (/beinleumi|בינלאומי/.test(src))         return { bank:'beinleumi',name:'הבינלאומי',     emoji:'🟪' };
+  if (/otzar|אוצר החייל/.test(src))       return { bank:'otzar',    name:'אוצר החייל',    emoji:'🟨' };
+  if (/mercantile|מרכנטיל/.test(src))         return { bank:'mercantile',name:'מרכנטיל',       emoji:'🔷' };
+  if (/isracard|ישראכרט/.test(src))           return { bank:'isracard',  name:'ישראכרט',        emoji:'💳' };
+  if (/cal|כאל/.test(src))                  return { bank:'cal',       name:'כאל',           emoji:'💳' };
+  if (/max/.test(src))                      return { bank:'max',       name:'Max',           emoji:'💳' };
   return { bank: null, name: null, emoji: '🏦' };
 }
 function showImportProgress(msg) {
