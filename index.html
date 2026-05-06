@@ -395,28 +395,26 @@ const CAT_HE = {
 function catHe(cat){return CAT_HE[cat]||cat;}
 
 const RULES = [
-  // 🛒 Alimentation
-  [/rami.?levy|shufersal|שפרסל|רמי.?לוי|victory|ויקטורי|yochananof|יוחננוף|mega|מגה|osher.?ad|אושר.?עד|tiv.?taam|טיב.?טעם|freshmarket|makolet|מכולת|shuk|שוק|market|am.?pm|אם.?פם|co.?op|קואופ|aldi|lidl|carrefour|כשר|kosher|butcher|קצב|bakery|מאפייה|פלאפל|hummus|חומוס/i, 'Alimentation'],
-  // 💊 Santé
-  [/super.?pharm|סופר.?פארם|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|בית.?מרקחת|doctor|רופא|dentist|שיניים|hospital|בית.?חולים|terem|טרם|clinic|מרפאה|kupat|קופת|optician|אופטיקה|נשיונל|national.?pharma|halomed|רוקח/i, 'Santé'],
-  // 🚗 Transport
-  [/gett|גט|bolt|uber|אובר|yango|אגד|eged|רכבת|fuel|דלק|sonol|סונול|paz|פז|delek|petrol|parking|חניה|taxi|מונית|דור.?אלון|ten|טן|יפו.?מונית|rav.?kav|רב.?קו|autobus|pazi|פזי|yellow|צהוב/i, 'Transport'],
-  // 🎭 Loisirs
-  [/netflix|נטפליקס|spotify|ספוטיפיי|apple.?itunes|google.?play|steam|wolt|וולט|ten.?bis|תן.?ביס|restaurant|מסעדה|cafe|café|coffee|קפה|cinema|סינמה|yes.?planet|gym|fitness|חדר.?כושר|bowling|escape|אסקייפ|פארק|park|zoo|גן.?חיות|theater|תיאטרון|museum|מוזיאון|bar |ברים|pub|פאב|bowling/i, 'Loisirs'],
-  // 🏠 Logement
-  [/arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|hot |הוט|mortgage|משכנתא|rent|שכירות|electric|חשמל|water|מים|amisragas|גז|חברת.?חשמל|ikea|איקאה|ace|איי.?סי.?אי|kfar|כפר.?שלמה|שיפוץ|renovati|קבלן|contractor/i, 'Logement'],
-  // 📱 Abonnements
-  [/hot.?mobile|partner|פרטנר|cellcom|סלקום|019|012|amazon|אמזון|microsoft|adobe|icloud|google.?one|dropbox|מנוי|חבילה|פלאפון|012.?mobile|rami|yes|יס |apple.?one|disney|hbo|paramount|youtube.?premium|waze/i, 'Abonnements'],
-  // 🎓 Education
-  [/university|אוניברסיטה|college|מכללה|ulpan|אולפן|school|בית.?ספר|kindergarten|גן.?ילדים|tutor|שיעורים|לימודים|חוג|חוגים|after.?school|צהרון|tzaharon|seminar|סמינר|masa|מסע/i, 'Éducation'],
-  // 💰 Epargne / Assurances
-  [/pension|פנסיה|savings|חיסכון|investment|השקעה|gemel|גמל|השתלמות|kranot|קרנות|migdal|מגדל|harel|הראל|menora|מנורה|clal|כלל.?ביטוח|feniks|פניקס|ayalon|איילון|altshuler|אלטשולר|meitav|מיטב|psagot|פסגות|tachlit|תכלית/i, 'Épargne'],
-  // 🏦 Frais bancaires (Logement car charges fixes)
-  [/bank.?fee|עמלת|דמי.?ניהול|dmei.?nihul|ריבית|interest|overdraft|מינוס|הלוואה|loan|credit.?card|כרטיס.?אשראי|ע.מפעולות|עמלה|commission/i, 'Logement'],
-  // 💵 Salaire / Revenus
-  [/salary|משכורת|payroll|שכר.?חודשי|zikuy|זיכוי|שכר.?עבודה|העברה.?ממעסיק|employer|mitsoda|מצודת|merkaz.?kehilati|מרכז.?קהילתי|maavar|העב/i, 'Salaire'],
-  // 🤝 Allocations (Bituach Leumi + aide sociale)
-  [/bituach.?leumi|ביטוח.?לאומי|kitzba|קצב|leumi.?social|social.?security|child.?benefit|maternity|alimony|unemployment|disability|nechut/i, 'Allocations'],
+  [/rami.?levy|shufersal|victory|yochananof|mega|osher.?ad|tiv.?taam|freshmarket|am.?pm/i, 'Alimentation'],
+  [/שפרסל|רמי|לוי|ויקטורי|יוחננוף|אושר|טיב|טעם|מכולת|קצב|מאפייה/i, 'Alimentation'],
+  [/super.?pharm|clalit|maccabi|leumit|pharmacy|terem|clinic/i, 'Santé'],
+  [/סופר|פארם|כללית|מכבי|לאומית|בית|מרקחת|רופא|שיניים|טרם|מרפאה|קופת/i, 'Santé'],
+  [/gett|bolt|uber|yango|eged|sonol|paz|delek|petrol|parking|taxi/i, 'Transport'],
+  [/אגד|רכבת|דלק|סונול|פז|חנייה|מונית|רב|קו/i, 'Transport'],
+  [/netflix|spotify|apple.?itunes|google.?play|steam|wolt|ten.?bis|restaurant|coffee|cinema|gym|fitness/i, 'Loisirs'],
+  [/וולט|תן|ביס|מסעדה|קפה|סינמא|חדר|כושר|פאב|תיאטרון|מוזיאון/i, 'Loisirs'],
+  [/arnona|bezeq|mortgage|electric|amisragas|ikea/i, 'Logement'],
+  [/ארנונה|ועד|בית|בזק|משכנתא|שכירות|חשמל|מים|גז|שיפוץ/i, 'Logement'],
+  [/hot.?mobile|partner|cellcom|019|012|amazon|microsoft|adobe|icloud|google.?one|dropbox/i, 'Abonnements'],
+  [/פרטנר|סלקום|פלאפון|מנוי|חבילה|ספוטיפיי|נטפליקס/i, 'Abonnements'],
+  [/university|college|ulpan|school|kindergarten|tutor/i, 'Éducation'],
+  [/אוניברסיטה|מכללה|אולפן|בית|ספר|גן|ילדים|שיעורים|לימודים|חוג|צהרון/i, 'Éducation'],
+  [/pension|gemel|migdal|harel|menora|meitav|psagot|altshuler|ayalon/i, 'Épargne'],
+  [/פנסיה|גמל|השתלמות|מגדל|הראל|מנורה|אלטשולר|מיטב|פסגות|איילון|הפקדה|פקדון/i, 'Épargne'],
+  [/bituach.?leumi/i, 'Allocations'],
+  [/ביטוח|לאומי|קצבת|ילדים|קצבה|דמי|לידה|אבטלה/i, 'Allocations'],
+  [/salary|payroll|employer/i, 'Salaire'],
+  [/משכורת|שכר|עבודה|זיכוי|מלאומי|מצודת|אגסי|מרכז|קהילתי|העב/i, 'Salaire'],
 ];
 
 function localCategorize(label, amount) {
