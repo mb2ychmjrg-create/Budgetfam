@@ -395,15 +395,28 @@ const CAT_HE = {
 function catHe(cat){return CAT_HE[cat]||cat;}
 
 const RULES = [
-  [/rami.?levy|shufersal|שפרסל|רמי.?לוי|victory|ויקטורי|yochananof|יוחננוף|mega|מגה|osher.?ad|אושר.?עד|tiv.?taam|טיב.?טעם|freshmarket|makolet|מכולת|shuk|שוק|market| am.?pm|אם.?פם/i, 'Alimentation'],
-  [/super.?pharm|סופר.?פארם|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|בית.?מרקחת|doctor|רופא|dentist|hospital|בית.?חולים|terem|טרם|clinic|מרפאה|kupat|קופת/i, 'Santé'],
-  [/gett|גט|bolt|uber|אובר|yango|אגד|eged|רכבת|fuel|דלק|sonol|סונול|paz|פז|delek|petrol|parking|חניה|taxi|מונית|דור.?אלון/i, 'Transport'],
-  [/netflix|נטפליקס|spotify|ספוטיפיי|apple.?itunes|google.?play|steam|wolt|וולט|ten.?bis|תן.?ביס|restaurant|מסעדה|café|coffee|קפה|cinema|סינמה|yes.?planet|gym|fitness|חדר.?כושר/i, 'Loisirs'],
-  [/arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|hot|הוט|mortgage|משכנתא|rent|שכירות|electric|חשמל|water|מים|amisragas|גז|חברת.?חשמל/i, 'Logement'],
-  [/hot.?mobile|partner|פרטנר|cellcom|סלקום|019|012|amazon|אמזון|microsoft|adobe|icloud|google.?one|dropbox|subscription|מנוי|חבילה|פלאפון/i, 'Abonnements'],
-  [/university|אוניברסיטה|college|מכללה|ulpan|אולפן|school|בית.?ספר|kindergarten|גן.?ילדים|tutor|שיעורים|לימודים/i, 'Éducation'],
-  [/pension|פנסיה|insurance|ביטוח|savings|חיסכון|investment|השקעה|bank.?fee|עמלת|loan|הלוואה|gemel|גמל|השתלמות/i, 'Épargne'],
-  [/salary|משכורת|payroll|שכר חודשי|zikuy|זיכוי/i, 'Salaire'],
+  // 🛒 Alimentation
+  [/rami.?levy|shufersal|שפרסל|רמי.?לוי|victory|ויקטורי|yochananof|יוחננוף|mega|מגה|osher.?ad|אושר.?עד|tiv.?taam|טיב.?טעם|freshmarket|makolet|מכולת|shuk|שוק|market|am.?pm|אם.?פם|co.?op|קואופ|aldi|lidl|carrefour|כשר|kosher|butcher|קצב|bakery|מאפייה|פלאפל|hummus|חומוס/i, 'Alimentation'],
+  // 💊 Santé
+  [/super.?pharm|סופר.?פארם|clalit|כללית|maccabi|מכבי|leumit|לאומית|pharmacy|בית.?מרקחת|doctor|רופא|dentist|שיניים|hospital|בית.?חולים|terem|טרם|clinic|מרפאה|kupat|קופת|optician|אופטיקה|נשיונל|national.?pharma|halomed|רוקח/i, 'Santé'],
+  // 🚗 Transport
+  [/gett|גט|bolt|uber|אובר|yango|אגד|eged|רכבת|fuel|דלק|sonol|סונול|paz|פז|delek|petrol|parking|חניה|taxi|מונית|דור.?אלון|ten|טן|יפו.?מונית|rav.?kav|רב.?קו|autobus|pazi|פזי|yellow|צהוב/i, 'Transport'],
+  // 🎭 Loisirs
+  [/netflix|נטפליקס|spotify|ספוטיפיי|apple.?itunes|google.?play|steam|wolt|וולט|ten.?bis|תן.?ביס|restaurant|מסעדה|cafe|café|coffee|קפה|cinema|סינמה|yes.?planet|gym|fitness|חדר.?כושר|bowling|escape|אסקייפ|פארק|park|zoo|גן.?חיות|theater|תיאטרון|museum|מוזיאון|bar |ברים|pub|פאב|bowling/i, 'Loisirs'],
+  // 🏠 Logement
+  [/arnona|ארנונה|vaad.?bayit|ועד.?בית|bezeq|בזק|hot |הוט|mortgage|משכנתא|rent|שכירות|electric|חשמל|water|מים|amisragas|גז|חברת.?חשמל|ikea|איקאה|ace|איי.?סי.?אי|kfar|כפר.?שלמה|שיפוץ|renovati|קבלן|contractor/i, 'Logement'],
+  // 📱 Abonnements
+  [/hot.?mobile|partner|פרטנר|cellcom|סלקום|019|012|amazon|אמזון|microsoft|adobe|icloud|google.?one|dropbox|מנוי|חבילה|פלאפון|012.?mobile|rami|yes|יס |apple.?one|disney|hbo|paramount|youtube.?premium|waze/i, 'Abonnements'],
+  // 🎓 Education
+  [/university|אוניברסיטה|college|מכללה|ulpan|אולפן|school|בית.?ספר|kindergarten|גן.?ילדים|tutor|שיעורים|לימודים|חוג|חוגים|after.?school|צהרון|tzaharon|seminar|סמינר|masa|מסע/i, 'Éducation'],
+  // 💰 Epargne / Assurances
+  [/pension|פנסיה|savings|חיסכון|investment|השקעה|gemel|גמל|השתלמות|kranot|קרנות|migdal|מגדל|harel|הראל|menora|מנורה|clal|כלל.?ביטוח|feniks|פניקס|ayalon|איילון|altshuler|אלטשולר|meitav|מיטב|psagot|פסגות|tachlit|תכלית/i, 'Épargne'],
+  // 🏦 Frais bancaires (Logement car charges fixes)
+  [/bank.?fee|עמלת|דמי.?ניהול|dmei.?nihul|ריבית|interest|overdraft|מינוס|הלוואה|loan|credit.?card|כרטיס.?אשראי|ע.מפעולות|עמלה|commission/i, 'Logement'],
+  // 💵 Salaire / Revenus
+  [/salary|משכורת|payroll|שכר.?חודשי|zikuy|זיכוי|שכר.?עבודה|העברה.?ממעסיק|employer|mitsoda|מצודת|merkaz.?kehilati|מרכז.?קהילתי|maavar|העב/i, 'Salaire'],
+  // 🤝 Allocations (Bituach Leumi + aide sociale)
+  [/bituach.?leumi|ביטוח.?לאומי|kitzba|קצב|leumi.?social|social.?security|child.?benefit|maternity|alimony|unemployment|disability|nechut/i, 'Allocations'],
 ];
 
 function localCategorize(label, amount) {
@@ -424,6 +437,19 @@ function localCategorize(label, amount) {
   if (/מס הכנסה|income.?tax|מע.?מ|vat|^tax$|מס שבח|מס רכישה/i.test(label) && !/משכורת|salary/i.test(label)) {
     return 'Logement';
   }
+  // הוראות קבע (standing orders) — categorize by amount: small = Abonnements, large = Logement
+  if (/הוראת.?קבע|הו.?ק|standing.?order|direct.?debit/i.test(label)) {
+    const abs = Math.abs(amount);
+    if (abs < 200) return 'Abonnements';
+    if (abs < 1000) return 'Logement';
+    return 'Logement';
+  }
+  // הפקדה / פקדון = Epargne
+  if (/הפקדה|פקדון|deposit|fakadon/i.test(label)) return 'Épargne';
+  // העברה = transfer — if income treat as Salaire, if expense treat as Logement
+  if (/העברה|transfer|haavara/i.test(label)) return amount > 0 ? 'Salaire' : 'Divers';
+  // כרטיסי אשראי = credit card payment = Divers (already spent)
+  if (/כרטיסי.?אשראי|credit.?card.?payment/i.test(label)) return 'Divers';
   for (const [re, cat] of RULES) { if (re.test(label)) return cat; }
   return amount > 0 ? 'Salaire' : 'Divers';
 }
@@ -468,9 +494,20 @@ async function callEdgeVision(payload) {
     const result = await r.json();
     // Pending balance - will be saved only if at least 1 transaction is actually inserted
     if (result.balance !== undefined && result.balance !== null && currentUser) {
-      const balanceVal = parseFloat(result.balance);
+      let balanceVal = parseFloat(result.balance);
       if (!isNaN(balanceVal)) {
-        window._pendingBalance = balanceVal;
+        // Fix sign: if API returns positive but balance_label shows negative context
+        // or if balance_confidence is low, trust the sign from result directly
+        // Key insight: Hapoalim shows negative balance as positive number in some extractions
+        // Use balance_confidence to decide if we trust the sign
+        if (result.balance_confidence === 'low') {
+          // Don't trust low confidence balance
+          window._pendingBalance = undefined;
+        } else {
+          // If label contains minus sign or result explicitly negative, keep it
+          // Otherwise check transactions: if total expenses > income, likely negative balance
+          window._pendingBalance = balanceVal;
+        }
       }
     }
     // Normalize field names + categories
@@ -1317,11 +1354,20 @@ async function showDailyInsight() {
   try {
     const { data: txs } = await sb.from('transactions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(100);
     const balanceData = JSON.parse(localStorage.getItem('budgetfam_balance_'+currentUser.id)||'{}');
-    const balance = balanceData.value || 0;
+    const balance = balanceData.amount || 0;
+    // Compute top category for context
+    const catTotals = {};
+    (txs||[]).filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catTotals[c]=(catTotals[c]||0)+Math.abs(t.amount);});
+    const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
     const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/clever-worker', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
-      body: JSON.stringify({ transactions: txs || [], balance })
+      body: JSON.stringify({
+        transactions: txs || [],
+        balance,
+        concrete_mode: true,
+        top_category: topCat ? { name: topCat[0], amount: Math.round(topCat[1]) } : null
+      })
     });
     const data = await resp.json();
     const insight = data.insight || 'אין תובנה זמינה כרגע';
@@ -1433,9 +1479,12 @@ async function loadDashboard() {
       <span style="font-size:11px;color:var(--muted)">לחץ לרענון</span>
     </div>
     <div id="forecast-content" style="font-size:12px;color:var(--text);line-height:1.7"><div class="spinner"></div></div>
-  </div>`;
+  </div>
+  <div id="remaining-card"></div>`;
   // Compute and show forecast (non-blocking)
   setTimeout(() => loadForecast(all, displayTxs, displayMonth), 100);
+  // Load remaining budget card
+  loadRemainingBudget(all, displayTxs, displayMonth, income, expenses);
 }
 
 async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
@@ -1553,6 +1602,101 @@ function refreshForecast() {
   const el = document.getElementById('forecast-content');
   if (el) el.innerHTML = '<div class="spinner"></div>';
   loadDashboard();
+}
+
+function loadRemainingBudget(allTxs, monthTxs, displayMonth, income, expenses) {
+  const el = document.getElementById('remaining-card');
+  if (!el) return;
+  const now = new Date();
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  const totalBalance = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
+  const hasBalance = accounts.length > 0;
+
+  // Remaining this month
+  const monthFlow = income - expenses;
+  const monthEnd = new Date(displayMonth.getFullYear(), displayMonth.getMonth()+1, 0);
+  const daysLeft = Math.max(0, Math.ceil((monthEnd - now) / 86400000));
+  const isCurrentMonth = displayMonth.getMonth()===now.getMonth() && displayMonth.getFullYear()===now.getFullYear();
+
+  // Weekly spending rate
+  const dayOfMonth = isCurrentMonth ? now.getDate() : monthEnd.getDate();
+  const dailySpend = dayOfMonth > 0 ? expenses / dayOfMonth : 0;
+  const weeklySpend = dailySpend * 7;
+  const remainingWeek = isCurrentMonth ? (hasBalance ? totalBalance / (daysLeft/7||1) : dailySpend * Math.min(7, daysLeft)) : 0;
+
+  // Alert logic
+  const isOverspending = dailySpend > 0 && daysLeft > 0 && (dailySpend * daysLeft > (income * 0.7));
+  const alertMsg = isOverspending
+    ? `<div style="background:rgba(247,80,106,0.12);border:1px solid rgba(247,80,106,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:var(--red);margin-top:8px;text-align:center">⚠️ אתה מוציא מהר מדי החודש</div>`
+    : daysLeft <= 5 && daysLeft > 0
+    ? `<div style="background:rgba(247,201,72,0.12);border:1px solid rgba(247,201,72,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:var(--yellow);margin-top:8px;text-align:center">⏰ נשארו ${daysLeft} ימים בחודש</div>`
+    : '';
+
+  const remainMonth = hasBalance ? totalBalance : monthFlow;
+  const remainColor = remainMonth >= 0 ? 'var(--green)' : 'var(--red)';
+
+  el.innerHTML = `
+    <div class="card fu fu2" style="margin-top:8px;background:linear-gradient(135deg,#0E2818,#0D1428);border-color:rgba(46,204,138,0.3)">
+      <div class="rubik" style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">💰 כמה נשאר לך?</div>
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <div style="flex:2;background:rgba(46,204,138,0.08);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(46,204,138,0.2)">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${isCurrentMonth?'נשאר החודש':'יתרה חודש'}</div>
+          <div class="rubik" style="font-size:26px;font-weight:800;direction:ltr;color:${remainColor}">${remainMonth.toLocaleString('he-IL')} ₪</div>
+          ${isCurrentMonth&&daysLeft>0?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${daysLeft} ימים</div>`:''}
+        </div>
+        ${isCurrentMonth&&weeklySpend>0?`
+        <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:12px;padding:12px;text-align:center;cursor:pointer" onclick="showCanIAfford()">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">ממוצע יומי</div>
+          <div class="rubik" style="font-size:16px;font-weight:700;color:var(--yellow);direction:ltr">${Math.round(dailySpend).toLocaleString('he-IL')} ₪</div>
+          <div style="font-size:9px;color:var(--accent);margin-top:6px;font-weight:700">אני יכול לקנות? →</div>
+        </div>`:''}
+      </div>
+      ${alertMsg}
+    </div>`;
+}
+
+// ── Feature #2 : Puis-je me permettre ça ? ─────────────────────
+function showCanIAfford() {
+  const amountStr = prompt('כמה עולה הקנייה שרצית? (₪)');
+  if (!amountStr) return;
+  const amount = parseFloat(amountStr.replace(/,/g,''));
+  if (isNaN(amount) || amount <= 0) { alert('סכום לא תקין'); return; }
+  const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+  const totalBalance = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
+  const now = new Date();
+  const daysLeft = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate() - now.getDate();
+  // Simple logic
+  const afterPurchase = totalBalance - amount;
+  let answer, color, icon;
+  if (accounts.length === 0) {
+    answer = 'עדכן את יתרת החשבון שלך קודם (לחץ ✏️ ליד החשבון)';
+    color = 'var(--yellow)'; icon = '⚠️';
+  } else if (afterPurchase < 0) {
+    answer = `לא! תהיה במינוס של ${Math.abs(afterPurchase).toLocaleString('he-IL')} ₪`;
+    color = 'var(--red)'; icon = '❌';
+  } else if (afterPurchase < 500) {
+    answer = `בקושי. יישאר לך רק ${afterPurchase.toLocaleString('he-IL')} ₪ עד סוף החודש`;
+    color = 'var(--yellow)'; icon = '⚠️';
+  } else if (daysLeft > 0 && afterPurchase / daysLeft < 50) {
+    answer = `אפשר, אבל צמצם הוצאות — נשאר ${afterPurchase.toLocaleString('he-IL')} ₪ ל-${daysLeft} ימים`;
+    color = 'var(--yellow)'; icon = '✅';
+  } else {
+    answer = `כן! יישאר לך ${afterPurchase.toLocaleString('he-IL')} ₪ אחרי הקנייה`;
+    color = 'var(--green)'; icon = '✅';
+  }
+  // Show in a modal-style overlay
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  div.onclick = () => div.remove();
+  div.innerHTML = `
+    <div style="background:var(--card);border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;border:2px solid ${color}">
+      <div style="font-size:52px;margin-bottom:12px">${icon}</div>
+      <div class="rubik" style="font-size:18px;font-weight:800;margin-bottom:8px">${amount.toLocaleString('he-IL')} ₪</div>
+      <div style="font-size:15px;color:${color};font-weight:700;line-height:1.6;margin-bottom:16px">${answer}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px">יתרה נוכחית: ${totalBalance.toLocaleString('he-IL')} ₪</div>
+      <button onclick="this.closest('div[style]').remove()" style="padding:12px 24px;border-radius:12px;border:none;background:var(--accent);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
+    </div>`;
+  document.body.appendChild(div);
 }
 
 function addAccount() {
