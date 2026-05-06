@@ -1013,14 +1013,17 @@ async function deleteImport(importId) {
 }
 
 async function clearAllImports() {
-  if (!confirm('⚠️ זה ימחק את כל העסקאות שלך (כולל ישנות ויבואים) — בטוח?')) return;
+  if (!confirm('⚠️ זה ימחק את כל העסקאות, היבואים והחשבונות שלך — בטוח?')) return;
   if (!confirm('שים לב: זה לא ניתן לביטול. להמשיך?')) return;
-  // Nuclear delete: wipe ALL transactions for this user from DB (not just imports)
   const { error } = await sb.from('transactions').delete().eq('user_id', currentUser.id);
   if (error) { alert('שגיאה: ' + error.message); return; }
-  // Clear all local storage related to imports
+  // Clear ALL local storage for this user
   localStorage.removeItem('budgetfam_imports_'+currentUser.id);
-  alert('✅ הכל נמחק! העסקאות והיבואים נוקו.');
+  localStorage.removeItem('budgetfam_accounts_'+currentUser.id);
+  localStorage.removeItem('budgetfam_balance_'+currentUser.id);
+  // Clear any forecast cache
+  Object.keys(localStorage).filter(k => k.startsWith('forecast_comment_'+currentUser.id)).forEach(k => localStorage.removeItem(k));
+  alert('✅ הכל נמחק! עסקאות, יבואים וחשבונות נוקו.');
   await loadDashboard(); await loadTransactions(); loadImportHistory();
 }
 
