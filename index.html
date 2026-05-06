@@ -1107,7 +1107,7 @@ function updateInsightBadge() {
   const today = new Date().toISOString().split('T')[0];
   const usageKey = 'insight_usage_'+currentUser.id+'_'+today;
   const used = parseInt(localStorage.getItem(usageKey)||'0');
-  const remaining = Math.max(0, 2 - used);
+  const remaining = Math.max(0, 1 - used);
   if (remaining === 0) {
     badge.textContent = '✓';
     badge.style.background = 'rgba(100,116,139,0.8)';
@@ -1332,8 +1332,8 @@ async function showDailyInsight() {
   const today = new Date().toISOString().split('T')[0];
   const usageKey = 'insight_usage_'+currentUser.id+'_'+today;
   const todayUsage = parseInt(localStorage.getItem(usageKey)||'0');
-  if (todayUsage >= 2) {
-    document.getElementById('insight-content').innerHTML = `<div style="padding:20px;background:rgba(245,158,11,0.1);border-radius:14px;border:1px solid rgba(245,158,11,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff);text-align:center"><div style="font-size:36px;margin-bottom:10px">🌙</div><div style="font-weight:700;margin-bottom:6px">הגעת ל-2 התובנות היום</div><div style="font-size:12px;color:var(--muted)">חזור מחר לתובנות חדשות ✨</div></div>`;
+  if (todayUsage >= 1) {
+    document.getElementById('insight-content').innerHTML = `<div style="padding:20px;background:rgba(245,158,11,0.1);border-radius:14px;border:1px solid rgba(245,158,11,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff);text-align:center"><div style="font-size:36px;margin-bottom:10px">🌙</div><div style="font-weight:700;margin-bottom:6px">השתמשת בתובנה היומית שלך</div><div style="font-size:12px;color:var(--muted)">חזור מחר לתובנות חדשות ✨</div></div>`;
     document.getElementById('insight-modal').style.display = 'flex';
     return;
   }
@@ -1361,8 +1361,8 @@ async function showDailyInsight() {
     const data = await resp.json();
     const insight = data.insight || 'אין תובנה זמינה כרגע';
     localStorage.setItem(usageKey, String(todayUsage + 1));
-    const remaining = 2 - (todayUsage + 1);
-    const remainingText = remaining > 0 ? `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">נותרה ${remaining} תובנה היום</div>` : `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">זו הייתה התובנה האחרונה להיום 🌙</div>`;
+    const remaining = 1 - (todayUsage + 1);
+    const remainingText = remaining > 0 ? `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">נותרה ${remaining} תובנה היום</div>` : `<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">תובנה יומית - חזור מחר 🌙</div>`;
     document.getElementById('insight-content').innerHTML = `<div style="padding:18px;background:linear-gradient(135deg,rgba(0,229,255,0.1),rgba(0,102,255,0.1));border-radius:14px;border:1px solid rgba(0,102,255,0.3);font-size:14px;line-height:1.7;color:var(--ink,#fff)">${insight}</div>${remainingText}`;
     updateInsightBadge();
   } catch(e) {
@@ -1600,53 +1600,64 @@ function loadRemainingBudget(allTxs, monthTxs, displayMonth, income, expenses) {
   const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
   const totalBalance = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
   const hasBalance = accounts.length > 0;
-
-  // Remaining this month
-  const monthFlow = income - expenses;
-  const monthEnd = new Date(displayMonth.getFullYear(), displayMonth.getMonth()+1, 0);
-  const daysLeft = Math.max(0, Math.ceil((monthEnd - now) / 86400000));
   const isCurrentMonth = displayMonth.getMonth()===now.getMonth() && displayMonth.getFullYear()===now.getFullYear();
-
-  // Weekly spending rate
-  const dayOfMonth = isCurrentMonth ? now.getDate() : monthEnd.getDate();
+  const dayOfMonth = now.getDate();
   const dailySpend = dayOfMonth > 0 ? expenses / dayOfMonth : 0;
-  const weeklySpend = dailySpend * 7;
-  const remainingWeek = isCurrentMonth ? (hasBalance ? totalBalance / (daysLeft/7||1) : dailySpend * Math.min(7, daysLeft)) : 0;
 
-  // Alert logic
-  const isOverspending = dailySpend > 0 && daysLeft > 0 && (dailySpend * daysLeft > (income * 0.7));
-  const alertMsg = isOverspending
-    ? `<div style="background:rgba(247,80,106,0.12);border:1px solid rgba(247,80,106,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:var(--red);margin-top:8px;text-align:center">⚠️ אתה מוציא מהר מדי החודש</div>`
-    : daysLeft <= 5 && daysLeft > 0
-    ? `<div style="background:rgba(247,201,72,0.12);border:1px solid rgba(247,201,72,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:var(--yellow);margin-top:8px;text-align:center">⏰ נשארו ${daysLeft} ימים בחודש</div>`
-    : '';
+  if (!hasBalance || !isCurrentMonth || dailySpend <= 0) {
+    el.innerHTML = '';
+    return;
+  }
 
-  const remainMonth = hasBalance ? totalBalance : monthFlow;
-  const remainColor = remainMonth >= 0 ? 'var(--green)' : 'var(--red)';
+  // Overdraft prediction: days until balance = 0
+  const daysUntilZero = dailySpend > 0 ? Math.floor(totalBalance / dailySpend) : 999;
+  const overdraftDate = new Date(now);
+  overdraftDate.setDate(now.getDate() + daysUntilZero);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  const daysToMonthEnd = Math.ceil((monthEnd - now) / 86400000);
+
+  let icon, title, subtitle, cardColor, borderColor;
+
+  if (totalBalance < 0) {
+    // Already in overdraft
+    icon = '🚨';
+    title = 'אתה כבר במינוס!';
+    subtitle = `יתרה: ${totalBalance.toLocaleString('he-IL')} ₪`;
+    cardColor = 'linear-gradient(135deg,#3A1020,#1A0A10)';
+    borderColor = 'rgba(247,80,106,0.5)';
+  } else if (daysUntilZero <= daysToMonthEnd) {
+    // Will go into overdraft before end of month
+    const dateStr = overdraftDate.toLocaleDateString('he-IL', {day:'2-digit', month:'long'});
+    icon = '⚠️';
+    title = `תגיע למינוס בעוד ${daysUntilZero} ימים`;
+    subtitle = `בערך ב-${dateStr} · קצב: ${Math.round(dailySpend).toLocaleString('he-IL')} ₪/יום`;
+    cardColor = 'linear-gradient(135deg,#2A1A00,#1A0E00)';
+    borderColor = 'rgba(247,201,72,0.5)';
+  } else {
+    // Safe - show days of autonomy
+    const daysAutonomy = Math.min(daysUntilZero, 365);
+    icon = '✅';
+    title = `${daysAutonomy} ימי אוטונומיה`;
+    subtitle = `קצב: ${Math.round(dailySpend).toLocaleString('he-IL')} ₪/יום · יתרה: ${totalBalance.toLocaleString('he-IL')} ₪`;
+    cardColor = 'linear-gradient(135deg,#0E2818,#0D1428)';
+    borderColor = 'rgba(46,204,138,0.4)';
+  }
 
   el.innerHTML = `
-    <div class="card fu fu2" style="margin-top:8px;background:linear-gradient(135deg,#0E2818,#0D1428);border-color:rgba(46,204,138,0.3)">
-      <div class="rubik" style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">💰 כמה נשאר לך?</div>
-      <div style="display:flex;gap:8px;align-items:stretch">
-        <div style="flex:2;background:rgba(46,204,138,0.08);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(46,204,138,0.2)">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${isCurrentMonth?'נשאר החודש':'יתרה חודש'}</div>
-          <div class="rubik" style="font-size:26px;font-weight:800;direction:ltr;color:${remainColor}">${remainMonth.toLocaleString('he-IL')} ₪</div>
-          ${isCurrentMonth&&daysLeft>0?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${daysLeft} ימים</div>`:''}
+    <div class="card fu fu2" style="margin-top:8px;background:${cardColor};border-color:${borderColor};cursor:pointer" onclick="showCanIAfford()">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:26px">${icon}</span>
+        <div style="flex:1">
+          <div class="rubik" style="font-size:15px;font-weight:800;color:var(--text)">${title}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${subtitle}</div>
         </div>
-        ${isCurrentMonth&&weeklySpend>0?`
-        <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:12px;padding:12px;text-align:center;cursor:pointer" onclick="showCanIAfford()">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">ממוצע יומי</div>
-          <div class="rubik" style="font-size:16px;font-weight:700;color:var(--yellow);direction:ltr">${Math.round(dailySpend).toLocaleString('he-IL')} ₪</div>
-          <div style="font-size:9px;color:var(--accent);margin-top:6px;font-weight:700">אני יכול לקנות? →</div>
-        </div>`:''}
+        <div style="font-size:10px;color:var(--accent);font-weight:700;flex-shrink:0">אני יכול לקנות? →</div>
       </div>
-      ${alertMsg}
     </div>`;
 }
 
-// ── Feature #2 : Puis-je me permettre ça ? ─────────────────────
 function showCanIAfford() {
-  const amountStr = prompt('כמה עולה הקנייה שרצית? (₪)');
+  const amountStr = prompt('כמה עולה הקנייה? (₪)');
   if (!amountStr) return;
   const amount = parseFloat(amountStr.replace(/,/g,''));
   if (isNaN(amount) || amount <= 0) { alert('סכום לא תקין'); return; }
@@ -1654,26 +1665,25 @@ function showCanIAfford() {
   const totalBalance = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
   const now = new Date();
   const daysLeft = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate() - now.getDate();
-  // Simple logic
   const afterPurchase = totalBalance - amount;
+
   let answer, color, icon;
   if (accounts.length === 0) {
-    answer = 'עדכן את יתרת החשבון שלך קודם (לחץ ✏️ ליד החשבון)';
+    answer = 'עדכן את יתרת החשבון קודם (לחץ ✏️ ליד החשבון)';
     color = 'var(--yellow)'; icon = '⚠️';
   } else if (afterPurchase < 0) {
     answer = `לא! תהיה במינוס של ${Math.abs(afterPurchase).toLocaleString('he-IL')} ₪`;
     color = 'var(--red)'; icon = '❌';
-  } else if (afterPurchase < 500) {
-    answer = `בקושי. יישאר לך רק ${afterPurchase.toLocaleString('he-IL')} ₪ עד סוף החודש`;
-    color = 'var(--yellow)'; icon = '⚠️';
   } else if (daysLeft > 0 && afterPurchase / daysLeft < 50) {
-    answer = `אפשר, אבל צמצם הוצאות — נשאר ${afterPurchase.toLocaleString('he-IL')} ₪ ל-${daysLeft} ימים`;
-    color = 'var(--yellow)'; icon = '✅';
+    answer = `בקושי. יישאר רק ${afterPurchase.toLocaleString('he-IL')} ₪ ל-${daysLeft} ימים`;
+    color = 'var(--yellow)'; icon = '⚠️';
+  } else if (afterPurchase < 500) {
+    answer = `אפשר, אבל תישאר עם ${afterPurchase.toLocaleString('he-IL')} ₪ בלבד`;
+    color = 'var(--yellow)'; icon = '⚠️';
   } else {
     answer = `כן! יישאר לך ${afterPurchase.toLocaleString('he-IL')} ₪ אחרי הקנייה`;
     color = 'var(--green)'; icon = '✅';
   }
-  // Show in a modal-style overlay
   const div = document.createElement('div');
   div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
   div.onclick = () => div.remove();
@@ -1683,7 +1693,7 @@ function showCanIAfford() {
       <div class="rubik" style="font-size:18px;font-weight:800;margin-bottom:8px">${amount.toLocaleString('he-IL')} ₪</div>
       <div style="font-size:15px;color:${color};font-weight:700;line-height:1.6;margin-bottom:16px">${answer}</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:16px">יתרה נוכחית: ${totalBalance.toLocaleString('he-IL')} ₪</div>
-      <button onclick="this.closest('div[style]').remove()" style="padding:12px 24px;border-radius:12px;border:none;background:var(--accent);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
+      <button onclick="this.closest('div').parentElement.remove()" style="padding:12px 24px;border-radius:12px;border:none;background:var(--accent);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">סגור</button>
     </div>`;
   document.body.appendChild(div);
 }
@@ -2028,7 +2038,7 @@ function renderWizardStep2() {
     wizardType==='epargne'?`<label class="field-label">מטרת החיסכון</label><input class="field" id="w-who" placeholder="קופת חירום, גמלאות..." type="text"><label class="field-label">סכום היעד (₪)</label><input class="field" id="w-budget" placeholder="50000" type="number" style="direction:ltr"><label class="field-label">תאריך יעד</label><input class="field" id="w-date" type="month">`:
     wizardType==='barmitsva'?`<label class="field-label">שם הילד/ה</label><input class="field" id="w-who" placeholder="לדוגמה: יוסי" type="text"><label class="field-label">תאריך אירוע</label><input class="field" id="w-date" type="month"><label class="field-label">מספר אורחים</label><input class="field" id="w-guests" placeholder="150" type="number" style="direction:ltr"><label class="field-label">סגנון</label><select class="select-field" id="w-style"><option value="simple">פשוט (~200₪/אורח)</option><option value="classique" selected>קלאסי (~350₪/אורח)</option><option value="luxe">יוקרתי (~550₪/אורח)</option></select>`:
     wizardType==='brit'?`<label class="field-label">שם הילד/ה</label><input class="field" id="w-who" placeholder="לדוגמה: אברהם" type="text"><label class="field-label">תאריך אירוע</label><input class="field" id="w-date" type="month"><label class="field-label">מספר אורחים</label><input class="field" id="w-guests" placeholder="80" type="number" style="direction:ltr"><label class="field-label">סגנון</label><select class="select-field" id="w-style"><option value="simple">ביתי (~80₪/אורח)</option><option value="classique" selected>אולם קטן (~150₪/אורח)</option><option value="luxe">אולם יוקרתי (~300₪/אורח)</option></select>`:
-    wizardType==='chabbat'?`<label class="field-label">תיאור (שבת/חג/פסח...)</label><input class="field" id="w-who" placeholder="לדוגמה: פסח 2026" type="text"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month"><label class="field-label">מספר סועדים</label><input class="field" id="w-guests" placeholder="20" type="number" style="direction:ltr"><label class="field-label">תקציב לסועד (₪)</label><input class="field" id="w-budget" placeholder="150" type="number" style="direction:ltr">`:
+    wizardType==='chabbat'?`<label class="field-label">תיאור (שבת/חג/פסח...)</label><input class="field" id="w-who" placeholder="לדוגמה: פסח 2026" type="text"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month"><label class="field-label">מספר סועדים</label><input class="field" id="w-guests" placeholder="20" type="number" style="direction:ltr" required><label class="field-label">סגנון</label><select class="select-field" id="w-style"><option value="simple">פשוט (100₪/סועד)</option><option value="classique" selected>ממוצע (150₪/סועד)</option><option value="luxe">יוקרתי (250₪/סועד)</option></select>`:
     `<label class="field-label">תיאור</label><input class="field" id="w-who" placeholder="הפרויקט שלי" type="text"><label class="field-label">תקציב (₪)</label><input class="field" id="w-budget" placeholder="15000" type="number" style="direction:ltr"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`}
     <div style="display:flex;gap:8px;margin-top:6px">
       <button onclick="renderWizardStep1()" style="flex:1;padding:13px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-family:'Heebo',sans-serif;">→</button>
@@ -2134,12 +2144,12 @@ async function runAiWizard() {
     aiText = `👶 <strong>ברית/שמחה ${who||''}</strong><br>${totalGuests} אורחים · ${target.toLocaleString('he-IL')} ₪<br><br>🍽 אוכל + קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>🏠 מקום: ${venue2.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo2.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other2.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> ברית בבית חוסכת ~30% מהעלות`;
   } else if (wizardType==='chabbat') {
     const diners = parseInt(guests||20);
-    const perPerson = parseInt(budget||150);
+    const perPerson = style==='luxe' ? 250 : style==='simple' ? 100 : 150;
     target = target || diners * perPerson;
     const food3 = Math.round(target * 0.70);
     const wine = Math.round(target * 0.15);
     const other3 = target - food3 - wine;
-    aiText = `🕍 <strong>${who||'שבת/חג'}</strong><br>${diners} סועדים · ${target.toLocaleString('he-IL')} ₪<br><br>🍖 אוכל: ${food3.toLocaleString('he-IL')} ₪<br>🍷 יין + משקאות: ${wine.toLocaleString('he-IL')} ₪<br>✨ שאר (עיצוב, פרחים...): ${other3.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> קנה ב-Shufersal Deal ביום חמישי בבוקר לחסוך ~20%`;
+    aiText = `🕍 <strong>${who||'שבת/חג'}</strong><br>${diners} סועדים × ${perPerson}₪ = ${target.toLocaleString('he-IL')} ₪<br><br>🍖 אוכל: ${food3.toLocaleString('he-IL')} ₪<br>🍷 יין + משקאות: ${wine.toLocaleString('he-IL')} ₪<br>✨ שאר (עיצוב, פרחים...): ${other3.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> קנה ב-Shufersal Deal ביום חמישי בבוקר לחסוך ~20%`;
   } else {
     target = target || 15000;
     aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
