@@ -241,22 +241,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     </div>
     <div class="arrow">›</div>
   </button>
+```
 
-  <button class="import-btn fu fu3" onclick="document.getElementById('csv-input').click()">
-    <div class="icon" style="background:var(--green-soft);color:var(--green)">📊</div>
-    <div class="info">
-      <div class="name">קובץ CSV / Excel</div>
-      <div class="sub">אם כבר הורדת קובץ מהבנק<br>ייבוא קלאסי</div>
-    </div>
-    <div class="arrow">›</div>
-  </button>
+<input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
+      <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
+<div id="import-status" style="margin-top:14px"></div>
 
-  <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
-  <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
-  <input type="file" id="csv-input" accept=".csv,.xlsx,.xls,.txt" style="display:none" onchange="handleCSVImport(this)">
-
-  <div id="import-status" style="margin-top:14px"></div>
-
+```
   <div class="card fu fu4" style="margin-top:14px;background:var(--accent-soft);border-color:var(--accent)">
     <div class="rubik sec-title" style="color:var(--accent)">💡 טיפ מהיר</div>
     <div style="font-size:12px;color:var(--muted);line-height:1.8">
@@ -1392,7 +1383,7 @@ async function loadDashboard() {
     el.innerHTML=`<div class="hero fu fu1">
       <div style="font-size:11px;color:var(--muted)">ברוכים הבאים 👋</div>
       <div class="rubik" style="font-size:18px;font-weight:700;margin:6px 0">ייבא את הדף הראשון שלך</div>
-      <p style="color:var(--muted);font-size:12px;line-height:1.7;margin-bottom:14px">PDF, תמונה או CSV — בינה מלאכותית קוראת ומקטלגת.</p>
+      <p style="color:var(--muted);font-size:12px;line-height:1.7;margin-bottom:14px">PDF, תמונה — בינה מלאכותית קוראת ומקטלגת.</p>
       <button onclick="showView('bank',document.querySelectorAll('.nav-item')[1])" style="padding:10px 20px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Rubik',sans-serif;">📥 ייבא עכשיו</button>
     </div>`; return;
   }
@@ -2003,7 +1994,7 @@ function renderWizardStep1() {
   c.innerHTML=`<div class="steps"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
     <div class="rubik" style="font-size:18px;font-weight:800;margin-bottom:16px;text-align:center">איזה פרויקט? 🎯</div>
     <div class="proj-type-grid">
-      ${[{k:'mariage',e:'💒',l:'חתונה'},{k:'voiture',e:'🚗',l:'רכב'},{k:'immobilier',e:'🏠',l:'דירה'},{k:'vacances',e:'✈️',l:'חופשה'},{k:'etudes',e:'🎓',l:'לימודים'},{k:'epargne',e:'🪙',l:'חיסכון'},{k:'autre',e:'🎯',l:'אחר'}].map(t=>`<button class="proj-type-btn ${wizardType===t.k?'active':''}" onclick="wizardType='${t.k}';document.querySelectorAll('.proj-type-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')"><span class="pt-emoji">${t.e}</span>${t.l}</button>`).join('')}
+      ${[{k:'mariage',e:'💒',l:'חתונה'},{k:'voiture',e:'🚗',l:'רכב'},{k:'immobilier',e:'🏠',l:'דירה'},{k:'vacances',e:'✈️',l:'חופשה'},{k:'etudes',e:'🎓',l:'לימודים'},{k:'epargne',e:'🪙',l:'חיסכון'},{k:'barmitsva',e:'🎉',l:'בר/בת מצווה'},{k:'brit',e:'👶',l:'ברית/שמחה'},{k:'chabbat',e:'🕍',l:'שבת/חג'},{k:'autre',e:'🎯',l:'אחר'}].map(t=>`<button class="proj-type-btn ${wizardType===t.k?'active':''}" onclick="wizardType='${t.k}';document.querySelectorAll('.proj-type-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')"><span class="pt-emoji">${t.e}</span>${t.l}</button>`).join('')}
     </div>
     <button onclick="renderWizardStep2()" class="submit-btn">המשך ←</button>`;
 }
@@ -2035,6 +2026,9 @@ function renderWizardStep2() {
     wizardType==='voiture'?`<label class="field-label">סוג</label><select class="select-field" id="w-style"><option>יד שנייה</option><option>חדש</option><option>SUV</option><option>חשמלי</option></select><label class="field-label">תקציב (₪)</label><input class="field" id="w-budget" placeholder="80000" type="number" style="direction:ltr"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`:
     wizardType==='immobilier'?`<label class="field-label">מחיר הדירה (₪)</label><input class="field" id="w-budget" placeholder="1500000" type="number" style="direction:ltr"><label class="field-label">הון עצמי (%)</label><input class="field" id="w-pct" placeholder="25" type="number" style="direction:ltr"><label class="field-label">עיר</label><input class="field" id="w-region" placeholder="תל אביב" type="text"><label class="field-label">תאריך רכישה</label><input class="field" id="w-date" type="month">`:
     wizardType==='epargne'?`<label class="field-label">מטרת החיסכון</label><input class="field" id="w-who" placeholder="קופת חירום, גמלאות..." type="text"><label class="field-label">סכום היעד (₪)</label><input class="field" id="w-budget" placeholder="50000" type="number" style="direction:ltr"><label class="field-label">תאריך יעד</label><input class="field" id="w-date" type="month">`:
+    wizardType==='barmitsva'?`<label class="field-label">שם הילד/ה</label><input class="field" id="w-who" placeholder="לדוגמה: יוסי" type="text"><label class="field-label">תאריך אירוע</label><input class="field" id="w-date" type="month"><label class="field-label">מספר אורחים</label><input class="field" id="w-guests" placeholder="150" type="number" style="direction:ltr"><label class="field-label">סגנון</label><select class="select-field" id="w-style"><option value="simple">פשוט (~200₪/אורח)</option><option value="classique" selected>קלאסי (~350₪/אורח)</option><option value="luxe">יוקרתי (~550₪/אורח)</option></select>`:
+    wizardType==='brit'?`<label class="field-label">שם הילד/ה</label><input class="field" id="w-who" placeholder="לדוגמה: אברהם" type="text"><label class="field-label">תאריך אירוע</label><input class="field" id="w-date" type="month"><label class="field-label">מספר אורחים</label><input class="field" id="w-guests" placeholder="80" type="number" style="direction:ltr"><label class="field-label">סגנון</label><select class="select-field" id="w-style"><option value="simple">ביתי (~80₪/אורח)</option><option value="classique" selected>אולם קטן (~150₪/אורח)</option><option value="luxe">אולם יוקרתי (~300₪/אורח)</option></select>`:
+    wizardType==='chabbat'?`<label class="field-label">תיאור (שבת/חג/פסח...)</label><input class="field" id="w-who" placeholder="לדוגמה: פסח 2026" type="text"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month"><label class="field-label">מספר סועדים</label><input class="field" id="w-guests" placeholder="20" type="number" style="direction:ltr"><label class="field-label">תקציב לסועד (₪)</label><input class="field" id="w-budget" placeholder="150" type="number" style="direction:ltr">`:
     `<label class="field-label">תיאור</label><input class="field" id="w-who" placeholder="הפרויקט שלי" type="text"><label class="field-label">תקציב (₪)</label><input class="field" id="w-budget" placeholder="15000" type="number" style="direction:ltr"><label class="field-label">תאריך</label><input class="field" id="w-date" type="month">`}
     <div style="display:flex;gap:8px;margin-top:6px">
       <button onclick="renderWizardStep1()" style="flex:1;padding:13px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-family:'Heebo',sans-serif;">→</button>
@@ -2118,6 +2112,34 @@ async function runAiWizard() {
     target = target || 50000;
     const monthlyAmount = Math.ceil(target / months);
     aiText = `🪙 <strong>${who||'חיסכון'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💵 <strong>סכום חודשי לחיסכון:</strong> ${monthlyAmount.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפים:</strong><br>• הפקדה אוטומטית בתחילת החודש<br>• שקול קרן השתלמות לפטור ממס<br>• חשבון נפרד לחיסכון - לא לגעת!<br>• בדוק תשואות בנק vs בית השקעות`;
+  } else if (wizardType==='barmitsva') {
+    const totalGuests = parseInt(guests||150);
+    const styleMul = style==='luxe' ? 550 : style==='simple' ? 200 : 350;
+    target = target || totalGuests * styleMul;
+    const venue = Math.round(target * 0.45);
+    const dj = Math.round(target * 0.08);
+    const photo = Math.round(target * 0.12);
+    const clothing = Math.round(target * 0.10);
+    const gifts = Math.round(target * 0.08);
+    const other = target - venue - dj - photo - clothing - gifts;
+    aiText = `🎉 <strong>בר/בת מצווה ${who||''}</strong><br>${totalGuests} אורחים · ${target.toLocaleString('he-IL')} ₪<br><br>🏛 אולם + קייטרינג: ${venue.toLocaleString('he-IL')} ₪<br>🎵 DJ + מוזיקה: ${dj.toLocaleString('he-IL')} ₪<br>📸 צילום + וידאו: ${photo.toLocaleString('he-IL')} ₪<br>👔 ביגוד: ${clothing.toLocaleString('he-IL')} ₪<br>🎁 מתנה לבר/בת מצווה: ${gifts.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> הזמן אולם לפחות 12 חודשים מראש`;
+  } else if (wizardType==='brit') {
+    const totalGuests = parseInt(guests||80);
+    const styleMul = style==='luxe' ? 300 : style==='simple' ? 80 : 150;
+    target = target || totalGuests * styleMul;
+    const food = Math.round(target * 0.55);
+    const venue2 = Math.round(target * 0.20);
+    const photo2 = Math.round(target * 0.10);
+    const other2 = target - food - venue2 - photo2;
+    aiText = `👶 <strong>ברית/שמחה ${who||''}</strong><br>${totalGuests} אורחים · ${target.toLocaleString('he-IL')} ₪<br><br>🍽 אוכל + קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>🏠 מקום: ${venue2.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo2.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other2.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> ברית בבית חוסכת ~30% מהעלות`;
+  } else if (wizardType==='chabbat') {
+    const diners = parseInt(guests||20);
+    const perPerson = parseInt(budget||150);
+    target = target || diners * perPerson;
+    const food3 = Math.round(target * 0.70);
+    const wine = Math.round(target * 0.15);
+    const other3 = target - food3 - wine;
+    aiText = `🕍 <strong>${who||'שבת/חג'}</strong><br>${diners} סועדים · ${target.toLocaleString('he-IL')} ₪<br><br>🍖 אוכל: ${food3.toLocaleString('he-IL')} ₪<br>🍷 יין + משקאות: ${wine.toLocaleString('he-IL')} ₪<br>✨ שאר (עיצוב, פרחים...): ${other3.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> קנה ב-Shufersal Deal ביום חמישי בבוקר לחסוך ~20%`;
   } else {
     target = target || 15000;
     aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים לחיסכון<br><br>💡 חסוך באופן קבוע<br>📈 שקול קרן השתלמות לפטור ממס<br>🏦 פתח חשבון חיסכון נפרד`;
@@ -2125,7 +2147,7 @@ async function runAiWizard() {
 
   // Math.ceil pour éviter le bug 5000/10 = 500 (mauvais arrondi)
   const monthly = target > 0 ? Math.ceil(target / months) : 0;
-  const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏡 דירה ${region||''}`:wizardType==='epargne'?`🪙 ${who||'חיסכון'}`:who||'🎯 פרויקט';
+  const projName=wizardType==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wizardType==='voiture'?`🚗 ${style||'רכב'}`:wizardType==='immobilier'?`🏡 דירה ${region||''}`:wizardType==='epargne'?`🪙 ${who||'חיסכון'}`:wizardType==='barmitsva'?`🎉 בר/בת מצווה ${who||''}`:wizardType==='brit'?`👶 ברית ${who||''}`:wizardType==='chabbat'?`🕍 ${who||'שבת/חג'}`:who||'🎯 פרויקט';
 
   window._pendingProject = { name: projName, type: wizardType, date: targetDate, monthly: monthly, target: target };
 
@@ -2206,7 +2228,7 @@ async function addToProject(id,name) {
   loadProjects();
 }
 async function deleteProject(id) { if (!confirm('למחוק?')) return; await sb.from('projects').delete().eq('id',id); loadProjects(); }
-function getProjEmoji(t) { return {mariage:'💒',voiture:'🚗',immobilier:'🏡',vacances:'✈️',etudes:'📚',epargne:'🪙',autre:'🎯'}[t]||'🎯'; }
+function getProjEmoji(t) { return {mariage:'💒',voiture:'🚗',immobilier:'🏡',vacances:'✈️',etudes:'📚',epargne:'🪙',barmitsva:'🎉',brit:'👶',chabbat:'🕍',autre:'🎯'}[t]||'🎯'; }
 
 // ── STATS WITH PERIOD FILTER ─────────────────────────────────
 function changePeriod(period, btn) {
