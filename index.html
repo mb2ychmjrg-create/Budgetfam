@@ -1619,11 +1619,14 @@ async function loadDashboard() {
     </div>
     <div id="forecast-content" style="font-size:12px;color:var(--text);line-height:1.7"><div class="spinner"></div></div>
   </div>
-  <div id="remaining-card"></div>`;
+  <div id="remaining-card"></div>
+  <div id="budget-alerts-card"></div>`;
   // Compute and show forecast (non-blocking)
   setTimeout(() => loadForecast(all, displayTxs, displayMonth), 100);
   // Load remaining budget card
   loadRemainingBudget(all, displayTxs, displayMonth, income, expenses);
+  // Load budget alerts
+  loadBudgetAlerts(all, displayTxs);
 }
 
 async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
@@ -1748,6 +1751,146 @@ function refreshForecast() {
   localStorage.removeItem(cacheKey);
   const el = document.getElementById('forecast-content');
   if (el) el.innerHTML = '<div class="spinner"></div>';
+  loadDashboard();
+}
+
+// ── BUDGET ALERTS ────────────────────────────────────────────
+function getBudgetLimits(userId) {
+  return JSON.parse(localStorage.getItem('budgetfam_limits_'+userId)||'{}');
+}
+function saveBudgetLimits(userId, limits) {
+  localStorage.setItem('budgetfam_limits_'+userId, JSON.stringify(limits));
+}
+
+function loadBudgetAlerts(allTxs, monthTxs) {
+  const el = document.getElementById('budget-alerts-card');
+  if (!el) return;
+
+  // Compute this month's spending by category
+  const catSpend = {};
+  monthTxs.filter(t=>t.amount<0).forEach(t => {
+    const c = t.category||'Divers';
+    catSpend[c] = (catSpend[c]||0) + Math.abs(t.amount);
+  });
+
+  // Get or auto-generate limits
+  const savedLimits = getBudgetLimits(currentUser.id);
+  // Auto-compute limits from last 3 months average if not set
+  const now = new Date();
+  const threeMonthsAgo = new Date(now);
+  threeMonthsAgo.setMonth(now.getMonth()-3);
+  const pastTxs = allTxs.filter(t => {
+    const d = new Date(t.created_at);
+    return d >= threeMonthsAgo && d < new Date(now.getFullYear(),now.getMonth(),1) && t.amount < 0;
+  });
+  const pastCatMonths = {};
+  pastTxs.forEach(t => {
+    const d = new Date(t.created_at);
+    const k = t.category+'|'+d.getFullYear()+'-'+d.getMonth();
+    pastCatMonths[k] = (pastCatMonths[k]||0) + Math.abs(t.amount);
+  });
+  const autoLimits = {};
+  Object.keys(catSpend).forEach(cat => {
+    const months = Object.keys(pastCatMonths).filter(k=>k.startsWith(cat+'|'));
+    if (months.length > 0) {
+      const avg = months.reduce((s,k)=>s+pastCatMonths[k],0)/months.length;
+      autoLimits[cat] = Math.round(avg * 1.1); // 10% buffer
+    } else {
+      autoLimits[cat] = Math.round((catSpend[cat]||0) * 1.3);
+    }
+  });
+  // Merge: saved limits override auto
+  const limits = {...autoLimits, ...savedLimits};
+
+  // Only show categories with limits set and some spending
+  const cats = Object.keys(catSpend).filter(c => limits[c] > 0);
+  if (cats.length === 0) { el.innerHTML = ''; return; }
+
+  // Sort by % used descending
+  cats.sort((a,b) => (catSpend[b]/limits[b]) - (catSpend[a]/limits[a]));
+
+  const hasAlert = cats.some(c => catSpend[c] >= limits[c] * 0.85);
+  if (!hasAlert) { el.innerHTML = ''; return; }
+
+  const rows = cats.filter(c => catSpend[c] >= limits[c] * 0.70).map(c => {
+    const spent = catSpend[c]||0;
+    const limit = limits[c];
+    const pct = Math.min(Math.round(spent/limit*100), 999);
+    const isOver = spent >= limit;
+    const isWarning = spent >= limit * 0.85;
+    const barColor = isOver ? 'var(--red)' : isWarning ? 'var(--yellow)' : 'var(--accent)';
+    const barW = Math.min(pct, 100);
+    return `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-size:12px;font-weight:600">${getCatIcon(c)} ${catHe(c)}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="font-size:11px;direction:ltr;color:${isOver?'var(--red)':isWarning?'var(--yellow)':'var(--muted)'}">${spent.toLocaleString('he-IL')} / ${limit.toLocaleString('he-IL')} ₪</div>
+            <div style="font-size:10px;font-weight:700;color:${barColor}">${pct}%</div>
+            <button onclick="editBudgetLimit('${c}',${limit})" style="background:none;border:none;font-size:11px;cursor:pointer;color:var(--muted);padding:0">✏️</button>
+          </div>
+        </div>
+        <div style="background:var(--divider);border-radius:99px;height:6px;overflow:hidden">
+          <div style="width:${barW}%;height:6px;background:${barColor};border-radius:99px;transition:width .6s"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card fu fu2" style="margin-top:8px;border-color:rgba(247,201,72,0.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="rubik" style="font-size:13px;font-weight:700">⚠️ התראות תקציב</div>
+        <button onclick="editAllBudgetLimits()" style="background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">עריכה</button>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+function editBudgetLimit(cat, currentLimit) {
+  const newVal = prompt(`תקציב חודשי ל-${catHe(cat)} (₪):`, currentLimit);
+  if (!newVal) return;
+  const num = parseFloat(newVal.replace(/,/g,''));
+  if (isNaN(num) || num <= 0) { alert('סכום לא תקין'); return; }
+  const limits = getBudgetLimits(currentUser.id);
+  limits[cat] = num;
+  saveBudgetLimits(currentUser.id, limits);
+  loadDashboard();
+}
+
+function editAllBudgetLimits() {
+  const limits = getBudgetLimits(currentUser.id);
+  const cats = ['Alimentation','Logement','Transport','Loisirs','Santé','Abonnements','Éducation','Épargne'];
+  const c = document.createElement('div');
+  c.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+  c.innerHTML = `
+    <div style="background:var(--card);border-radius:18px;padding:22px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="rubik" style="font-size:16px;font-weight:800">תקציבים חודשיים</div>
+        <button onclick="this.closest('div').parentElement.parentElement.remove()" style="background:none;border:none;font-size:24px;color:var(--muted);cursor:pointer">×</button>
+      </div>
+      ${cats.map(cat=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:13px">${getCatIcon(cat)} ${catHe(cat)}</div>
+          <input type="number" id="limit-${cat}" value="${limits[cat]||''}" placeholder="ללא הגבלה"
+            style="width:110px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--divider);color:var(--text);font-size:12px;text-align:left;direction:ltr;font-family:'Heebo',sans-serif">
+        </div>`).join('')}
+      <button onclick="saveAllLimits(this,['${cats.join("','")}'])" style="width:100%;margin-top:12px;padding:13px;border-radius:12px;border:none;background:var(--accent);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">💾 שמור הכל</button>
+    </div>`;
+  document.body.appendChild(c);
+}
+
+function saveAllLimits(btn, cats) {
+  const limits = getBudgetLimits(currentUser.id);
+  cats.forEach(cat => {
+    const el = document.getElementById('limit-'+cat);
+    if (el) {
+      const val = parseFloat(el.value);
+      if (!isNaN(val) && val > 0) limits[cat] = val;
+      else delete limits[cat];
+    }
+  });
+  saveBudgetLimits(currentUser.id, limits);
+  btn.closest('div').parentElement.parentElement.remove();
   loadDashboard();
 }
 
