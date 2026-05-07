@@ -1589,7 +1589,7 @@ async function showWeeklyAdvice() {
 
     // Call Claude for personalized advice
     const profileContext = profile ? `משפחה: ${profile.household} נפשות, ${profile.children} ילדים, משכורת ב-${profile.salary_day}, ${profile.housing}, מטרה: ${profile.goal}` : '';
-    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/clever-worker', {
+    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/bright-worker', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
       body: JSON.stringify({
@@ -1641,7 +1641,7 @@ async function showDailyInsight() {
     const catTotals = {};
     (txs||[]).filter(t=>t.amount<0).forEach(t=>{const c=t.category||'Divers';catTotals[c]=(catTotals[c]||0)+Math.abs(t.amount);});
     const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
-    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/clever-worker', {
+    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/bright-worker', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
       body: JSON.stringify({
@@ -1863,7 +1863,7 @@ async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
     return;
   }
   try {
-    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/clever-worker', {
+    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/bright-worker', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
       body: JSON.stringify({
