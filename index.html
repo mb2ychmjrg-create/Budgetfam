@@ -178,13 +178,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     </div>
   </div>
   <div id="account-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeAccountEdit()">
+    <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:420px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:85vh;overflow-y:auto">
+      <div id="account-edit-content"></div>
+    </div>
+  </div>
   <div id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10000;align-items:center;justify-content:center;padding:24px">
     <div style="background:var(--card);border-radius:20px;padding:24px;max-width:400px;width:100%;border:1px solid var(--accent)">
       <div id="onboarding-content"></div>
-    </div>
-  </div>
-    <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:420px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:85vh;overflow-y:auto">
-      <div id="account-edit-content"></div>
     </div>
   </div>
   <div class="header">
