@@ -178,6 +178,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     </div>
   </div>
   <div id="account-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeAccountEdit()">
+  <div id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10000;align-items:center;justify-content:center;padding:24px">
+    <div style="background:var(--card);border-radius:20px;padding:24px;max-width:400px;width:100%;border:1px solid var(--accent)">
+      <div id="onboarding-content"></div>
+    </div>
+  </div>
     <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:420px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:85vh;overflow-y:auto">
       <div id="account-edit-content"></div>
     </div>
@@ -187,7 +192,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <div class="rubik header-title">BudgetFam 🇮🇱</div>
       <div class="header-sub" id="header-sub">טוען...</div>
     </div>
-    <button onclick="handleLogout()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'Heebo',sans-serif;">יציאה</button>
+    <div style="display:flex;gap:6px">
+      <button onclick="showOnboarding()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer" title="פרופיל משפחה">👨‍👩‍👧‍👦</button>
+      <button onclick="handleLogout()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'Heebo',sans-serif;">יציאה</button>
+    </div>
   </div>
 
   <div class="content">
@@ -1086,6 +1094,139 @@ async function handleLogout() {
   document.getElementById('auth-screen').style.display='flex';
 }
 
+// ── ONBOARDING PROFIL FAMILLE ────────────────────────────────
+function getFamilyProfile() {
+  return JSON.parse(localStorage.getItem('budgetfam_profile_'+(currentUser?.id||''))||'null');
+}
+
+function saveFamilyProfile(profile) {
+  localStorage.setItem('budgetfam_profile_'+(currentUser?.id||''), JSON.stringify(profile));
+}
+
+let _onboardingData = {};
+let _onboardingStep = 0;
+
+const ONBOARDING_STEPS = [
+  {
+    key: 'household',
+    q: '👨‍👩‍👧‍👦 כמה אנשים גרים אצלכם?',
+    sub: 'כולל ילדים',
+    options: ['1','2','3','4','5','6+']
+  },
+  {
+    key: 'children',
+    q: '👶 כמה ילדים?',
+    sub: 'מתחת לגיל 18',
+    options: ['0','1','2','3','4','5+']
+  },
+  {
+    key: 'salary_day',
+    q: '📅 באיזה תאריך מקבל/ת משכורת?',
+    sub: 'בערך',
+    options: ['1-5','6-10','11-15','16-20','21-25','26-31']
+  },
+  {
+    key: 'housing',
+    q: '🏠 מה מצב הדיור שלכם?',
+    sub: '',
+    options: ['שוכרים','בעלי דירה','גרים עם הורים','אחר']
+  },
+  {
+    key: 'goal',
+    q: '🎯 מה המטרה הפיננסית העיקרית שלכם?',
+    sub: 'תבחר אחת',
+    options: ['לחסוך יותר','לצאת מחובות','לקנות דירה','לנסוע לחופשה','להרחיב המשפחה','לחיות בנוחות']
+  }
+];
+
+function showOnboarding() {
+  _onboardingStep = 0;
+  _onboardingData = {};
+  document.getElementById('onboarding-modal').style.display = 'flex';
+  renderOnboardingStep();
+}
+
+function renderOnboardingStep() {
+  const step = ONBOARDING_STEPS[_onboardingStep];
+  const total = ONBOARDING_STEPS.length;
+  const dots = ONBOARDING_STEPS.map((_,i) =>
+    `<div style="width:${i===_onboardingStep?'22px':'8px'};height:8px;border-radius:4px;background:${i===_onboardingStep?'var(--accent)':i<_onboardingStep?'var(--green)':'var(--divider)'};transition:all .3s"></div>`
+  ).join('');
+
+  const optionsHtml = step.options.map(opt => `
+    <button onclick="selectOnboardingOption('${opt}')"
+      style="padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--divider);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .2s;text-align:center"
+      onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--accent-soft)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--divider)'">
+      ${opt}
+    </button>
+  `).join('');
+
+  document.getElementById('onboarding-content').innerHTML = `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">${_onboardingStep+1} / ${total}</div>
+      <div style="display:flex;gap:6px;justify-content:center;margin-bottom:16px">${dots}</div>
+      <div class="rubik" style="font-size:20px;font-weight:800;margin-bottom:6px">${step.q}</div>
+      ${step.sub?`<div style="font-size:12px;color:var(--muted)">${step.sub}</div>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+      ${optionsHtml}
+    </div>
+    ${_onboardingStep > 0 ? `<button onclick="prevOnboardingStep()" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Heebo',sans-serif">← חזור</button>` : ''}
+  `;
+}
+
+function selectOnboardingOption(value) {
+  const step = ONBOARDING_STEPS[_onboardingStep];
+  _onboardingData[step.key] = value;
+
+  // Highlight selected
+  document.querySelectorAll('#onboarding-content button').forEach(btn => {
+    if (btn.textContent.trim() === value) {
+      btn.style.background = 'var(--accent)';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'white';
+    }
+  });
+
+  setTimeout(() => {
+    if (_onboardingStep < ONBOARDING_STEPS.length - 1) {
+      _onboardingStep++;
+      renderOnboardingStep();
+    } else {
+      // Done!
+      finishOnboarding();
+    }
+  }, 250);
+}
+
+function prevOnboardingStep() {
+  if (_onboardingStep > 0) {
+    _onboardingStep--;
+    renderOnboardingStep();
+  }
+}
+
+function finishOnboarding() {
+  _onboardingData.completed = true;
+  _onboardingData.date = new Date().toISOString();
+  saveFamilyProfile(_onboardingData);
+  document.getElementById('onboarding-modal').style.display = 'none';
+  // Show welcome
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  div.innerHTML = `
+    <div style="background:var(--card);border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;border:2px solid var(--green)">
+      <div style="font-size:52px;margin-bottom:12px">🎉</div>
+      <div class="rubik" style="font-size:20px;font-weight:800;margin-bottom:8px">הפרופיל מוכן!</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+        BudgetFam ישתמש במידע הזה כדי<br>לתת לך עצות מותאמות אישית 💡
+      </div>
+      <button onclick="this.closest('div').parentElement.remove()" style="padding:12px 28px;border-radius:12px;border:none;background:var(--accent);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">יאללה נתחיל! 🚀</button>
+    </div>`;
+  document.body.appendChild(div);
+}
+
 async function enterApp() {
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('main-app').style.display='flex';
@@ -1095,10 +1236,14 @@ async function enterApp() {
   await loadDashboard();
   await loadTransactions();
   loadImportHistory();
-  // Show insight button
   const ib = document.getElementById('insight-btn');
   if (ib) ib.style.display = 'flex';
   updateInsightBadge();
+  // Show onboarding if profile not set yet
+  const profile = getFamilyProfile();
+  if (!profile || !profile.completed) {
+    setTimeout(() => showOnboarding(), 600);
+  }
 }
 
 function updateInsightBadge() {
@@ -1355,7 +1500,8 @@ async function showDailyInsight() {
         transactions: txs || [],
         balance,
         concrete_mode: true,
-        top_category: topCat ? { name: topCat[0], amount: Math.round(topCat[1]) } : null
+        top_category: topCat ? { name: topCat[0], amount: Math.round(topCat[1]) } : null,
+        family_profile: getFamilyProfile()
       })
     });
     const data = await resp.json();
@@ -1478,6 +1624,7 @@ async function loadDashboard() {
 
 async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
   const el = document.getElementById('forecast-content');
+  const card = document.getElementById('forecast-card');
   if (!el) return;
   
   const now = new Date();
@@ -1487,6 +1634,13 @@ async function loadForecast(allTxs, currentMonthTxs, displayMonth) {
   const isCurrentMonth = (displayMonth.getMonth()===now.getMonth() && displayMonth.getFullYear()===now.getFullYear());
   const dayOfMonth = isCurrentMonth ? now.getDate() : totalDays;
   const daysLeft = totalDays - dayOfMonth;
+
+  // Hide card if not enough data
+  if (currentMonthTxs.length < 3 || dayOfMonth < 5) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  if (card) card.style.display = 'block';
   
   // Current month spending
   const currentExpenses = currentMonthTxs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
@@ -1604,7 +1758,7 @@ function loadRemainingBudget(allTxs, monthTxs, displayMonth, income, expenses) {
   const dayOfMonth = now.getDate();
   const dailySpend = dayOfMonth > 0 ? expenses / dayOfMonth : 0;
 
-  if (!hasBalance || !isCurrentMonth || dailySpend <= 0) {
+  if (!hasBalance || !isCurrentMonth || dailySpend <= 0 || dayOfMonth < 5) {
     el.innerHTML = '';
     return;
   }
@@ -2139,9 +2293,10 @@ async function runAiWizard() {
     target = target || totalGuests * styleMul;
     const food = Math.round(target * 0.55);
     const venue2 = Math.round(target * 0.20);
-    const photo2 = Math.round(target * 0.10);
-    const other2 = target - food - venue2 - photo2;
-    aiText = `👶 <strong>ברית/שמחה ${who||''}</strong><br>${totalGuests} אורחים · ${target.toLocaleString('he-IL')} ₪<br><br>🍽 אוכל + קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>🏠 מקום: ${venue2.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo2.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other2.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> ברית בבית חוסכת ~30% מהעלות`;
+    // Fixed costs for photographer - NOT per guest
+    const photoFixed = style==='luxe' ? 4500 : style==='simple' ? 1200 : 2500;
+    const other2 = Math.max(0, target - food - venue2 - photoFixed);
+    aiText = `👶 <strong>ברית/שמחה ${who||''}</strong><br>${totalGuests} אורחים · ${target.toLocaleString('he-IL')} ₪<br><br>🍽 אוכל + קייטרינג: ${food.toLocaleString('he-IL')} ₪<br>🏠 מקום: ${venue2.toLocaleString('he-IL')} ₪<br>📸 צילום (מחיר קבוע): ${photoFixed.toLocaleString('he-IL')} ₪ <small style="color:var(--muted)">(1,200-4,500₪ בשוק הישראלי)</small><br>✨ שאר: ${other2.toLocaleString('he-IL')} ₪<br><br>💡 <strong>טיפ:</strong> ברית בבית חוסכת ~30% מהעלות`;
   } else if (wizardType==='chabbat') {
     const diners = parseInt(guests||20);
     const perPerson = style==='luxe' ? 250 : style==='simple' ? 100 : 150;
