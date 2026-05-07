@@ -144,6 +144,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 
 <div id="main-app" style="display:none;flex-direction:column;height:100%">
   <button id="insight-btn" onclick="showDailyInsight()" style="position:fixed;bottom:90px;left:16px;z-index:998;width:54px;height:54px;border-radius:27px;border:none;background:linear-gradient(135deg,#00E5FF,#0066FF);box-shadow:0 6px 20px rgba(0,102,255,0.4);font-size:24px;cursor:pointer;color:white;display:none;align-items:center;justify-content:center;font-family:'Heebo',sans-serif">💡<span id="insight-badge" style="position:absolute;top:-4px;right:-4px;background:var(--card,#1a1f2e);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;border:2px solid #0066FF;min-width:14px;text-align:center;line-height:1;display:none">2</span></button>
+  <button id="weekly-btn" onclick="showWeeklyAdvice()" style="position:fixed;bottom:155px;left:16px;z-index:998;width:54px;height:54px;border-radius:27px;border:none;background:linear-gradient(135deg,#A78BFA,#6D28D9);box-shadow:0 6px 20px rgba(109,40,217,0.4);font-size:24px;cursor:pointer;color:white;display:none;align-items:center;justify-content:center;font-family:'Heebo',sans-serif">📊<span id="weekly-badge" style="position:absolute;top:-4px;right:-4px;background:#10B981;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;border:2px solid #059669;display:none">!</span></button>
   <div id="insight-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeInsight()">
     <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:440px;width:100%;border:1px solid rgba(0,102,255,0.3);max-height:80vh;overflow-y:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -151,6 +152,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
         <button onclick="closeInsight()" style="background:none;border:none;font-size:26px;color:var(--muted,#888);cursor:pointer;padding:0;line-height:1">×</button>
       </div>
       <div id="insight-content"><div class="spinner"></div></div>
+    </div>
+  </div>
+  <div id="weekly-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeWeekly()">
+    <div style="background:var(--card,#1a1f2e);border-radius:18px;padding:22px;max-width:440px;width:100%;border:1px solid rgba(167,139,250,0.4);max-height:85vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:700;color:#A78BFA;font-family:'Rubik',sans-serif">📊 דוח שבועי</div>
+        <button onclick="closeWeekly()" style="background:none;border:none;font-size:26px;color:var(--muted,#888);cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div id="weekly-content"><div class="spinner"></div></div>
     </div>
   </div>
   <div id="anomaly-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeAnomalyModal()">
@@ -1243,6 +1253,9 @@ async function enterApp() {
   const ib = document.getElementById('insight-btn');
   if (ib) ib.style.display = 'flex';
   updateInsightBadge();
+  const wb = document.getElementById('weekly-btn');
+  if (wb) wb.style.display = 'flex';
+  updateWeeklyBadge();
   // Show onboarding if profile not set yet
   const profile = getFamilyProfile();
   if (!profile || !profile.completed) {
@@ -1474,6 +1487,137 @@ function reportAnomaly(idx) {
 function closeAnomalyModal() { 
   document.getElementById('anomaly-modal').style.display='none'; 
   window._currentAnomalies = null;
+}
+
+// ── WEEKLY ADVICE ────────────────────────────────────────────
+function updateWeeklyBadge() {
+  const badge = document.getElementById('weekly-badge');
+  if (!badge || !currentUser) return;
+  const cacheKey = 'weekly_advice_'+currentUser.id+'_'+getWeekKey();
+  const cached = localStorage.getItem(cacheKey);
+  // Show green badge if no advice yet this week
+  if (!cached) {
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function getWeekKey() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return now.getFullYear() + '-W' + week;
+}
+
+function closeWeekly() {
+  document.getElementById('weekly-modal').style.display = 'none';
+}
+
+async function showWeeklyAdvice() {
+  document.getElementById('weekly-modal').style.display = 'flex';
+  document.getElementById('weekly-content').innerHTML = '<div class="spinner"></div>';
+
+  // Check cache
+  const cacheKey = 'weekly_advice_'+currentUser.id+'_'+getWeekKey();
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    document.getElementById('weekly-content').innerHTML = cached;
+    return;
+  }
+
+  try {
+    // Get this week's transactions
+    const weekAgo = new Date(Date.now() - 7*86400000).toISOString();
+    const { data: weekTxs } = await sb.from('transactions')
+      .select('*').eq('user_id', currentUser.id)
+      .gte('created_at', weekAgo)
+      .order('created_at', {ascending: false});
+
+    // Get last 4 weeks for comparison
+    const monthAgo = new Date(Date.now() - 28*86400000).toISOString();
+    const { data: monthTxs } = await sb.from('transactions')
+      .select('*').eq('user_id', currentUser.id)
+      .gte('created_at', monthAgo)
+      .order('created_at', {ascending: false});
+
+    const profile = getFamilyProfile();
+    const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+currentUser.id)||'[]');
+    const totalBalance = accounts.reduce((s,a) => s+(parseFloat(a.balance)||0), 0);
+
+    // Compute weekly stats
+    const txs = weekTxs || [];
+    const weekExpenses = txs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+    const weekIncome = txs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+    const catMap = {};
+    txs.filter(t=>t.amount<0).forEach(t=>{
+      const c=t.category||'Divers';
+      catMap[c]=(catMap[c]||0)+Math.abs(t.amount);
+    });
+    const topCats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+    // Show local stats immediately while Claude thinks
+    const statsHtml = `
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div style="flex:1;padding:10px;background:rgba(239,68,68,0.1);border-radius:10px;text-align:center">
+          <div style="font-size:9px;color:var(--muted)">הוצאות שבוע</div>
+          <div style="font-size:14px;font-weight:700;color:var(--red);direction:ltr">${weekExpenses.toLocaleString('he-IL')} ₪</div>
+        </div>
+        <div style="flex:1;padding:10px;background:rgba(16,185,129,0.1);border-radius:10px;text-align:center">
+          <div style="font-size:9px;color:var(--muted)">הכנסות שבוע</div>
+          <div style="font-size:14px;font-weight:700;color:var(--green);direction:ltr">${weekIncome.toLocaleString('he-IL')} ₪</div>
+        </div>
+        <div style="flex:1;padding:10px;background:rgba(79,142,247,0.1);border-radius:10px;text-align:center">
+          <div style="font-size:9px;color:var(--muted)">עסקאות</div>
+          <div style="font-size:14px;font-weight:700;color:var(--accent)">${txs.length}</div>
+        </div>
+      </div>
+      ${topCats.length > 0 ? `
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">טופ הוצאות השבוע:</div>
+        ${topCats.map(([cat,amt])=>`
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--divider);font-size:12px">
+            <span>${getCatIcon(cat)} ${catHe(cat)}</span>
+            <span style="font-weight:700;direction:ltr;color:var(--red)">${amt.toLocaleString('he-IL')} ₪</span>
+          </div>`).join('')}
+      </div>` : ''}
+      <div id="weekly-ai-comment" style="padding:14px;background:linear-gradient(135deg,rgba(167,139,250,0.1),rgba(109,40,217,0.1));border-radius:12px;border:1px solid rgba(167,139,250,0.3);font-size:13px;line-height:1.7;color:var(--text)">
+        <div class="ai-dots" style="display:flex;justify-content:center"><span></span><span></span><span></span></div>
+      </div>`;
+
+    document.getElementById('weekly-content').innerHTML = statsHtml;
+
+    // Call Claude for personalized advice
+    const profileContext = profile ? `משפחה: ${profile.household} נפשות, ${profile.children} ילדים, משכורת ב-${profile.salary_day}, ${profile.housing}, מטרה: ${profile.goal}` : '';
+    const resp = await fetch('https://nyywcxcahalxazienuav.supabase.co/functions/v1/clever-worker', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}`, 'apikey': SUPABASE_ANON },
+      body: JSON.stringify({
+        transactions: monthTxs || [],
+        balance: totalBalance,
+        weekly_mode: true,
+        week_expenses: weekExpenses,
+        week_income: weekIncome,
+        top_categories: topCats.map(([c,a])=>({name:c,amount:Math.round(a)})),
+        family_profile: profile,
+        profile_context: profileContext
+      })
+    });
+    const data = await resp.json();
+    const advice = data.insight || 'אין עצות זמינות כרגע';
+    const aiHtml = `<div style="font-size:13px;line-height:1.8">${advice}</div>`;
+    const el = document.getElementById('weekly-ai-comment');
+    if (el) el.innerHTML = aiHtml;
+
+    // Cache for 24h
+    localStorage.setItem(cacheKey, document.getElementById('weekly-content').innerHTML);
+    // Hide badge
+    const badge = document.getElementById('weekly-badge');
+    if (badge) badge.style.display = 'none';
+
+  } catch(e) {
+    document.getElementById('weekly-content').innerHTML = `<div style="color:var(--red);text-align:center;padding:20px">שגיאה: ${e.message}</div>`;
+  }
 }
 
 async function showDailyInsight() {
