@@ -1140,8 +1140,9 @@ const ONBOARDING_STEPS = [
 ];
 
 function showOnboarding() {
+  if (!currentUser) return;
   _onboardingStep = 0;
-  _onboardingData = {};
+  _onboardingData = Object.assign({}, getFamilyProfile() || {});
   document.getElementById('onboarding-modal').style.display = 'flex';
   renderOnboardingStep();
 }
@@ -1166,7 +1167,10 @@ function renderOnboardingStep() {
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:11px;color:var(--muted);margin-bottom:12px">${_onboardingStep+1} / ${total}</div>
       <div style="display:flex;gap:6px;justify-content:center;margin-bottom:16px">${dots}</div>
-      <div class="rubik" style="font-size:20px;font-weight:800;margin-bottom:6px">${step.q}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="rubik" style="font-size:20px;font-weight:800">${step.q}</div>
+        <button onclick="document.getElementById('onboarding-modal').style.display='none'" style="background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
       ${step.sub?`<div style="font-size:12px;color:var(--muted)">${step.sub}</div>`:''}
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
