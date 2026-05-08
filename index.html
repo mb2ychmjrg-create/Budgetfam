@@ -155,7 +155,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 .cm-input:focus{border-color:var(–accent);}
 .cm-actions{display:flex;gap:8px;}
 .cm-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:‘Heebo’,sans-serif;}
-.cm-btn-cancel{background:var(–divider);border:1px solid var(–border);color:var(–text);}
+.cm-btn-cancel{background:transparent;border:1px solid var(–border);color:var(–muted);}
 .cm-btn-ok{background:var(–accent);color:white;}
 .cm-btn-danger{background:var(–red);color:white;}
 
@@ -207,10 +207,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 
 <div id="main-app" style="display:none;flex-direction:column;height:100%">
 
-  <!-- יועץ פיננסי FAB (single, replaces 2 floating buttons) -->
+  <!-- AI Coach FAB (single, replaces 2 floating buttons) -->
 
-  <button id="ai-fab" class="ai-fab" onclick="openAICoach()" title="יועץ פיננסי">
-    💼<span id="ai-fab-badge" class="badge">!</span>
+  <button id="ai-fab" class="ai-fab" onclick="openAICoach()" title="AI Coach">
+    🤖<span id="ai-fab-badge" class="badge">!</span>
   </button>
 
   <!-- AI COACH MENU MODAL -->
@@ -220,9 +220,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeAICoach()">✕</button>
       <div style="text-align:center;margin-bottom:18px">
-        <div style="font-size:36px;margin-bottom:4px">💼</div>
-        <div class="rubik" style="font-size:18px;font-weight:800">יועץ פיננסי</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">הייעוץ הפיננסי שלך</div>
+        <div style="font-size:36px;margin-bottom:4px">🤖</div>
+        <div class="rubik" style="font-size:18px;font-weight:800">AI Coach</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">תובנות מותאמות אישית</div>
       </div>
       <div id="ai-menu-list">
         <div id="ai-menu-insight" class="ai-menu-item" onclick="showDailyInsight()">
@@ -343,13 +343,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 <!-- BANK IMPORT -->
 <div id="view-bank" class="view">
   <div class="rubik fu fu1" style="font-size:20px;font-weight:800;margin-bottom:4px">📥 ייבוא דפי בנק</div>
-  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">כל הבנקים בישראל · קטגוריזציה אוטומטית</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">בינה מלאכותית קוראת את הדף · קטגוריזציה אוטומטית</div>
+
+  <div class="card fu fu1" style="margin-bottom:14px">
+    <div class="rubik sec-title">🏦 כל הבנקים בישראל</div>
+    <div class="bank-grid">
+      <div class="bank-card"><span class="b-emoji">🟦</span>הפועלים</div>
+      <div class="bank-card"><span class="b-emoji">🟥</span>לאומי</div>
+      <div class="bank-card"><span class="b-emoji">🟩</span>דיסקונט</div>
+      <div class="bank-card"><span class="b-emoji">🟧</span>מזרחי טפחות</div>
+      <div class="bank-card"><span class="b-emoji">⬛</span>One Zero</div>
+      <div class="bank-card"><span class="b-emoji">🟪</span>הבינלאומי</div>
+      <div class="bank-card"><span class="b-emoji">🟨</span>אוצר החייל</div>
+      <div class="bank-card"><span class="b-emoji">🔷</span>מרכנתיל</div>
+      <div class="bank-card"><span class="b-emoji">💳</span>+ אשראי</div>
+    </div>
+  </div>
 
   <button class="import-btn fu fu1" onclick="document.getElementById('pdf-input').click()">
     <div class="icon" style="background:var(--red-soft);color:var(--red)">📄</div>
     <div class="info">
       <div class="name">ייבוא PDF</div>
-      <div class="sub">דף בנק או כרטיס אשראי</div>
+      <div class="sub">דף בנק או כרטיס אשראי בפורמט PDF<br>הבינה המלאכותית מחלצת את כל העסקאות</div>
     </div>
     <div class="arrow">›</div>
   </button>
@@ -358,7 +373,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     <div class="icon" style="background:var(--purple-soft);color:var(--purple)">📸</div>
     <div class="info">
       <div class="name">תמונה / צילום מסך</div>
-      <div class="sub">צילום מסך מאפליקציית הבנק</div>
+      <div class="sub">צילום מסך מאפליקציית הבנק שלך<br>או תמונה של דף בנק מודפס</div>
     </div>
     <div class="arrow">›</div>
   </button>
@@ -366,6 +381,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
   <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
   <div id="import-status" style="margin-top:14px"></div>
+
+  <div class="card fu fu4" style="margin-top:14px;background:var(--accent-soft);border-color:var(--accent)">
+    <div class="rubik sec-title" style="color:var(--accent)">💡 טיפ מהיר</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.8">
+      <b>הדרך המהירה ביותר:</b> פתח את אפליקציית הבנק שלך, צלם <b>צילום מסך</b> וייבא אותו עם הכפתור 📸. הבינה המלאכותית קוראת הכל אוטומטית!
+    </div>
+  </div>
 
   <div class="card fu fu4" style="margin-top:8px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -654,10 +676,25 @@ function normalizeCategory(raw) {
 // BANK DETECTION FROM CONTENT (FIX: was filename-only)
 // ============================================================
 function detectBankFromContent(text, fileName) {
-  // PRIORITY 1: filename is more reliable than PDF content
+  const t = (text || '').substring(0, 5000).toLowerCase();
+  if (/בנק.?הפועלים|hapoalim|פועלים/.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
+  if (/בנק.?לאומי|leumi|לאומי/.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
+  if (/בנק.?דיסקונט|discount|דיסקונט/.test(t)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
+  if (/מזרחי.?טפחות|mizrahi|טפחות/.test(t)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
+  if (/one.?zero|onezero|וואן.?זירו/.test(t)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
+  if (/הבינלאומי|beinleumi|first.?international/.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
+  if (/אוצר.?החייל|otsar/.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟫' };
+  if (/מרכנתיל|mercantile/.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
+  if (/cal\b|כאל|cal.?credit/.test(t)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
+  if (/isracard|ישראכרט/.test(t)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
+  if (/\bmax\b|מקס/.test(t)) return { bank: 'max', name: 'Max', emoji: '💳' };
+  if (/visa\b/i.test(t)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
+  if (/mastercard|master.?card/i.test(t)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
+  if (/amex|american.?express/i.test(t)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
+  // Fallback to filename
   const f = (fileName || '').toLowerCase();
-  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
-  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
+  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
+  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
   if (/discount|דיסקונט/i.test(f)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
   if (/mizrahi|מזרחי|tefahot|טפחות/i.test(f)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
   if (/onezero|one.?zero/i.test(f)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
@@ -669,25 +706,6 @@ function detectBankFromContent(text, fileName) {
   if (/visa/i.test(f)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
   if (/mastercard/i.test(f)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
   if (/amex|american/i.test(f)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
-
-  // PRIORITY 2: PDF content — use only first 2000 chars (header) to avoid false matches from transfer lines
-  const t = (text || '').substring(0, 2000);
-  // Look for bank header patterns (more specific)
-  if (/בנק\s*הפועלים|Bank\s*Hapoalim/i.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
-  if (/בנק\s*לאומי|Bank\s*Leumi/i.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
-  if (/בנק\s*דיסקונט|Bank\s*Discount/i.test(t)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
-  if (/בנק\s*מזרחי|מזרחי\s*טפחות|Mizrahi/i.test(t)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
-  if (/one.?zero|וואן.?זירו/i.test(t)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
-  if (/הבינלאומי|First\s*International/i.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
-  if (/אוצר\s*החייל/i.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟫' };
-  if (/מרכנתיל|Mercantile/i.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
-  if (/\bכאל\b|cal\s*credit/i.test(t)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
-  if (/ישראכרט|Isracard/i.test(t)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
-  if (/\bמקס\b|\bmax\b/i.test(t)) return { bank: 'max', name: 'Max', emoji: '💳' };
-  if (/\bvisa\b/i.test(t)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
-  if (/mastercard/i.test(t)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
-  if (/amex|american\s*express/i.test(t)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
-
   // Unknown — flag as ambiguous → always create new account
   return { bank: 'unknown_' + Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
 }
@@ -985,42 +1003,21 @@ async function confirmImport(source, fileName) {
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+state.currentUser.id)||'[]');
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+state.currentUser.id, JSON.stringify(history.slice(0,20)));
-    // Save/create account after successful insert
+    // FIX: Save/create account after successful insert.
+    // Create account even if no balance detected (user can update manually later)
     if (finalToInsert.length > 0 && state.currentUser) {
       const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+state.currentUser.id)||'[]');
       const bankInfo = localBankInfo || { bank: 'unknown_'+Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
-      // Find existing account with same bank
+      // FIX: ambiguous bank → always create new account (never overwrite)
       const existingIdx = bankInfo.ambiguous ? -1 : accounts.findIndex(a => a.bank === bankInfo.bank);
       if (existingIdx >= 0) {
-        // Bank already exists — ask user: update existing or create new account?
-        const existing = accounts[existingIdx];
-        const choice = await customConfirm({
-          title: `${bankInfo.emoji} ${bankInfo.name}`,
-          message: `זיהינו ${bankInfo.name}. מה לעשות?`,
-          okText: 'עדכן חשבון קיים',
-          cancelText: 'צור חשבון חדש'
-        });
-        if (choice) {
-          // Update existing
-          if (localBalance !== undefined) {
-            accounts[existingIdx].balance = localBalance;
-            accounts[existingIdx].date = new Date().toISOString();
-          }
-        } else {
-          // Create new account for same bank (e.g. joint account)
-          const accNum = accounts.filter(a => a.bank === bankInfo.bank).length + 1;
-          accounts.push({
-            id: 'acc_' + Date.now(),
-            name: bankInfo.name + ' ' + accNum,
-            bank: bankInfo.bank + '_' + Date.now(),
-            emoji: bankInfo.emoji,
-            balance: localBalance !== undefined ? localBalance : 0,
-            date: new Date().toISOString(),
-            balanceUnknown: localBalance === undefined
-          });
+        // Update balance only if we have a real value
+        if (localBalance !== undefined) {
+          accounts[existingIdx].balance = localBalance;
+          accounts[existingIdx].date = new Date().toISOString();
         }
       } else {
-        // New bank — always create new account
+        // Create account — use detected balance or 0 if unknown
         accounts.push({
           id: 'acc_' + Date.now(),
           name: bankInfo.name,
@@ -1028,7 +1025,7 @@ async function confirmImport(source, fileName) {
           emoji: bankInfo.emoji,
           balance: localBalance !== undefined ? localBalance : 0,
           date: new Date().toISOString(),
-          balanceUnknown: localBalance === undefined
+          balanceUnknown: localBalance === undefined // flag to prompt user
         });
       }
       localStorage.setItem('budgetfam_accounts_'+state.currentUser.id, JSON.stringify(accounts));
@@ -1192,7 +1189,7 @@ function showSettings() {
     </button>
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';editAllBudgetLimits()">
       <div class="icn" style="background:var(--yellow-soft);color:var(--yellow)">💰</div>
-      <div style="flex:1"><div class="ttl">תקציבים חודשיים</div><div class="desc">קבע מגבלה לכל קטגוריה → תקבל התראה כשתתקרב לחריגה</div></div>
+      <div style="flex:1"><div class="ttl">תקציבים חודשיים</div><div class="desc">הגדר מגבלות לכל קטגוריה</div></div>
       <div style="color:var(--muted);font-size:18px">›</div>
     </button>
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';handleLogout()" style="border-color:var(--red-soft)">
