@@ -523,10 +523,10 @@ const CAT_HE = {
   'Alimentation':'מזון','Logement':'דיור','Transport':'תחבורה','Loisirs':'בילויים',
   'Santé':'בריאות','Épargne':'חיסכון','Divers':'שונות','Salaire':'משכורת',
   'Cadeau':'מתנה','Investissement':'השקעה','Abonnements':'מנויים','Éducation':'חינוך',
-  'Allocations':'קצבאות','Cotisations':'ביטוח לאומי'
+  'Allocations':'קצבאות','Cotisations':'ביטוח לאומי','CreditCard':'כרטיס אשראי'
 };
 function catHe(c){return CAT_HE[c]||c;}
-function getCatIcon(c){const m={Alimentation:'🛒',Logement:'🏡',Transport:'🚙',Loisirs:'🎭',Santé:'💊',Épargne:'🪙',Divers:'🧩',Salaire:'💵',Cadeau:'🎁',Investissement:'📊',Abonnements:'📲',Éducation:'📚',Allocations:'🤝',Cotisations:'🏛'};return m[c]||'💎';}
+function getCatIcon(c){const m={Alimentation:'🛒',Logement:'🏡',Transport:'🚙',Loisirs:'🎭',Santé:'💊',Épargne:'🪙',Divers:'🧩',Salaire:'💵',Cadeau:'🎁',Investissement:'📊',Abonnements:'📲',Éducation:'📚',Allocations:'🤝',Cotisations:'🏛',CreditCard:'💳'};return m[c]||'💎';}
 function formatDate(d){if(!d)return'';return new Date(d).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});}
 
 // ============================================================
@@ -629,6 +629,10 @@ const RULES = [
 
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
+  // CREDIT CARD COMPANIES → CreditCard (before all other rules)
+  if (/\bvisa\b|mastercard|master.?card|isracard|ישראכרט|\bcal\b|כאל|american.?express|\bamex\b|דיינרס|diners|max.?credit|מקס.?כרטיס|leumicard|לאומיקארד|discount.?card|דיסקונט.?כרטיס/i.test(label)) {
+    return 'CreditCard';
+  }
   if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) return 'Logement';
   if (/קצבת.?ילדים|קצבה|allocation|child.?benefit|דמי.?לידה|maternity|אבטלה|unemployment|נכות|disability|הבטחת.?הכנסה/i.test(label)) return 'Allocations';
   // FIX: ביטוח לאומי débit = Cotisations (was: Logement, polluait le budget)
@@ -673,28 +677,35 @@ function normalizeCategory(raw) {
 // ============================================================
 function detectBankFromContent(text, fileName) {
   const t = (text || '').substring(0, 5000).toLowerCase();
-  if (/בנק.?הפועלים|hapoalim|פועלים/.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
-  if (/בנק.?לאומי|leumi|לאומי/.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
+  if (/בנק.?הפועלים|hapoalim|פועלים/.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
+  if (/בנק.?לאומי|leumi|לאומי/.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
   if (/בנק.?דיסקונט|discount|דיסקונט/.test(t)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
   if (/מזרחי.?טפחות|mizrahi|טפחות/.test(t)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
   if (/one.?zero|onezero|וואן.?זירו/.test(t)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
-  if (/הבינלאומי|beinleumi|first.?international/.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟪' };
-  if (/אוצר.?החייל|otsar/.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟨' };
-  if (/מרכנתיל|mercantile/.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🔷' };
+  if (/הבינלאומי|beinleumi|first.?international/.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
+  if (/אוצר.?החייל|otsar/.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟫' };
+  if (/מרכנתיל|mercantile/.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
   if (/cal\b|כאל|cal.?credit/.test(t)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
   if (/isracard|ישראכרט/.test(t)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
   if (/\bmax\b|מקס/.test(t)) return { bank: 'max', name: 'Max', emoji: '💳' };
+  if (/visa\b/i.test(t)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
+  if (/mastercard|master.?card/i.test(t)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
+  if (/amex|american.?express/i.test(t)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
   // Fallback to filename
   const f = (fileName || '').toLowerCase();
-  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
-  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
+  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
+  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
   if (/discount|דיסקונט/i.test(f)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
   if (/mizrahi|מזרחי|tefahot|טפחות/i.test(f)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
   if (/onezero|one.?zero/i.test(f)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
-  if (/beinleumi|בינלאומי/i.test(f)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟪' };
+  if (/beinleumi|בינלאומי/i.test(f)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
+  if (/mercantile|מרכנתיל/i.test(f)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
   if (/cal|כאל/i.test(f)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
   if (/isracard|ישראכרט/i.test(f)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
   if (/max/i.test(f)) return { bank: 'max', name: 'Max', emoji: '💳' };
+  if (/visa/i.test(f)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
+  if (/mastercard/i.test(f)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
+  if (/amex|american/i.test(f)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
   // Unknown — flag as ambiguous → always create new account
   return { bank: 'unknown_' + Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
 }
@@ -992,17 +1003,30 @@ async function confirmImport(source, fileName) {
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+state.currentUser.id)||'[]');
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+state.currentUser.id, JSON.stringify(history.slice(0,20)));
-    // FIX: Save balance only after successful insert. Use bank from CONTENT (not filename).
-    if (finalToInsert.length > 0 && localBalance !== undefined && state.currentUser) {
+    // FIX: Save/create account after successful insert.
+    // Create account even if no balance detected (user can update manually later)
+    if (finalToInsert.length > 0 && state.currentUser) {
       const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+state.currentUser.id)||'[]');
       const bankInfo = localBankInfo || { bank: 'unknown_'+Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
       // FIX: ambiguous bank → always create new account (never overwrite)
       const existingIdx = bankInfo.ambiguous ? -1 : accounts.findIndex(a => a.bank === bankInfo.bank);
       if (existingIdx >= 0) {
-        accounts[existingIdx].balance = localBalance;
-        accounts[existingIdx].date = new Date().toISOString();
+        // Update balance only if we have a real value
+        if (localBalance !== undefined) {
+          accounts[existingIdx].balance = localBalance;
+          accounts[existingIdx].date = new Date().toISOString();
+        }
       } else {
-        accounts.push({ id: 'acc_' + Date.now(), name: bankInfo.name, bank: bankInfo.bank, emoji: bankInfo.emoji, balance: localBalance, date: new Date().toISOString() });
+        // Create account — use detected balance or 0 if unknown
+        accounts.push({
+          id: 'acc_' + Date.now(),
+          name: bankInfo.name,
+          bank: bankInfo.bank,
+          emoji: bankInfo.emoji,
+          balance: localBalance !== undefined ? localBalance : 0,
+          date: new Date().toISOString(),
+          balanceUnknown: localBalance === undefined // flag to prompt user
+        });
       }
       localStorage.setItem('budgetfam_accounts_'+state.currentUser.id, JSON.stringify(accounts));
       const totalBalance = accounts.reduce((s,a) => s + (parseFloat(a.balance)||0), 0);
@@ -1731,8 +1755,10 @@ async function loadDashboard() {
             <span style="font-size:18px">${a.emoji||'🏦'}</span>
             <span style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</span>
           </div>
-          <div style="font-size:13px;font-weight:700;direction:ltr;color:${a.balance>=0?'var(--text)':'var(--red)'}">${(parseFloat(a.balance)||0).toLocaleString('he-IL')} ₪</div>
-          <span style="font-size:10px;opacity:0.4;margin-right:6px">✏️</span>
+          <div style="font-size:13px;font-weight:700;direction:ltr;color:${a.balanceUnknown?'var(--yellow)':a.balance>=0?'var(--text)':'var(--red)'}">
+            ${a.balanceUnknown ? '<span style="font-size:10px;background:var(--yellow-soft);color:var(--yellow);padding:2px 6px;border-radius:6px;border:1px solid var(--yellow)">עדכן יתרה ✏️</span>' : `${(parseFloat(a.balance)||0).toLocaleString('he-IL')} ₪`}
+          </div>
+          <span style="font-size:10px;opacity:0.4;margin-right:6px">›</span>
         </div>`).join('')}
       <button onclick="addAccount()" style="width:100%;margin-top:8px;padding:9px;background:var(--accent-soft);border:1px dashed var(--accent);border-radius:10px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">+ הוסף חשבון</button>
     </div>` : `
@@ -2419,12 +2445,20 @@ async function runAiWizard() {
     const dj = Math.round(target * 0.06);
     const dress = Math.round(target * 0.16);
     const flowers = Math.round(target * 0.10);
-    const other = target - venueAndFood - photo - dj - dress - flowers;
+    const invitations = Math.round(target * 0.03);
+    const other = target - venueAndFood - photo - dj - dress - flowers - invitations;
     const shareLabel = sharedCost==='all'?'אתה משלם הכל':sharedCost==='half'?'מתחלקים 50/50':`לפי אורחים (${myGuests}/${totalGuests})`;
-    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong><br>${totalGuests} אורחים · ${shareLabel}<br><br>📊 <strong>החלק שלך:</strong> ${target.toLocaleString('he-IL')} ₪<br><small style="color:var(--muted)">(סה"כ: ${totalCost.toLocaleString('he-IL')} ₪)</small><br><br>🏛 אולם+קייטרינג: ${venueAndFood.toLocaleString('he-IL')} ₪<br>📸 צילום: ${photo.toLocaleString('he-IL')} ₪<br>🎵 DJ: ${dj.toLocaleString('he-IL')} ₪<br>👰 שמלה: ${dress.toLocaleString('he-IL')} ₪<br>🌸 פרחים: ${flowers.toLocaleString('he-IL')} ₪<br>✨ שאר: ${other.toLocaleString('he-IL')} ₪`;
+    const photoRange = style==='luxe'?'10,000-20,000₪':style==='simple'?'3,000-6,000₪':'5,000-10,000₪';
+    const djRange = style==='luxe'?'4,000-7,000₪':style==='simple'?'1,500-3,000₪':'2,500-4,500₪';
+    const dressRange = style==='luxe'?'15,000-30,000₪':style==='simple'?'4,000-8,000₪':'8,000-15,000₪';
+    const flowersRange = style==='luxe'?'15,000-25,000₪':style==='simple'?'3,000-6,000₪':'8,000-15,000₪';
+    aiText = `💒 <strong>חתונה ${style==='luxe'?'יוקרתית':style==='simple'?'פשוטה':'קלאסית'}</strong> · ${totalGuests} אורחים<br><small style="color:var(--muted)">${shareLabel} · סה"כ: ${totalCost.toLocaleString('he-IL')} ₪</small><br><br><strong>📊 החלק שלך: ${target.toLocaleString('he-IL')} ₪</strong><br><br>🏛 אולם + קייטרינג: <b>${venueAndFood.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">כולל שתייה ועמוד חלה</small><br>📸 צילום + וידאו: <b>${photo.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">שוק ישראלי: ${photoRange}</small><br>🎵 DJ + סאונד: <b>${dj.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">${djRange}</small><br>👰 שמלה + חליפה: <b>${dress.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">שכירות שמלה: ${dressRange}</small><br>🌸 פרחים + עיצוב: <b>${flowers.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">${flowersRange}</small><br>💌 הזמנות + כיפות: <b>${invitations.toLocaleString('he-IL')} ₪</b><br>✨ שאר (איפור, כיבוד...): <b>${other.toLocaleString('he-IL')} ₪</b>`;
   } else if (wt==='voiture') {
     target = target || 80000;
-    aiText = `🚗 <strong>${style||'רכב'} - ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי: ${Math.round(target*0.25).toLocaleString('he-IL')} ₪<br>📅 ${months} חודשים`;
+    const down = Math.round(target * 0.25);
+    const insurance = style==='חשמלי' ? Math.round(target*0.04) : Math.round(target*0.05);
+    const test = 620; const license = 400; const fuel = style==='חשמלי' ? 200 : 1400;
+    aiText = `🚗 <strong>${style||'רכב'} — ${target.toLocaleString('he-IL')} ₪</strong><br><br>💰 הון עצמי מומלץ (25%): <b>${down.toLocaleString('he-IL')} ₪</b><br>📅 ${months} חודשים לחיסכון<br><br><strong>⚠️ הוצאות שנתיות נוספות:</strong><br>🛡 ביטוח: <b>~${insurance.toLocaleString('he-IL')} ₪/שנה</b><br>🔧 טיפולים + אגרה: <b>~3,000 ₪/שנה</b><br>🚗 רישיון + טסט: <b>~${(test+license).toLocaleString('he-IL')} ₪/שנה</b><br>${style==='חשמלי'?'⚡ טעינה':'⛽ דלק'}: <b>~${fuel.toLocaleString('he-IL')} ₪/חודש</b>`;
   } else if (wt==='immobilier') {
     target = target || 1500000;
     const downPct = parseInt(pct)||25;
@@ -2432,27 +2466,46 @@ async function runAiWizard() {
     const loan = target - apport;
     const monthlyRate = 0.05/12; const numPayments = 25*12;
     const monthlyPay = Math.round(loan * (monthlyRate * Math.pow(1+monthlyRate, numPayments)) / (Math.pow(1+monthlyRate, numPayments) - 1));
-    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong><br>${target.toLocaleString('he-IL')} ₪<br><br>💰 הון עצמי: ${apport.toLocaleString('he-IL')} ₪<br>🏦 משכנתא: ${loan.toLocaleString('he-IL')} ₪<br>📅 ${monthlyPay.toLocaleString('he-IL')} ₪/חודש`;
+    const purchaseTax = target > 1978745 ? Math.round((target - 1978745) * 0.035 + (1978745 - 1446850) * 0.035) : 0;
+    const lawyer = Math.round(target * 0.007);
+    const agent = Math.round(target * 0.015);
+    aiText = `🏡 <strong>דירה ב${region||'ישראל'}</strong> — ${target.toLocaleString('he-IL')} ₪<br><br>💰 הון עצמי (${downPct}%): <b>${apport.toLocaleString('he-IL')} ₪</b><br>🏦 משכנתא: <b>${loan.toLocaleString('he-IL')} ₪</b><br>📅 החזר חודשי: <b>${monthlyPay.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">25 שנה, ריבית 5%</small><br><br><strong>⚠️ עלויות נוספות:</strong><br>📋 מס רכישה: <b>${purchaseTax > 0 ? purchaseTax.toLocaleString('he-IL')+'₪' : 'פטור (דירה ראשונה)'}</b><br>👨‍⚖️ עורך דין: <b>~${lawyer.toLocaleString('he-IL')} ₪</b><br>🏘 תיווך: <b>~${agent.toLocaleString('he-IL')} ₪</b>`;
     target = apport;
   } else if (wt==='epargne') {
     target = target || 50000;
-    aiText = `🪙 <strong>${who||'חיסכון'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים<br>💵 ${Math.ceil(target/months).toLocaleString('he-IL')} ₪/חודש`;
+    const monthlyAmt = Math.ceil(target / months);
+    aiText = `🪙 <strong>${who||'חיסכון'} — ${target.toLocaleString('he-IL')} ₪</strong><br><br>📅 ${months} חודשים<br>💵 <b>${monthlyAmt.toLocaleString('he-IL')} ₪/חודש</b><br><br>💡 <strong>המלצות:</strong><br>• הפקדה אוטומטית בתחילת החודש<br>• קרן השתלמות = פטור ממס אחרי 6 שנים<br>• חשבון נפרד — לא לגעת!`;
   } else if (wt==='barmitsva') {
     const g = parseInt(guests||150);
-    target = target || g * (style==='luxe'?550:style==='simple'?200:350);
-    aiText = `🎉 <strong>בר/בת מצווה ${who||''}</strong><br>${g} אורחים · ${target.toLocaleString('he-IL')} ₪`;
+    const styleMul2 = style==='luxe'?550:style==='simple'?200:350;
+    target = target || g * styleMul2;
+    const venue3 = Math.round(target * 0.45);
+    const dj3 = Math.round(target * 0.08);
+    const photo3 = Math.round(target * 0.12);
+    const clothing3 = Math.round(target * 0.10);
+    const gifts3 = Math.round(target * 0.08);
+    const other3 = target - venue3 - dj3 - photo3 - clothing3 - gifts3;
+    aiText = `🎉 <strong>בר/בת מצווה ${who||''}</strong> · ${g} אורחים<br><b>${target.toLocaleString('he-IL')} ₪</b><br><br>🏛 אולם + קייטרינג: <b>${venue3.toLocaleString('he-IL')} ₪</b><br>🎵 DJ + מוזיקה: <b>${dj3.toLocaleString('he-IL')} ₪</b><br>📸 צילום + וידאו: <b>${photo3.toLocaleString('he-IL')} ₪</b><br>👔 ביגוד: <b>${clothing3.toLocaleString('he-IL')} ₪</b><br>🎁 מתנה לבר/בת מצווה: <b>${gifts3.toLocaleString('he-IL')} ₪</b><br>✨ שאר (הזמנות, עיצוב...): <b>${other3.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">💡 הזמן אולם 12 חודשים מראש</small>`;
   } else if (wt==='brit') {
     const g = parseInt(guests||80);
-    target = target || g * (style==='luxe'?300:style==='simple'?80:150);
-    aiText = `👶 <strong>ברית ${who||''}</strong><br>${g} אורחים · ${target.toLocaleString('he-IL')} ₪`;
+    const styleMul3 = style==='luxe'?300:style==='simple'?80:150;
+    target = target || g * styleMul3;
+    const food4 = Math.round(target * 0.55);
+    const venue4 = Math.round(target * 0.20);
+    const photoFixed = style==='luxe'?4500:style==='simple'?1200:2500;
+    const other4 = Math.max(0, target - food4 - venue4 - photoFixed);
+    aiText = `👶 <strong>ברית/שמחה ${who||''}</strong> · ${g} אורחים<br><b>${target.toLocaleString('he-IL')} ₪</b><br><br>🍽 אוכל + קייטרינג: <b>${food4.toLocaleString('he-IL')} ₪</b><br>🏠 מקום: <b>${venue4.toLocaleString('he-IL')} ₪</b><br>📸 צילום: <b>${photoFixed.toLocaleString('he-IL')} ₪</b><br>✨ שאר: <b>${other4.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">💡 ברית בבית חוסכת ~30%</small>`;
   } else if (wt==='chabbat') {
     const d = parseInt(guests||20);
     const pp = style==='luxe'?250:style==='simple'?100:150;
     target = target || d * pp;
-    aiText = `🕍 <strong>${who||'שבת/חג'}</strong><br>${d} סועדים × ${pp}₪ = ${target.toLocaleString('he-IL')} ₪`;
+    const food5 = Math.round(target * 0.70);
+    const wine5 = Math.round(target * 0.15);
+    const other5 = target - food5 - wine5;
+    aiText = `🕍 <strong>${who||'שבת/חג'}</strong><br>${d} סועדים × ${pp}₪ = <b>${target.toLocaleString('he-IL')} ₪</b><br><br>🍖 אוכל: <b>${food5.toLocaleString('he-IL')} ₪</b><br>🍷 יין + משקאות: <b>${wine5.toLocaleString('he-IL')} ₪</b><br>✨ עיצוב + פרחים: <b>${other5.toLocaleString('he-IL')} ₪</b><br><small style="color:var(--muted)">💡 Shufersal Deal ביום חמישי = חיסכון 20%</small>`;
   } else {
     target = target || 15000;
-    aiText = `🎯 <strong>${who||'הפרויקט שלי'} - ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים`;
+    aiText = `🎯 <strong>${who||'הפרויקט שלי'} — ${target.toLocaleString('he-IL')} ₪</strong><br>📅 ${months} חודשים`;
   }
   const monthly = target > 0 ? Math.ceil(target / months) : 0;
   const projName=wt==='mariage'?`💒 חתונת ${who||'הילד שלי'}`:wt==='voiture'?`🚗 ${style||'רכב'}`:wt==='immobilier'?`🏡 דירה ${region||''}`:wt==='epargne'?`🪙 ${who||'חיסכון'}`:wt==='barmitsva'?`🎉 בר/בת מצווה ${who||''}`:wt==='brit'?`👶 ברית ${who||''}`:wt==='chabbat'?`🕍 ${who||'שבת/חג'}`:who||'🎯 פרויקט';
