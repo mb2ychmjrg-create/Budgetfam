@@ -654,25 +654,10 @@ function normalizeCategory(raw) {
 // BANK DETECTION FROM CONTENT (FIX: was filename-only)
 // ============================================================
 function detectBankFromContent(text, fileName) {
-  const t = (text || '').substring(0, 5000).toLowerCase();
-  if (/בנק.?הפועלים|hapoalim|פועלים/.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
-  if (/בנק.?לאומי|leumi|לאומי/.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
-  if (/בנק.?דיסקונט|discount|דיסקונט/.test(t)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
-  if (/מזרחי.?טפחות|mizrahi|טפחות/.test(t)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
-  if (/one.?zero|onezero|וואן.?זירו/.test(t)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
-  if (/הבינלאומי|beinleumi|first.?international/.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
-  if (/אוצר.?החייל|otsar/.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟫' };
-  if (/מרכנתיל|mercantile/.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
-  if (/cal\b|כאל|cal.?credit/.test(t)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
-  if (/isracard|ישראכרט/.test(t)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
-  if (/\bmax\b|מקס/.test(t)) return { bank: 'max', name: 'Max', emoji: '💳' };
-  if (/visa\b/i.test(t)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
-  if (/mastercard|master.?card/i.test(t)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
-  if (/amex|american.?express/i.test(t)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
-  // Fallback to filename
+  // PRIORITY 1: filename is more reliable than PDF content
   const f = (fileName || '').toLowerCase();
-  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
-  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
+  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
+  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
   if (/discount|דיסקונט/i.test(f)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
   if (/mizrahi|מזרחי|tefahot|טפחות/i.test(f)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
   if (/onezero|one.?zero/i.test(f)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
@@ -684,6 +669,25 @@ function detectBankFromContent(text, fileName) {
   if (/visa/i.test(f)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
   if (/mastercard/i.test(f)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
   if (/amex|american/i.test(f)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
+
+  // PRIORITY 2: PDF content — use only first 2000 chars (header) to avoid false matches from transfer lines
+  const t = (text || '').substring(0, 2000);
+  // Look for bank header patterns (more specific)
+  if (/בנק\s*הפועלים|Bank\s*Hapoalim/i.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
+  if (/בנק\s*לאומי|Bank\s*Leumi/i.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
+  if (/בנק\s*דיסקונט|Bank\s*Discount/i.test(t)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
+  if (/בנק\s*מזרחי|מזרחי\s*טפחות|Mizrahi/i.test(t)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
+  if (/one.?zero|וואן.?זירו/i.test(t)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
+  if (/הבינלאומי|First\s*International/i.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
+  if (/אוצר\s*החייל/i.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟫' };
+  if (/מרכנתיל|Mercantile/i.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
+  if (/\bכאל\b|cal\s*credit/i.test(t)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
+  if (/ישראכרט|Isracard/i.test(t)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
+  if (/\bמקס\b|\bmax\b/i.test(t)) return { bank: 'max', name: 'Max', emoji: '💳' };
+  if (/\bvisa\b/i.test(t)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
+  if (/mastercard/i.test(t)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
+  if (/amex|american\s*express/i.test(t)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
+
   // Unknown — flag as ambiguous → always create new account
   return { bank: 'unknown_' + Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
 }
@@ -1188,7 +1192,7 @@ function showSettings() {
     </button>
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';editAllBudgetLimits()">
       <div class="icn" style="background:var(--yellow-soft);color:var(--yellow)">💰</div>
-      <div style="flex:1"><div class="ttl">תקציבים חודשיים</div><div class="desc">הגדר מגבלות לכל קטגוריה</div></div>
+      <div style="flex:1"><div class="ttl">תקציבים חודשיים</div><div class="desc">קבע מגבלה לכל קטגוריה → תקבל התראה כשתתקרב לחריגה</div></div>
       <div style="color:var(--muted);font-size:18px">›</div>
     </button>
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';handleLogout()" style="border-color:var(--red-soft)">
