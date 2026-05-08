@@ -990,7 +990,7 @@ async function confirmImport(source, fileName) {
       if (existingIdx >= 0) {
         // Bank already exists — ask user: update existing or create new account?
         const existing = accounts[existingIdx];
-        const choice = await showConfirm({
+        const choice = await customConfirm({
           title: `${bankInfo.emoji} ${bankInfo.name}`,
           message: `זיהינו ${bankInfo.name}. מה לעשות?`,
           okText: 'עדכן חשבון קיים',
