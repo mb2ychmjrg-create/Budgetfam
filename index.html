@@ -155,7 +155,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 .cm-input:focus{border-color:var(–accent);}
 .cm-actions{display:flex;gap:8px;}
 .cm-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:‘Heebo’,sans-serif;}
-.cm-btn-cancel{background:transparent;border:1px solid var(–border);color:var(–muted);}
+.cm-btn-cancel{background:var(–divider);border:1px solid var(–border);color:var(–text);}
 .cm-btn-ok{background:var(–accent);color:white;}
 .cm-btn-danger{background:var(–red);color:white;}
 
@@ -207,10 +207,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 
 <div id="main-app" style="display:none;flex-direction:column;height:100%">
 
-  <!-- AI Coach FAB (single, replaces 2 floating buttons) -->
+  <!-- יועץ פיננסי FAB (single, replaces 2 floating buttons) -->
 
-  <button id="ai-fab" class="ai-fab" onclick="openAICoach()" title="AI Coach">
-    🤖<span id="ai-fab-badge" class="badge">!</span>
+  <button id="ai-fab" class="ai-fab" onclick="openAICoach()" title="יועץ פיננסי">
+    💼<span id="ai-fab-badge" class="badge">!</span>
   </button>
 
   <!-- AI COACH MENU MODAL -->
@@ -220,9 +220,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeAICoach()">✕</button>
       <div style="text-align:center;margin-bottom:18px">
-        <div style="font-size:36px;margin-bottom:4px">🤖</div>
-        <div class="rubik" style="font-size:18px;font-weight:800">AI Coach</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">תובנות מותאמות אישית</div>
+        <div style="font-size:36px;margin-bottom:4px">💼</div>
+        <div class="rubik" style="font-size:18px;font-weight:800">יועץ פיננסי</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">הייעוץ הפיננסי שלך</div>
       </div>
       <div id="ai-menu-list">
         <div id="ai-menu-insight" class="ai-menu-item" onclick="showDailyInsight()">
@@ -343,28 +343,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 <!-- BANK IMPORT -->
 <div id="view-bank" class="view">
   <div class="rubik fu fu1" style="font-size:20px;font-weight:800;margin-bottom:4px">📥 ייבוא דפי בנק</div>
-  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">בינה מלאכותית קוראת את הדף · קטגוריזציה אוטומטית</div>
-
-  <div class="card fu fu1" style="margin-bottom:14px">
-    <div class="rubik sec-title">🏦 כל הבנקים בישראל</div>
-    <div class="bank-grid">
-      <div class="bank-card"><span class="b-emoji">🟦</span>הפועלים</div>
-      <div class="bank-card"><span class="b-emoji">🟥</span>לאומי</div>
-      <div class="bank-card"><span class="b-emoji">🟩</span>דיסקונט</div>
-      <div class="bank-card"><span class="b-emoji">🟧</span>מזרחי טפחות</div>
-      <div class="bank-card"><span class="b-emoji">⬛</span>One Zero</div>
-      <div class="bank-card"><span class="b-emoji">🟪</span>הבינלאומי</div>
-      <div class="bank-card"><span class="b-emoji">🟨</span>אוצר החייל</div>
-      <div class="bank-card"><span class="b-emoji">🔷</span>מרכנתיל</div>
-      <div class="bank-card"><span class="b-emoji">💳</span>+ אשראי</div>
-    </div>
-  </div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">כל הבנקים בישראל · קטגוריזציה אוטומטית</div>
 
   <button class="import-btn fu fu1" onclick="document.getElementById('pdf-input').click()">
     <div class="icon" style="background:var(--red-soft);color:var(--red)">📄</div>
     <div class="info">
       <div class="name">ייבוא PDF</div>
-      <div class="sub">דף בנק או כרטיס אשראי בפורמט PDF<br>הבינה המלאכותית מחלצת את כל העסקאות</div>
+      <div class="sub">דף בנק או כרטיס אשראי</div>
     </div>
     <div class="arrow">›</div>
   </button>
@@ -373,7 +358,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     <div class="icon" style="background:var(--purple-soft);color:var(--purple)">📸</div>
     <div class="info">
       <div class="name">תמונה / צילום מסך</div>
-      <div class="sub">צילום מסך מאפליקציית הבנק שלך<br>או תמונה של דף בנק מודפס</div>
+      <div class="sub">צילום מסך מאפליקציית הבנק</div>
     </div>
     <div class="arrow">›</div>
   </button>
@@ -381,13 +366,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
   <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
   <div id="import-status" style="margin-top:14px"></div>
-
-  <div class="card fu fu4" style="margin-top:14px;background:var(--accent-soft);border-color:var(--accent)">
-    <div class="rubik sec-title" style="color:var(--accent)">💡 טיפ מהיר</div>
-    <div style="font-size:12px;color:var(--muted);line-height:1.8">
-      <b>הדרך המהירה ביותר:</b> פתח את אפליקציית הבנק שלך, צלם <b>צילום מסך</b> וייבא אותו עם הכפתור 📸. הבינה המלאכותית קוראת הכל אוטומטית!
-    </div>
-  </div>
 
   <div class="card fu fu4" style="margin-top:8px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -1003,21 +981,42 @@ async function confirmImport(source, fileName) {
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+state.currentUser.id)||'[]');
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+state.currentUser.id, JSON.stringify(history.slice(0,20)));
-    // FIX: Save/create account after successful insert.
-    // Create account even if no balance detected (user can update manually later)
+    // Save/create account after successful insert
     if (finalToInsert.length > 0 && state.currentUser) {
       const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+state.currentUser.id)||'[]');
       const bankInfo = localBankInfo || { bank: 'unknown_'+Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
-      // FIX: ambiguous bank → always create new account (never overwrite)
+      // Find existing account with same bank
       const existingIdx = bankInfo.ambiguous ? -1 : accounts.findIndex(a => a.bank === bankInfo.bank);
       if (existingIdx >= 0) {
-        // Update balance only if we have a real value
-        if (localBalance !== undefined) {
-          accounts[existingIdx].balance = localBalance;
-          accounts[existingIdx].date = new Date().toISOString();
+        // Bank already exists — ask user: update existing or create new account?
+        const existing = accounts[existingIdx];
+        const choice = await showConfirm({
+          title: `${bankInfo.emoji} ${bankInfo.name}`,
+          message: `זיהינו ${bankInfo.name}. מה לעשות?`,
+          okText: 'עדכן חשבון קיים',
+          cancelText: 'צור חשבון חדש'
+        });
+        if (choice) {
+          // Update existing
+          if (localBalance !== undefined) {
+            accounts[existingIdx].balance = localBalance;
+            accounts[existingIdx].date = new Date().toISOString();
+          }
+        } else {
+          // Create new account for same bank (e.g. joint account)
+          const accNum = accounts.filter(a => a.bank === bankInfo.bank).length + 1;
+          accounts.push({
+            id: 'acc_' + Date.now(),
+            name: bankInfo.name + ' ' + accNum,
+            bank: bankInfo.bank + '_' + Date.now(),
+            emoji: bankInfo.emoji,
+            balance: localBalance !== undefined ? localBalance : 0,
+            date: new Date().toISOString(),
+            balanceUnknown: localBalance === undefined
+          });
         }
       } else {
-        // Create account — use detected balance or 0 if unknown
+        // New bank — always create new account
         accounts.push({
           id: 'acc_' + Date.now(),
           name: bankInfo.name,
@@ -1025,7 +1024,7 @@ async function confirmImport(source, fileName) {
           emoji: bankInfo.emoji,
           balance: localBalance !== undefined ? localBalance : 0,
           date: new Date().toISOString(),
-          balanceUnknown: localBalance === undefined // flag to prompt user
+          balanceUnknown: localBalance === undefined
         });
       }
       localStorage.setItem('budgetfam_accounts_'+state.currentUser.id, JSON.stringify(accounts));
