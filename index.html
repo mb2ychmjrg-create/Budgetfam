@@ -401,6 +401,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <option value="Épargne">💰 חיסכון</option>
       <option value="Abonnements">📱 מנויים</option>
       <option value="Éducation">🎓 חינוך</option>
+      <option value="CreditCard">💳 כרטיס אשראי</option>
       <option value="Divers">📦 שונות</option>
     </select>
     <button class="submit-btn" id="submit-btn" onclick="submitTx()">הוסף עסקה</button>
@@ -607,8 +608,8 @@ const RULES = [
 
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
-  // CREDIT CARD COMPANIES → CreditCard (before all other rules)
-  if (/\bvisa\b|mastercard|master.?card|isracard|ישראכרט|\bcal\b|כאל|american.?express|\bamex\b|דיינרס|diners|max.?credit|מקס.?כרטיס|leumicard|לאומיקארד|discount.?card|דיסקונט.?כרטיס/i.test(label)) {
+  // CREDIT CARD COMPANIES → CreditCard (always first, before all other rules)
+  if (/\bvisa\b|mastercard|master.?card|isracard|ישראכרט|\bcal\b|כאל|american.?express|\bamex\b|דיינרס|diners|max.?credit|מקס.?כרטיס|leumicard|לאומיקארד|discount.?card|דיסקונט.?כרטיס|\bmax\b.*(כרטיס|card)|כרטיס.?אשראי|credit.?card|ויזה|\bלאומי.?קארד\b|\bלאומיקארד\b/i.test(label)) {
     return 'CreditCard';
   }
   if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) return 'Logement';
@@ -623,7 +624,6 @@ function localCategorize(label, amount) {
   }
   if (/הפקדה|פקדון|deposit|fakadon/i.test(label)) return 'Épargne';
   if (/העברה|transfer|haavara/i.test(label)) return amount > 0 ? 'Salaire' : 'Divers';
-  if (/כרטיסי.?אשראי|credit.?card.?payment/i.test(label)) return 'Divers';
   for (const [re, cat] of RULES) { if (re.test(label)) return cat; }
   return amount > 0 ? 'Salaire' : 'Divers';
 }
