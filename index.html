@@ -155,7 +155,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 .cm-input:focus{border-color:var(–accent);}
 .cm-actions{display:flex;gap:8px;}
 .cm-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:‘Heebo’,sans-serif;}
-.cm-btn-cancel{background:transparent;border:1px solid var(–border);color:var(–muted);}
+.cm-btn-cancel{background:var(–divider);border:1px solid var(–border);color:var(–text);}
 .cm-btn-ok{background:var(–accent);color:white;}
 .cm-btn-danger{background:var(–red);color:white;}
 
@@ -207,10 +207,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 
 <div id="main-app" style="display:none;flex-direction:column;height:100%">
 
-  <!-- AI Coach FAB (single, replaces 2 floating buttons) -->
+  <!-- יועץ פיננסי FAB (single, replaces 2 floating buttons) -->
 
-  <button id="ai-fab" class="ai-fab" onclick="openAICoach()" title="AI Coach">
-    🤖<span id="ai-fab-badge" class="badge">!</span>
+  <button id="ai-fab" class="ai-fab" onclick="openAICoach()" title="יועץ פיננסי">
+    💼<span id="ai-fab-badge" class="badge">!</span>
   </button>
 
   <!-- AI COACH MENU MODAL -->
@@ -220,9 +220,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
       <div class="modal-handle"></div>
       <button class="modal-close" onclick="closeAICoach()">✕</button>
       <div style="text-align:center;margin-bottom:18px">
-        <div style="font-size:36px;margin-bottom:4px">🤖</div>
-        <div class="rubik" style="font-size:18px;font-weight:800">AI Coach</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">תובנות מותאמות אישית</div>
+        <div style="font-size:36px;margin-bottom:4px">💼</div>
+        <div class="rubik" style="font-size:18px;font-weight:800">יועץ פיננסי</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">הייעוץ הפיננסי שלך</div>
       </div>
       <div id="ai-menu-list">
         <div id="ai-menu-insight" class="ai-menu-item" onclick="showDailyInsight()">
@@ -343,28 +343,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 <!-- BANK IMPORT -->
 <div id="view-bank" class="view">
   <div class="rubik fu fu1" style="font-size:20px;font-weight:800;margin-bottom:4px">📥 ייבוא דפי בנק</div>
-  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">בינה מלאכותית קוראת את הדף · קטגוריזציה אוטומטית</div>
-
-  <div class="card fu fu1" style="margin-bottom:14px">
-    <div class="rubik sec-title">🏦 כל הבנקים בישראל</div>
-    <div class="bank-grid">
-      <div class="bank-card"><span class="b-emoji">🟦</span>הפועלים</div>
-      <div class="bank-card"><span class="b-emoji">🟥</span>לאומי</div>
-      <div class="bank-card"><span class="b-emoji">🟩</span>דיסקונט</div>
-      <div class="bank-card"><span class="b-emoji">🟧</span>מזרחי טפחות</div>
-      <div class="bank-card"><span class="b-emoji">⬛</span>One Zero</div>
-      <div class="bank-card"><span class="b-emoji">🟪</span>הבינלאומי</div>
-      <div class="bank-card"><span class="b-emoji">🟨</span>אוצר החייל</div>
-      <div class="bank-card"><span class="b-emoji">🔷</span>מרכנתיל</div>
-      <div class="bank-card"><span class="b-emoji">💳</span>+ אשראי</div>
-    </div>
-  </div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">כל הבנקים בישראל · קטגוריזציה אוטומטית</div>
 
   <button class="import-btn fu fu1" onclick="document.getElementById('pdf-input').click()">
     <div class="icon" style="background:var(--red-soft);color:var(--red)">📄</div>
     <div class="info">
       <div class="name">ייבוא PDF</div>
-      <div class="sub">דף בנק או כרטיס אשראי בפורמט PDF<br>הבינה המלאכותית מחלצת את כל העסקאות</div>
+      <div class="sub">דף בנק או כרטיס אשראי</div>
     </div>
     <div class="arrow">›</div>
   </button>
@@ -373,7 +358,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
     <div class="icon" style="background:var(--purple-soft);color:var(--purple)">📸</div>
     <div class="info">
       <div class="name">תמונה / צילום מסך</div>
-      <div class="sub">צילום מסך מאפליקציית הבנק שלך<br>או תמונה של דף בנק מודפס</div>
+      <div class="sub">צילום מסך מאפליקציית הבנק</div>
     </div>
     <div class="arrow">›</div>
   </button>
@@ -381,13 +366,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
   <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDFImport(this)">
   <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoImport(this)">
   <div id="import-status" style="margin-top:14px"></div>
-
-  <div class="card fu fu4" style="margin-top:14px;background:var(--accent-soft);border-color:var(--accent)">
-    <div class="rubik sec-title" style="color:var(--accent)">💡 טיפ מהיר</div>
-    <div style="font-size:12px;color:var(--muted);line-height:1.8">
-      <b>הדרך המהירה ביותר:</b> פתח את אפליקציית הבנק שלך, צלם <b>צילום מסך</b> וייבא אותו עם הכפתור 📸. הבינה המלאכותית קוראת הכל אוטומטית!
-    </div>
-  </div>
 
   <div class="card fu fu4" style="margin-top:8px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -676,25 +654,10 @@ function normalizeCategory(raw) {
 // BANK DETECTION FROM CONTENT (FIX: was filename-only)
 // ============================================================
 function detectBankFromContent(text, fileName) {
-  const t = (text || '').substring(0, 5000).toLowerCase();
-  if (/בנק.?הפועלים|hapoalim|פועלים/.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
-  if (/בנק.?לאומי|leumi|לאומי/.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
-  if (/בנק.?דיסקונט|discount|דיסקונט/.test(t)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
-  if (/מזרחי.?טפחות|mizrahi|טפחות/.test(t)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
-  if (/one.?zero|onezero|וואן.?זירו/.test(t)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
-  if (/הבינלאומי|beinleumi|first.?international/.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
-  if (/אוצר.?החייל|otsar/.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟫' };
-  if (/מרכנתיל|mercantile/.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
-  if (/cal\b|כאל|cal.?credit/.test(t)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
-  if (/isracard|ישראכרט/.test(t)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
-  if (/\bmax\b|מקס/.test(t)) return { bank: 'max', name: 'Max', emoji: '💳' };
-  if (/visa\b/i.test(t)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
-  if (/mastercard|master.?card/i.test(t)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
-  if (/amex|american.?express/i.test(t)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
-  // Fallback to filename
+  // PRIORITY 1: filename is more reliable than PDF content
   const f = (fileName || '').toLowerCase();
-  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟥' };
-  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟦' };
+  if (/hapoalim|פועלים/i.test(f)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
+  if (/leumi|לאומי/i.test(f)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
   if (/discount|דיסקונט/i.test(f)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
   if (/mizrahi|מזרחי|tefahot|טפחות/i.test(f)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
   if (/onezero|one.?zero/i.test(f)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
@@ -706,6 +669,25 @@ function detectBankFromContent(text, fileName) {
   if (/visa/i.test(f)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
   if (/mastercard/i.test(f)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
   if (/amex|american/i.test(f)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
+
+  // PRIORITY 2: PDF content — use only first 2000 chars (header) to avoid false matches from transfer lines
+  const t = (text || '').substring(0, 2000);
+  // Look for bank header patterns (more specific)
+  if (/בנק\s*הפועלים|Bank\s*Hapoalim/i.test(t)) return { bank: 'hapoalim', name: 'הפועלים', emoji: '🟦' };
+  if (/בנק\s*לאומי|Bank\s*Leumi/i.test(t)) return { bank: 'leumi', name: 'לאומי', emoji: '🟥' };
+  if (/בנק\s*דיסקונט|Bank\s*Discount/i.test(t)) return { bank: 'discount', name: 'דיסקונט', emoji: '🟩' };
+  if (/בנק\s*מזרחי|מזרחי\s*טפחות|Mizrahi/i.test(t)) return { bank: 'mizrahi', name: 'מזרחי טפחות', emoji: '🟧' };
+  if (/one.?zero|וואן.?זירו/i.test(t)) return { bank: 'onezero', name: 'One Zero', emoji: '⬛' };
+  if (/הבינלאומי|First\s*International/i.test(t)) return { bank: 'beinleumi', name: 'הבינלאומי', emoji: '🟨' };
+  if (/אוצר\s*החייל/i.test(t)) return { bank: 'otsar', name: 'אוצר החייל', emoji: '🟫' };
+  if (/מרכנתיל|Mercantile/i.test(t)) return { bank: 'mercantile', name: 'מרכנתיל', emoji: '🟩' };
+  if (/\bכאל\b|cal\s*credit/i.test(t)) return { bank: 'cal', name: 'כאל', emoji: '💳' };
+  if (/ישראכרט|Isracard/i.test(t)) return { bank: 'isracard', name: 'ישראכרט', emoji: '💳' };
+  if (/\bמקס\b|\bmax\b/i.test(t)) return { bank: 'max', name: 'Max', emoji: '💳' };
+  if (/\bvisa\b/i.test(t)) return { bank: 'visa', name: 'Visa', emoji: '💳' };
+  if (/mastercard/i.test(t)) return { bank: 'mastercard', name: 'Mastercard', emoji: '💳' };
+  if (/amex|american\s*express/i.test(t)) return { bank: 'amex', name: 'Amex', emoji: '💳' };
+
   // Unknown — flag as ambiguous → always create new account
   return { bank: 'unknown_' + Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
 }
@@ -1003,21 +985,42 @@ async function confirmImport(source, fileName) {
     const history = JSON.parse(localStorage.getItem('budgetfam_imports_'+state.currentUser.id)||'[]');
     history.unshift({ id: importId, date: new Date().toISOString(), count: finalToInsert.length, file: fileName, source, txIds });
     localStorage.setItem('budgetfam_imports_'+state.currentUser.id, JSON.stringify(history.slice(0,20)));
-    // FIX: Save/create account after successful insert.
-    // Create account even if no balance detected (user can update manually later)
+    // Save/create account after successful insert
     if (finalToInsert.length > 0 && state.currentUser) {
       const accounts = JSON.parse(localStorage.getItem('budgetfam_accounts_'+state.currentUser.id)||'[]');
       const bankInfo = localBankInfo || { bank: 'unknown_'+Date.now(), name: 'חשבון חדש', emoji: '🏦', ambiguous: true };
-      // FIX: ambiguous bank → always create new account (never overwrite)
+      // Find existing account with same bank
       const existingIdx = bankInfo.ambiguous ? -1 : accounts.findIndex(a => a.bank === bankInfo.bank);
       if (existingIdx >= 0) {
-        // Update balance only if we have a real value
-        if (localBalance !== undefined) {
-          accounts[existingIdx].balance = localBalance;
-          accounts[existingIdx].date = new Date().toISOString();
+        // Bank already exists — ask user: update existing or create new account?
+        const existing = accounts[existingIdx];
+        const choice = await customConfirm({
+          title: `${bankInfo.emoji} ${bankInfo.name}`,
+          message: `זיהינו ${bankInfo.name}. מה לעשות?`,
+          okText: 'עדכן חשבון קיים',
+          cancelText: 'צור חשבון חדש'
+        });
+        if (choice) {
+          // Update existing
+          if (localBalance !== undefined) {
+            accounts[existingIdx].balance = localBalance;
+            accounts[existingIdx].date = new Date().toISOString();
+          }
+        } else {
+          // Create new account for same bank (e.g. joint account)
+          const accNum = accounts.filter(a => a.bank === bankInfo.bank).length + 1;
+          accounts.push({
+            id: 'acc_' + Date.now(),
+            name: bankInfo.name + ' ' + accNum,
+            bank: bankInfo.bank + '_' + Date.now(),
+            emoji: bankInfo.emoji,
+            balance: localBalance !== undefined ? localBalance : 0,
+            date: new Date().toISOString(),
+            balanceUnknown: localBalance === undefined
+          });
         }
       } else {
-        // Create account — use detected balance or 0 if unknown
+        // New bank — always create new account
         accounts.push({
           id: 'acc_' + Date.now(),
           name: bankInfo.name,
@@ -1025,7 +1028,7 @@ async function confirmImport(source, fileName) {
           emoji: bankInfo.emoji,
           balance: localBalance !== undefined ? localBalance : 0,
           date: new Date().toISOString(),
-          balanceUnknown: localBalance === undefined // flag to prompt user
+          balanceUnknown: localBalance === undefined
         });
       }
       localStorage.setItem('budgetfam_accounts_'+state.currentUser.id, JSON.stringify(accounts));
@@ -1189,7 +1192,7 @@ function showSettings() {
     </button>
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';editAllBudgetLimits()">
       <div class="icn" style="background:var(--yellow-soft);color:var(--yellow)">💰</div>
-      <div style="flex:1"><div class="ttl">תקציבים חודשיים</div><div class="desc">הגדר מגבלות לכל קטגוריה</div></div>
+      <div style="flex:1"><div class="ttl">תקציבים חודשיים</div><div class="desc">קבע מגבלה לכל קטגוריה → תקבל התראה כשתתקרב לחריגה</div></div>
       <div style="color:var(--muted);font-size:18px">›</div>
     </button>
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';handleLogout()" style="border-color:var(--red-soft)">
@@ -1548,39 +1551,65 @@ function loadInstallmentsCard() {
   const list = getInstallments().filter(i => i.remaining > 0);
   if (list.length === 0) {
     el.innerHTML = `
-      <div class="card" style="border-style:dashed;border-color:rgba(251,146,60,0.3);cursor:pointer" onclick="addInstallmentManual()">
+      <div class="card" style="border-style:dashed;border-color:rgba(251,146,60,0.3);cursor:pointer;margin-top:8px" onclick="addInstallmentManual()">
         <div style="display:flex;align-items:center;gap:10px;color:rgba(251,146,60,0.7)">
           <span style="font-size:22px">💳</span>
-          <div><div style="font-size:13px;font-weight:700">הוסף תשלומים</div><div style="font-size:11px;color:var(--muted)">עקוב אחרי תשלומים עתידיים</div></div>
-          <span style="margin-right:auto;font-size:18px;color:var(--muted)">+</span>
+          <div>
+            <div style="font-size:13px;font-weight:700">הוסף תשלומים</div>
+            <div style="font-size:11px;color:var(--muted)">עקוב אחרי תשלומים עתידיים (מקרר, רהיטים, טלפון...)</div>
+          </div>
+          <span style="margin-right:auto;font-size:20px;color:var(--muted)">+</span>
         </div>
       </div>`;
     return;
   }
+  const now = new Date();
   const totalMonthly = list.reduce((s,i) => s + i.monthly, 0);
   const totalRemaining = list.reduce((s,i) => s + (i.monthly * i.remaining), 0);
-  const rows = list.map(inst => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--divider)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${getCatIcon(inst.category)} ${inst.label}</div>
-        <div style="font-size:10px;color:var(--muted)">${inst.remaining} תשלומים נותרו × ${inst.monthly.toLocaleString('he-IL')}₪</div>
+
+  const rows = list.map(inst => {
+    const pct = Math.round(((inst.total - inst.remaining) / inst.total) * 100);
+    // Next payment date
+    let nextPayStr = '';
+    if (inst.startDate) {
+      const start = new Date(inst.startDate + '-01');
+      nextPayStr = start.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+    }
+    return `
+    <div style="padding:10px 0;border-bottom:1px solid var(--divider)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${inst.label}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">
+            ${inst.remaining}/${inst.total} תשלומים נותרו
+            ${nextPayStr ? ` · תשלום ב-${nextPayStr}` : ''}
+          </div>
+        </div>
+        <div style="text-align:left;flex-shrink:0;margin-right:8px">
+          <div style="font-size:13px;font-weight:800;color:#FB923C;direction:ltr">${inst.monthly.toLocaleString('he-IL')} ₪</div>
+          <div style="font-size:10px;color:var(--muted);direction:ltr">× ${inst.remaining} = ${(inst.monthly*inst.remaining).toLocaleString('he-IL')} ₪</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="decrementInstallment('${inst.id}')" style="background:var(--green-soft);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:13px;color:var(--green)" title="שולם החודש">✓</button>
+          <button onclick="deleteInstallment('${inst.id}')" style="background:var(--red-soft);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:13px;color:var(--red)">🗑</button>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <div style="font-size:12px;font-weight:700;color:#FB923C;direction:ltr">${(inst.monthly * inst.remaining).toLocaleString('he-IL')} ₪</div>
-        <button onclick="decrementInstallment('${inst.id}')" class="action-btn" style="background:var(--green-soft);color:var(--green)">✓</button>
-        <button onclick="deleteInstallment('${inst.id}')" class="action-btn" style="background:var(--red-soft);color:var(--red)">🗑</button>
+      <div style="background:var(--divider);border-radius:99px;height:4px;overflow:hidden">
+        <div style="width:${pct}%;height:4px;background:#FB923C;border-radius:99px;transition:width .6s"></div>
       </div>
-    </div>`).join('');
+    </div>`; 
+  }).join('');
+
   el.innerHTML = `
-    <div class="card" style="border-color:rgba(251,146,60,0.3)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="card" style="border-color:rgba(251,146,60,0.3);margin-top:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div class="rubik" style="font-size:13px;font-weight:700;color:#FB923C">💳 תשלומים פעילים</div>
         <button onclick="addInstallmentManual()" style="background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.4);color:#FB923C;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">+ הוסף</button>
       </div>
       ${rows}
-      <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:4px;border-top:1px solid var(--divider)">
-        <div style="font-size:11px;color:var(--muted)">החודש</div>
-        <div style="font-size:13px;font-weight:800;color:#FB923C;direction:ltr">${totalMonthly.toLocaleString('he-IL')} ₪/חודש</div>
+      <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:6px;border-top:1px solid var(--divider)">
+        <div style="font-size:11px;color:var(--muted)">סה"כ החודש</div>
+        <div style="font-size:14px;font-weight:800;color:#FB923C;direction:ltr">${totalMonthly.toLocaleString('he-IL')} ₪</div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:4px">
         <div style="font-size:11px;color:var(--muted)">סה"כ עתידי</div>
@@ -1590,18 +1619,83 @@ function loadInstallmentsCard() {
 }
 
 async function addInstallmentManual() {
-  const label = await customPrompt({title:'תשלום חדש', message:'שם התשלום', placeholder:'מקרר סמסונג'});
-  if (!label || !label.trim()) return;
-  const monthlyStr = await customPrompt({title:'סכום חודשי', message:'כמה כל חודש (₪)', type:'number'});
-  const monthly = parseFloat(monthlyStr);
-  if (isNaN(monthly) || monthly <= 0) { await customAlert({message:'סכום לא תקין'}); return; }
-  const remainingStr = await customPrompt({title:'מספר תשלומים', message:'כמה תשלומים נותרו', type:'number'});
-  const remaining = parseInt(remainingStr);
-  if (isNaN(remaining) || remaining <= 0) { await customAlert({message:'מספר לא תקין'}); return; }
-  const list = getInstallments();
-  list.push({ id: 'inst_' + Date.now(), label: label.trim(), category: 'Divers', monthly, remaining, total: remaining, autoDetected: false, date: new Date().toISOString() });
-  saveInstallments(list);
-  loadInstallmentsCard(); loadDashboard();
+  return new Promise((resolve) => {
+    const wrap = document.getElementById('cm-modal');
+    wrap.style.display = 'block';
+    // Default start date = next month
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const defaultDate = nextMonth.toISOString().slice(0, 7);
+    wrap.innerHTML = `
+      <div class="cm-overlay" id="cm-ovl">
+        <div class="cm-box" style="max-width:360px">
+          <div class="cm-title">💳 תשלום חדש</div>
+          <div class="cm-msg">פרט את התשלום שלך</div>
+          <input class="cm-input" id="inst-label" type="text" placeholder="שם התשלום (מקרר, רהיטים...)" style="margin-bottom:10px">
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">סכום חודשי (₪)</div>
+              <input class="cm-input" id="inst-monthly" type="number" inputmode="decimal" placeholder="300" style="direction:ltr;text-align:right;margin-bottom:0">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">מספר תשלומים</div>
+              <input class="cm-input" id="inst-count" type="number" inputmode="numeric" placeholder="12" style="direction:ltr;text-align:right;margin-bottom:0">
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">תאריך תשלום ראשון</div>
+          <input class="cm-input" id="inst-date" type="month" value="${defaultDate}" style="direction:ltr;text-align:right;margin-bottom:14px">
+          <div id="inst-preview" style="font-size:11px;color:var(--accent);text-align:center;margin-bottom:10px;min-height:16px"></div>
+          <div class="cm-actions">
+            <button class="cm-btn cm-btn-cancel" id="cm-cancel">ביטול</button>
+            <button class="cm-btn cm-btn-ok" id="cm-ok">הוסף תשלום ✅</button>
+          </div>
+        </div>
+      </div>`;
+    const close = (val) => { wrap.style.display = 'none'; wrap.innerHTML = ''; resolve(val); };
+    // Live preview
+    const updatePreview = () => {
+      const m = parseFloat(document.getElementById('inst-monthly').value);
+      const c = parseInt(document.getElementById('inst-count').value);
+      const p = document.getElementById('inst-preview');
+      if (m > 0 && c > 0) {
+        p.textContent = `סה"כ עתידי: ${(m * c).toLocaleString('he-IL')} ₪ (${c} × ${m.toLocaleString('he-IL')}₪)`;
+      } else {
+        p.textContent = '';
+      }
+    };
+    document.getElementById('cm-cancel').onclick = () => close(null);
+    document.getElementById('cm-ok').onclick = () => {
+      const label = document.getElementById('inst-label').value.trim();
+      const monthly = parseFloat(document.getElementById('inst-monthly').value);
+      const remaining = parseInt(document.getElementById('inst-count').value);
+      const startDate = document.getElementById('inst-date').value;
+      if (!label) { document.getElementById('inst-label').focus(); return; }
+      if (isNaN(monthly) || monthly <= 0) { document.getElementById('inst-monthly').focus(); return; }
+      if (isNaN(remaining) || remaining <= 0) { document.getElementById('inst-count').focus(); return; }
+      close({ label, monthly, remaining, startDate });
+    };
+    document.getElementById('cm-ovl').onclick = (e) => { if (e.target.id === 'cm-ovl') close(null); };
+    document.getElementById('inst-monthly').addEventListener('input', updatePreview);
+    document.getElementById('inst-count').addEventListener('input', updatePreview);
+    setTimeout(() => document.getElementById('inst-label').focus(), 80);
+  }).then(result => {
+    if (!result) return;
+    const list = getInstallments();
+    list.push({
+      id: 'inst_' + Date.now(),
+      label: result.label,
+      category: 'Divers',
+      monthly: result.monthly,
+      remaining: result.remaining,
+      total: result.remaining,
+      startDate: result.startDate,
+      autoDetected: false,
+      date: new Date().toISOString()
+    });
+    saveInstallments(list);
+    loadInstallmentsCard();
+    loadDashboard();
+  });
 }
 function decrementInstallment(id) {
   const list = getInstallments();
@@ -1641,7 +1735,7 @@ function detectInstallmentsFromTxs(transactions) {
       }
     }
   });
-  if (detected.length > 0) { state.pendingInstallments = detected; showInstallmentConfirmation(detected); }
+  if (detected.length > 0) { window._pendingInst = detected; window._pendingInst = detected; showInstallmentConfirmation(detected); }
 }
 function showInstallmentConfirmation(detected) {
   const listHtml = detected.map((inst, i) => `
@@ -1658,20 +1752,20 @@ function showInstallmentConfirmation(detected) {
   document.getElementById('inst-confirm-modal').style.display = 'flex';
 }
 function removeFromPending(idx) {
-  state.pendingInstallments.splice(idx, 1);
-  if (state.pendingInstallments.length === 0) { rejectInstallments(); return; }
-  showInstallmentConfirmation(state.pendingInstallments);
+  window._pendingInst.splice(idx, 1);
+  if (window._pendingInst.length === 0) { rejectInstallments(); return; }
+  showInstallmentConfirmation(window._pendingInst);
 }
 function confirmInstallments() {
   const list = getInstallments();
-  state.pendingInstallments.forEach(inst => list.push(inst));
+  window._pendingInst.forEach(inst => list.push(inst));
   saveInstallments(list);
-  state.pendingInstallments = [];
+  window._pendingInst = [];
   document.getElementById('inst-confirm-modal').style.display = 'none';
   loadInstallmentsCard();
 }
 function rejectInstallments() {
-  state.pendingInstallments = [];
+  window._pendingInst = [];
   document.getElementById('inst-confirm-modal').style.display = 'none';
 }
 
