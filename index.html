@@ -609,7 +609,8 @@ const RULES = [
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
   // CREDIT CARD COMPANIES → CreditCard (always first, before all other rules)
-  if (/\bvisa\b|mastercard|master.?card|isracard|ישראכרט|\bcal\b|כאל|american.?express|\bamex\b|דיינרס|diners|max.?credit|מקס.?כרטיס|leumicard|לאומיקארד|discount.?card|דיסקונט.?כרטיס|\bmax\b.*(כרטיס|card)|כרטיס.?אשראי|credit.?card|ויזה|\bלאומי.?קארד\b|\bלאומיקארד\b/i.test(label)) {
+  if (/\bvisa\b|mastercard|master.?card|isracard|ישראכרט|\bcal\b|כאל|american.?express|\bamex\b|דיינרס|diners|max.?credit|מקס.?כרטיס|leumicard|לאומיקארד|discount.?card|דיסקונט.?כרטיס|\bmax\b.*(כרטיס|card)|כרטיס.?אשראי|credit.?card|ויזה|\bלאומי.?קארד\b||\bלאומי\s+ויזה\b|\bלאומי\s+כרטיס\b|כרטיסי\s+אשראי/i.test(label)) {
+
     return 'CreditCard';
   }
   if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) return 'Logement';
