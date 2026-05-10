@@ -45,9 +45,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 .field:focus{border-color:var(–accent);}
 .auth-tabs{display:flex;background:var(–card);border-radius:14px;padding:4px;margin-bottom:24px;width:100%;}
 .auth-tab{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:var(–muted);transition:all .2s;font-family:‘Heebo’,sans-serif;}
-.auth-tab.active{background:var(–accent);color:#fff;}
+.auth-tab.active{background:#4F8EF7!important;color:#fff!important;}
 .btn-primary{width:100%;padding:14px;border-radius:14px;border:none;background:var(–accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:‘Rubik’,sans-serif;transition:all .3s;margin-top:4px;}
-.btn-primary.loading{opacity:.6;pointer-events:none;}
+.btn-primary.loading{opacity:.6;pointer-events:none;background:#4F8EF7!important;}
 .auth-error{background:var(–red-soft);color:var(–red);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
 .auth-success{background:var(–green-soft);color:var(–green);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:12px;width:100%;text-align:center;}
 
@@ -156,7 +156,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Heebo'
 .cm-actions{display:flex;gap:8px;}
 .cm-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:‘Heebo’,sans-serif;}
 .cm-btn-cancel{background:var(–divider);border:1px solid var(–border);color:var(–text);}
-.cm-btn-ok{background:var(–accent);color:white;}
+.cm-btn-ok{background:#4F8EF7!important;color:#fff!important;}
 .cm-btn-danger{background:var(–red);color:white;}
 
 /* COLLAPSIBLE INSIGHTS SECTION */
@@ -609,8 +609,7 @@ const RULES = [
 function localCategorize(label, amount) {
   if (!label) return amount > 0 ? 'Salaire' : 'Divers';
   // CREDIT CARD COMPANIES → CreditCard (always first, before all other rules)
-  if (/\bvisa\b|mastercard|master.?card|isracard|ישראכרט|\bcal\b|כאל|american.?express|\bamex\b|דיינרס|diners|max.?credit|מקס.?כרטיס|leumicard|לאומיקארד|discount.?card|דיסקונט.?כרטיס|\bmax\b.*(כרטיס|card)|כרטיס.?אשראי|credit.?card|ויזה|\bלאומי.?קארד\b|\bלאומי\s+ויזה\b |כרטיסיi.test(label)) {
-
+  if (/\bvisa\b|mastercard|master.?card|isracard|ישראכרט|\bcal\b|כאל|american.?express|\bamex\b|דיינרס|diners|max.?credit|מקס.?כרטיס|leumicard|לאומיקארד|discount.?card|דיסקונט.?כרטיס|\bmax\b.*(כרטיס|card)|כרטיס.?אשראי|credit.?card|ויזה|\bלאומי.?קארד\b|\bלאומיקארד\b/i.test(label)) {
     return 'CreditCard';
   }
   if (/משכנתא|mortgage|הלוואה.?לדיור|הלוואה.?משכנתא|housing.?loan/i.test(label)) return 'Logement';
@@ -1168,6 +1167,29 @@ async function handleAuth() {
     state.currentUser = data.user; enterApp();
   }
 }
+async function recategorizeAll() {
+  const ok = await customConfirm({title:'עדכן קטגוריות', message:'לעדכן את הקטגוריות של כל העסקאות לפי הכללים החדשים?', okText:'כן, עדכן', cancelText:'ביטול'});
+  if (!ok) return;
+  const { data: txs } = await sb.from('transactions').select('id,label,amount,category').eq('user_id', state.currentUser.id);
+  if (!txs || txs.length === 0) return;
+  let updated = 0;
+  const updates = [];
+  txs.forEach(tx => {
+    const newCat = localCategorize(tx.label, tx.amount);
+    if (newCat !== tx.category) {
+      updates.push({ id: tx.id, category: newCat });
+      updated++;
+    }
+  });
+  // Batch update in groups of 20
+  for (let i = 0; i < updates.length; i += 20) {
+    const batch = updates.slice(i, i+20);
+    await Promise.all(batch.map(u => sb.from('transactions').update({ category: u.category }).eq('id', u.id)));
+  }
+  await customAlert({ title:'✅ עודכן', message: `${updated} עסקאות עודכנו` });
+  await loadDashboard(); await loadTransactions();
+}
+
 async function handleLogout() {
   const ok = await customConfirm({title:'יציאה', message:'להתנתק מהחשבון?', okText:'יציאה'});
   if (!ok) return;
@@ -1194,6 +1216,11 @@ function showSettings() {
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';editAllBudgetLimits()">
       <div class="icn" style="background:var(--yellow-soft);color:var(--yellow)">💰</div>
       <div style="flex:1"><div class="ttl">תקציבים חודשיים</div><div class="desc">קבע מגבלה לכל קטגוריה → תקבל התראה כשתתקרב לחריגה</div></div>
+      <div style="color:var(--muted);font-size:18px">›</div>
+    </button>
+    <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';recategorizeAll()">
+      <div class="icn" style="background:var(--accent-soft);color:var(--accent)">🔄</div>
+      <div style="flex:1"><div class="ttl">עדכן קטגוריות</div><div class="desc">סווג מחדש את כל העסקאות לפי הכללים העדכניים</div></div>
       <div style="color:var(--muted);font-size:18px">›</div>
     </button>
     <button class="ai-menu-item" onclick="document.getElementById('settings-modal').style.display='none';handleLogout()" style="border-color:var(--red-soft)">
